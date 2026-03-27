@@ -31,6 +31,7 @@ export const RELEASE_DETAIL = `
     releaseDate,
     _id,
     price,
+    physicalPrice,
     embedUrl,
     description,
     tracks[] {

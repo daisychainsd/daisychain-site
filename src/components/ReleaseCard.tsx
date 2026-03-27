@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FormatToggle from "./FormatToggle";
 
 interface ReleaseCardProps {
   title: string;
@@ -42,17 +43,14 @@ export default function ReleaseCard({
           {catalogNumber && (
             <p className="text-meta mt-1.5">{catalogNumber}</p>
           )}
-          {format && (
-            <div className="flex gap-1 mt-1.5">
-              {format.map((f) => (
-                <span
-                  key={f}
-                  className="container-pill-l text-[10px] uppercase tracking-wider text-lavender-300/80 border border-lavender-300/20 bg-lavender-300/5 px-2 py-0.5"
-                  data-mono
-                >
-                  {f}
-                </span>
-              ))}
+          {format && format.length > 1 && (
+            <div className="mt-2">
+              <FormatToggle
+                formats={format}
+                activeFormat={format[0]}
+                size="compact"
+                interactive={false}
+              />
             </div>
           )}
         </div>

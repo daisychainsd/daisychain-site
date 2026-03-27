@@ -3,7 +3,7 @@ import { urlFor } from "@/sanity/image";
 import { notFound } from "next/navigation";
 import { RELEASE_DETAIL } from "@/lib/queries";
 import type { Release } from "@/lib/types";
-import TrackList from "@/components/TrackList";
+import ReleaseInteractive from "@/components/ReleaseInteractive";
 
 export default async function ReleasePage({
   params,
@@ -55,20 +55,6 @@ export default async function ReleasePage({
               {release.artist}
             </a>
 
-            {release.format && (
-              <div className="flex gap-2 mb-6">
-                {release.format.map((f: string) => (
-                  <span
-                    key={f}
-                    className="container-pill-l text-xs uppercase tracking-wider text-lavender-300/80 border border-lavender-300/20 bg-lavender-300/5 px-3 py-1"
-                    data-mono
-                  >
-                    {f}
-                  </span>
-                ))}
-              </div>
-            )}
-
             {release.releaseDate && (
               <p className="text-text-secondary text-sm">
                 Released{" "}
@@ -83,20 +69,22 @@ export default async function ReleasePage({
         </div>
       </div>
 
-      {/* Track List */}
+      {/* Track List + Format Toggle */}
       {release.tracks && release.tracks.length > 0 && (
         <section className="mt-12">
           <div className="mb-4">
             <p className="text-label mb-1">Tracks</p>
             <h2 className="text-title text-text-primary">Tracklist</h2>
           </div>
-          <TrackList
+          <ReleaseInteractive
+            formats={release.format}
+            price={release.price}
+            physicalPrice={release.physicalPrice}
             tracks={release.tracks}
             releaseArtist={release.artist}
             releaseTitle={release.title}
             releaseId={release._id}
             releaseSlug={release.slug}
-            price={release.price}
           />
         </section>
       )}

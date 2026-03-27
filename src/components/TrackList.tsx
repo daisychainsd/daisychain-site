@@ -10,6 +10,7 @@ export default function TrackList({
   releaseId,
   releaseSlug,
   price,
+  formatMode = "digital",
 }: {
   tracks: Track[];
   releaseArtist: string;
@@ -17,6 +18,7 @@ export default function TrackList({
   releaseId?: string;
   releaseSlug?: string;
   price?: number;
+  formatMode?: "digital" | "physical";
 }) {
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -148,7 +150,7 @@ export default function TrackList({
                 </span>
               )}
 
-              {track.audioUrl && (
+              {track.audioUrl && formatMode === "digital" && (
                 <a
                   href={track.audioUrl + "?dl="}
                   download={`${track.trackArtist || releaseArtist} - ${track.title}.wav`}
@@ -172,7 +174,25 @@ export default function TrackList({
       </div>
 
       {/* Buy / Download buttons */}
-      {downloadableTracks.length > 0 && (
+      {formatMode === "physical" ? (
+        <div className="flex flex-wrap gap-3 mt-6">
+          {price && price > 0 ? (
+            <button
+              disabled
+              className="container-pill-r flex items-center gap-2 px-6 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm opacity-50 cursor-not-allowed"
+            >
+              Add to Cart — ${price.toFixed(2)}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="container-pill-r px-6 py-2.5 bg-blue-300/20 text-blue-300/40 font-medium text-sm cursor-not-allowed"
+            >
+              Coming Soon
+            </button>
+          )}
+        </div>
+      ) : downloadableTracks.length > 0 ? (
         <div className="flex flex-wrap gap-3 mt-6">
           {price && price > 0 ? (
             <button
@@ -203,7 +223,7 @@ export default function TrackList({
             </button>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

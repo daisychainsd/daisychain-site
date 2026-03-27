@@ -19,6 +19,7 @@ export interface Release {
   releaseDate?: string;
   _id?: string;
   price?: number;
+  physicalPrice?: number;
   embedUrl?: string;
   description?: any;
   tracks?: Track[];

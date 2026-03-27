@@ -133,7 +133,13 @@ export const release = defineType({
       name: "price",
       title: "Price (USD)",
       type: "number",
-      description: "Price in dollars. Leave blank or 0 for free download.",
+      description: "Digital price in dollars. Leave blank or 0 for free download.",
+    }),
+    defineField({
+      name: "physicalPrice",
+      title: "Physical Price (USD)",
+      type: "number",
+      description: "Price for vinyl/cassette. Leave blank if not yet available for purchase.",
     }),
     defineField({
       name: "embedUrl",
