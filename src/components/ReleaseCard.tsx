@@ -1,5 +1,4 @@
 import Link from "next/link";
-import FormatToggle from "./FormatToggle";
 
 interface ReleaseCardProps {
   title: string;
@@ -16,7 +15,6 @@ export default function ReleaseCard({
   artist,
   coverUrl,
   catalogNumber,
-  format,
 }: ReleaseCardProps) {
   return (
     <Link href={`/releases/${slug}`} className="group block">
@@ -42,16 +40,6 @@ export default function ReleaseCard({
           <p className="text-text-secondary text-xs truncate">{artist}</p>
           {catalogNumber && (
             <p className="text-meta mt-1.5">{catalogNumber}</p>
-          )}
-          {format && format.length > 1 && (
-            <div className="mt-2">
-              <FormatToggle
-                formats={format}
-                activeFormat={format[0]}
-                size="compact"
-                interactive={false}
-              />
-            </div>
           )}
         </div>
       </div>
