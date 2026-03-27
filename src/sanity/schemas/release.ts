@@ -4,7 +4,6 @@ export const release = defineType({
   name: "release",
   title: "Release",
   type: "document",
-  liveEdit: true,
   fields: [
     defineField({
       name: "title",
