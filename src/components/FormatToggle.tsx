@@ -15,9 +15,12 @@ function positionClass(index: number, total: number) {
 }
 
 function formatLabel(format: string) {
-  if (format.toLowerCase() === "digital") return "Digital";
-  if (format.toLowerCase() === "vinyl") return "Physical";
-  if (format.toLowerCase() === "cassette") return "Physical";
+  const f = format.toLowerCase();
+  if (f === "all") return "All";
+  if (f === "digital") return "Digital";
+  if (f === "vinyl") return "Physical";
+  if (f === "cassette") return "Physical";
+  if (f === "physical") return "Physical";
   return format;
 }
 

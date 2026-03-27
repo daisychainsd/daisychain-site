@@ -2,10 +2,19 @@ import { sanityFetch } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { RELEASES_LIST } from "@/lib/queries";
 import type { ReleaseCard as ReleaseCardType } from "@/lib/types";
-import ReleaseCard from "@/components/ReleaseCard";
+import CatalogGrid from "@/components/CatalogGrid";
 
 export default async function HomePage() {
   const releases = await sanityFetch<ReleaseCardType>(RELEASES_LIST);
+
+  const catalogReleases = releases.map((release) => ({
+    title: release.title,
+    slug: release.slug,
+    artist: release.artist,
+    coverUrl: release.coverArt ? urlFor(release.coverArt).width(600).url() : "",
+    catalogNumber: release.catalogNumber,
+    format: release.format,
+  }));
 
   return (
     <>
@@ -50,35 +59,7 @@ export default async function HomePage() {
         <div className="blob w-[400px] h-[400px] bg-blue-300 bottom-[-50px] left-[-100px] animate-drift" />
 
         <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="mb-10">
-            <p className="text-label mb-2">Catalog</p>
-            <h2 className="text-headline text-text-primary">Releases</h2>
-          </div>
-          {releases.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-              {releases.map((release) => (
-                <ReleaseCard
-                  key={release.slug}
-                  title={release.title}
-                  slug={release.slug}
-                  artist={release.artist}
-                  coverUrl={release.coverArt ? urlFor(release.coverArt).width(600).url() : ""}
-                  catalogNumber={release.catalogNumber}
-                  format={release.format}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 text-text-muted">
-              <p className="text-2xl mb-2">No releases yet</p>
-              <p className="text-sm">
-                Connect Sanity and add your first release at{" "}
-                <a href="/studio" className="text-blue-300 hover:underline">
-                  /studio
-                </a>
-              </p>
-            </div>
-          )}
+          <CatalogGrid releases={catalogReleases} />
         </div>
       </section>
     </>
