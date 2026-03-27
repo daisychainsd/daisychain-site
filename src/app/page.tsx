@@ -26,7 +26,7 @@ export default async function HomePage() {
         {/* Watermark flower — offset to right */}
         <div className="absolute top-1/2 right-[10%] -translate-y-1/2 pointer-events-none">
           <img
-            src="/flower-blue.png"
+            src="/PD-FlowerOutlined_White_2021.png"
             alt=""
             className="w-[500px] h-[500px] object-contain opacity-[0.04] animate-slow-spin"
           />
