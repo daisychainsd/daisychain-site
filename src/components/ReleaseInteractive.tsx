@@ -24,7 +24,7 @@ interface ReleaseInteractiveProps {
 
 function isPhysical(format: string) {
   const f = format.toLowerCase();
-  return f === "vinyl" || f === "cassette";
+  return f === "vinyl" || f === "cd" || f === "cassette";
 }
 
 export default function ReleaseInteractive({

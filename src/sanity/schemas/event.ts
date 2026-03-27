@@ -4,6 +4,7 @@ export const event = defineType({
   name: "event",
   title: "Event",
   type: "document",
+  liveEdit: true,
   fields: [
     defineField({
       name: "title",

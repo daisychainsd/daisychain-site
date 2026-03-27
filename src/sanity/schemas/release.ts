@@ -4,6 +4,7 @@ export const release = defineType({
   name: "release",
   title: "Release",
   type: "document",
+  liveEdit: true,
   fields: [
     defineField({
       name: "title",
@@ -68,8 +69,9 @@ export const release = defineType({
       of: [{ type: "string" }],
       options: {
         list: [
-          { title: "Vinyl", value: "vinyl" },
           { title: "Digital", value: "digital" },
+          { title: "Vinyl", value: "vinyl" },
+          { title: "CD", value: "cd" },
           { title: "Cassette", value: "cassette" },
         ],
       },

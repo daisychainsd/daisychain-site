@@ -19,6 +19,7 @@ function formatLabel(format: string) {
   if (f === "all") return "All";
   if (f === "digital") return "Digital";
   if (f === "vinyl") return "Physical";
+  if (f === "cd") return "Physical";
   if (f === "cassette") return "Physical";
   if (f === "physical") return "Physical";
   return format;
