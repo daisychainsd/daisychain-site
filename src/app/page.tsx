@@ -1,65 +1,86 @@
-import Image from "next/image";
+import { sanityFetch } from "@/sanity/client";
+import { urlFor } from "@/sanity/image";
+import { RELEASES_LIST } from "@/lib/queries";
+import type { ReleaseCard as ReleaseCardType } from "@/lib/types";
+import ReleaseCard from "@/components/ReleaseCard";
 
-export default function Home() {
+export default async function HomePage() {
+  const releases = await sanityFetch<ReleaseCardType>(RELEASES_LIST);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      {/* Hero — zone-abyss */}
+      <section className="zone-abyss relative overflow-hidden py-24 sm:py-32">
+        {/* Decorative blob */}
+        <div className="blob w-[600px] h-[600px] bg-blue-400 top-[-100px] right-[-100px] animate-drift" />
+
+        {/* Watermark flower — offset to right */}
+        <div className="absolute top-1/2 right-[10%] -translate-y-1/2 pointer-events-none">
+          <img
+            src="/flower-blue.png"
+            alt=""
+            className="w-[500px] h-[500px] object-contain opacity-[0.04] animate-slow-spin"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Radial glow */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse at 30% 50%, rgba(124,185,232,0.06) 0%, transparent 60%)",
+        }} />
+
+        <div className="max-w-7xl mx-auto px-6 relative">
+          <div className="container-organic p-8 sm:p-12 max-w-2xl">
+            <h1 className="text-display text-text-primary">
+              DAISY<br />CHAIN
+            </h1>
+            <div className="w-24 h-1 bg-gradient-to-r from-blue-300 to-blue-500 mt-6 mb-5 rounded-full" />
+            <p className="text-text-secondary text-lg max-w-md">
+              Independent electronic music — San Diego, CA
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Divider */}
+      <div className="divider-glow" />
+
+      {/* Catalog — zone-deep */}
+      <section className="zone-deep relative py-16 sm:py-20">
+        {/* Decorative blob */}
+        <div className="blob w-[400px] h-[400px] bg-blue-300 bottom-[-50px] left-[-100px] animate-drift" />
+
+        <div className="max-w-7xl mx-auto px-6 relative">
+          <div className="mb-10">
+            <p className="text-label mb-2">Catalog</p>
+            <h2 className="text-headline text-text-primary">Releases</h2>
+          </div>
+          {releases.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
+              {releases.map((release) => (
+                <ReleaseCard
+                  key={release.slug}
+                  title={release.title}
+                  slug={release.slug}
+                  artist={release.artist}
+                  coverUrl={release.coverArt ? urlFor(release.coverArt).width(600).url() : ""}
+                  catalogNumber={release.catalogNumber}
+                  format={release.format}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 text-text-muted">
+              <p className="text-2xl mb-2">No releases yet</p>
+              <p className="text-sm">
+                Connect Sanity and add your first release at{" "}
+                <a href="/studio" className="text-blue-300 hover:underline">
+                  /studio
+                </a>
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
   );
 }

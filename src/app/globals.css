@@ -1,26 +1,258 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* Blue accent palette — derived from the daisy logo */
+  --color-blue-100: #D4EAFF;
+  --color-blue-200: #B0D4F1;
+  --color-blue-300: #7CB9E8;
+  --color-blue-400: #5AA3DC;
+  --color-blue-500: #3A8CCF;
+  --color-blue-600: #2670A8;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* 7-level dark background scale */
+  --color-bg-abyss: #060910;
+  --color-bg-deep: #0A0E14;
+  --color-bg-surface: #111820;
+  --color-bg-raised: #151D28;
+  --color-bg-elevated: #1A2230;
+  --color-bg-shelf: #1F2A3A;
+  --color-bg-float: #253244;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Warm white text */
+  --color-text-primary: #E8ECF0;
+  --color-text-secondary: #8899AA;
+  --color-text-muted: #556677;
+  --color-text-faint: #3A4A5A;
+
+  /* Secondary accents */
+  --color-amber-300: #E8B86C;
+  --color-amber-400: #D49E4E;
+  --color-lavender-300: #A8A0D4;
+  --color-lavender-400: #8B82B8;
+
+  /* Asymmetric radius system */
+  --radius-organic-lg: 24px 8px 24px 4px;
+  --radius-organic-md: 16px 6px 16px 3px;
+  --radius-organic-sm: 12px 4px 12px 2px;
+  --radius-organic-inv: 4px 24px 4px 24px;
+  --radius-organic-inv-md: 3px 16px 3px 16px;
+  --radius-pill-left: 24px 6px 6px 24px;
+  --radius-pill-right: 6px 24px 24px 6px;
+  --radius-scoop: 4px 4px 20px 20px;
+
+  /* Fluid typography */
+  --text-display: clamp(3.5rem, 8vw, 7rem);
+  --text-headline: clamp(2rem, 4vw, 3.5rem);
+  --text-title: clamp(1.25rem, 2vw, 1.75rem);
+  --text-body: 1rem;
+  --text-caption: 0.8125rem;
+  --text-micro: 0.6875rem;
+
+  /* Typography */
+  --font-heading: var(--font-outfit);
+  --font-body: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg-deep);
+  color: var(--color-text-primary);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), system-ui, sans-serif;
+}
+
+code, pre, [data-mono] {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+::selection {
+  background: var(--color-blue-300);
+  color: var(--color-bg-deep);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 185, 232, 0.15);
+  border-radius: 3px;
+}
+
+/* Subtle noise texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ─── Container Primitives ─── */
+
+.container-organic {
+  border-radius: var(--radius-organic-lg);
+  background: var(--color-bg-surface);
+  border: 1px solid rgba(124, 185, 232, 0.06);
+}
+
+.container-organic-md {
+  border-radius: var(--radius-organic-md);
+  background: var(--color-bg-surface);
+  border: 1px solid rgba(124, 185, 232, 0.06);
+}
+
+.container-inset {
+  border-radius: var(--radius-organic-inv);
+  background: var(--color-bg-raised);
+  border: 1px solid rgba(124, 185, 232, 0.04);
+  overflow: hidden;
+}
+
+.container-inset-md {
+  border-radius: var(--radius-organic-inv-md);
+  background: var(--color-bg-raised);
+  border: 1px solid rgba(124, 185, 232, 0.04);
+  overflow: hidden;
+}
+
+.container-scoop {
+  border-radius: var(--radius-scoop);
+  background: var(--color-bg-surface);
+  border: 1px solid rgba(124, 185, 232, 0.06);
+  overflow: hidden;
+}
+
+.container-pill-l {
+  border-radius: var(--radius-pill-left);
+}
+
+.container-pill-r {
+  border-radius: var(--radius-pill-right);
+}
+
+/* ─── Utility Classes ─── */
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 4px 20px rgba(124, 185, 232, 0.08),
+    0 8px 40px rgba(124, 185, 232, 0.04),
+    0 0 0 1px rgba(124, 185, 232, 0.06);
+}
+
+.divider-glow {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 185, 232, 0.3) 50%,
+    transparent 100%
+  );
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.04;
+}
+
+/* ─── Background Zones ─── */
+
+.zone-abyss {
+  background: var(--color-bg-abyss);
+}
+
+.zone-deep {
+  background: var(--color-bg-deep);
+}
+
+.zone-surface {
+  background: var(--color-bg-surface);
+}
+
+/* ─── Typography Presets ─── */
+
+.text-display {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: var(--text-display);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.text-headline {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: var(--text-headline);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.text-title {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: var(--text-title);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.text-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.text-meta {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: var(--text-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+}
+
+/* ─── Keyframes ─── */
+
+@keyframes slow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-slow-spin {
+  animation: slow-spin 120s linear infinite;
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(15px, -10px); }
+  50% { transform: translate(-10px, 15px); }
+  75% { transform: translate(10px, 10px); }
+}
+
+.animate-drift {
+  animation: drift 20s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slow-spin,
+  .animate-drift {
+    animation: none;
+  }
 }
