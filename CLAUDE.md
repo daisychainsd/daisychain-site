@@ -43,7 +43,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/` | Homepage — hero + release catalog grid |
 | `/releases/[slug]` | Release detail — cover art, metadata, TrackList with audio playback |
 | `/artists/[slug]` | Artist page |
-| `/events` | Events listing (not yet populated) |
+| `/events` | Events listing — upcoming (hero card) + past (flyer grid) |
 | `/shop` | Shopify storefront (not yet connected) |
 | `/download/[slug]?session_id=` | Post-purchase download page (Stripe session verified) |
 | `/studio` | Embedded Sanity Studio |
@@ -56,8 +56,18 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **TrackList** (`src/components/TrackList.tsx`) — audio playback, per-track download, YouTube icon links, buy button. Shows "Buy EP — $X.XX" when price > 0, "Download All" when free.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
 - **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + placeholder fallback
+- **EventsToggle** (`src/components/EventsToggle.tsx`) — client-side upcoming/past tab toggle for events page
 - **MobileNav** (`src/components/MobileNav.tsx`) — hamburger menu for mobile screens
 - **Header/Footer** — site-wide layout; Footer includes YouTube channel link
+
+## Events
+
+- All events are at **Spin Nightclub** in San Diego
+- Tickets sold via **Shotgun** — venue page: https://shotgun.live/en/venues/daisy-chain
+- Each event has its own Shotgun URL (e.g. `https://shotgun.live/en/events/daisy-chain-28-w-lyny`)
+- Each event document in Sanity has a `ticketUrl` field — set to the specific Shotgun event page
+- Events page splits into **Upcoming** (hero card with large flyer + ticket CTA) and **Past** (flyer grid)
+- Lineup entries can optionally reference a DCR artist profile for linking
 
 ## Stripe Integration
 
@@ -103,7 +113,6 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 - Per-track individual purchasing (Stripe)
 - Shopify Storefront API connection (merch shop)
-- Events page content
 - YouTube URLs on individual tracks (field exists in schema, needs data entry in Sanity Studio)
 - Missing cover art for 3 releases (DCR#02, DCR#10, DCR#20)
 - Missing artist photos for 7 artists
@@ -118,6 +127,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - YouTube channel link in footer
 - 13 artist profile photos uploaded
 - Canonical catalog data in `CATALOG.md`
+- Events page with 3 events (DC#26, DC#27, DC#28) — flyers, lineups, venue data
 
 ## Environment
 
