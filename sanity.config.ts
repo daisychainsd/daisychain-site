@@ -13,12 +13,4 @@ export default defineConfig({
   schema: {
     types: schemaTypes,
   },
-  document: {
-    actions: (prev) => {
-      // Put Publish first so it's the primary action button
-      const publish = prev.find((a) => a.action === "publish");
-      const rest = prev.filter((a) => a.action !== "publish");
-      return publish ? [publish, ...rest] : prev;
-    },
-  },
 });

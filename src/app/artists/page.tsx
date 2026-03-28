@@ -33,8 +33,8 @@ export default async function ArtistsPage() {
                     <div className="w-full h-full bg-bg-raised" />
                   )}
                 </div>
-                <div className="px-2 pt-3 pb-2">
-                  <p className="font-medium truncate">{artist.name}</p>
+                <div className="px-3 pt-3 pb-3">
+                  <p className="font-semibold text-base truncate">{artist.name}</p>
                   <p className="text-text-secondary text-sm">
                     {artist.releaseCount} release
                     {artist.releaseCount !== 1 ? "s" : ""}

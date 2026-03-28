@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
 import type { Track } from "@/lib/types";
@@ -15,6 +15,9 @@ interface ReleaseInteractiveProps {
   releaseId?: string;
   releaseSlug?: string;
   artistSlug?: string;
+  primaryArtistName?: string;
+  additionalArtists?: { name: string; slug: string }[];
+  remixerSlug?: string;
   catalogNumber?: string;
   releaseType?: string;
   releaseDate?: string;
@@ -37,6 +40,9 @@ export default function ReleaseInteractive({
   releaseId,
   releaseSlug,
   artistSlug,
+  primaryArtistName,
+  additionalArtists,
+  remixerSlug,
   catalogNumber,
   releaseType,
   releaseDate,
@@ -57,7 +63,7 @@ export default function ReleaseInteractive({
       <div className="container-organic p-3 sm:p-4">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Cover Art — inset container */}
-          <div className="container-inset aspect-square relative">
+          <div className="container-inset aspect-square max-h-[70vw] md:max-h-none relative">
             {coverUrl ? (
               <img
                 src={coverUrl}
@@ -72,8 +78,8 @@ export default function ReleaseInteractive({
           </div>
 
           {/* Details */}
-          <div className="flex flex-col justify-center p-2 sm:p-4">
-            <p className="text-meta mb-3">
+          <div className="flex flex-col justify-center p-4 sm:p-6">
+            <p className="text-label mb-3">
               {catalogNumber}
               {releaseType && (
                 <span className="ml-2 text-blue-300/70">
@@ -82,12 +88,47 @@ export default function ReleaseInteractive({
               )}
             </p>
             <h1 className="text-headline mb-2">{releaseTitle}</h1>
-            <a
-              href={`/artists/${artistSlug}`}
-              className="text-blue-300 hover:underline text-lg mb-4"
-            >
-              {releaseArtist}
-            </a>
+            <div className="text-xl mb-4 flex flex-wrap items-baseline gap-x-1">
+              {releaseType === "remix" && remixerSlug ? (
+                <>
+                  <a
+                    href={`/artists/${remixerSlug}`}
+                    className="text-blue-300 hover:underline"
+                  >
+                    {releaseArtist}
+                  </a>
+                  {artistSlug && primaryArtistName && (
+                    <>
+                      <span className="text-text-muted">,</span>
+                      <a
+                        href={`/artists/${artistSlug}`}
+                        className="text-blue-300 hover:underline"
+                      >
+                        {primaryArtistName}
+                      </a>
+                    </>
+                  )}
+                </>
+              ) : (
+                <a
+                  href={`/artists/${artistSlug}`}
+                  className="text-blue-300 hover:underline"
+                >
+                  {releaseArtist}
+                </a>
+              )}
+              {additionalArtists?.map((a) => (
+                <Fragment key={a.slug}>
+                  <span className="text-text-muted">,</span>
+                  <a
+                    href={`/artists/${a.slug}`}
+                    className="text-blue-300 hover:underline"
+                  >
+                    {a.name}
+                  </a>
+                </Fragment>
+              ))}
+            </div>
 
             {hasToggle && (
               <div className="mb-4">
@@ -100,7 +141,7 @@ export default function ReleaseInteractive({
             )}
 
             {releaseDate && (
-              <p className="text-text-secondary text-sm">
+              <p className="text-text-secondary text-base">
                 Released{" "}
                 {new Date(releaseDate).toLocaleDateString("en-US", {
                   year: "numeric",

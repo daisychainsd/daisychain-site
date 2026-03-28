@@ -35,11 +35,11 @@ export default function ReleaseCard({
         </div>
 
         {/* Metadata inside outer container */}
-        <div className="px-2 pt-3 pb-2">
-          <p className="text-text-primary font-medium text-sm truncate">{title}</p>
-          <p className="text-text-secondary text-xs truncate">{artist}</p>
+        <div className="px-3 pt-3 pb-3">
+          <p className="text-text-primary font-semibold text-base truncate">{title}</p>
+          <p className="text-text-secondary text-sm truncate">{artist}</p>
           {catalogNumber && (
-            <p className="text-meta mt-1.5">{catalogNumber}</p>
+            <p className="text-meta mt-2">{catalogNumber}</p>
           )}
         </div>
       </div>

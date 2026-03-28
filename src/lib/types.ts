@@ -4,6 +4,7 @@ export interface Track {
   duration?: string;
   trackNumber?: number;
   audioUrl?: string;
+  youtubeUrl?: string;
 }
 
 export interface Release {
@@ -12,6 +13,9 @@ export interface Release {
   artist: string;
   displayArtist?: string;
   artistSlug?: string;
+  primaryArtistName?: string;
+  additionalArtists?: { name: string; slug: string }[];
+  remixerSlug?: string;
   coverArt?: any;
   catalogNumber?: string;
   releaseType?: string;

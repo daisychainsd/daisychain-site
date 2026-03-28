@@ -45,8 +45,8 @@
   --text-headline: clamp(2rem, 4vw, 3.5rem);
   --text-title: clamp(1.25rem, 2vw, 1.75rem);
   --text-body: 1rem;
-  --text-caption: 0.8125rem;
-  --text-micro: 0.6875rem;
+  --text-caption: 0.9375rem;
+  --text-micro: 0.8125rem;
 
   /* Typography */
   --font-heading: var(--font-outfit);
@@ -268,7 +268,7 @@ body::before {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: var(--text-micro);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--color-text-muted);
 }
 

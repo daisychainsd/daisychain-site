@@ -29,6 +29,9 @@ export default async function ReleasePage({
         releaseId={release._id}
         releaseSlug={release.slug}
         artistSlug={release.artistSlug}
+        primaryArtistName={release.primaryArtistName}
+        additionalArtists={release.additionalArtists}
+        remixerSlug={release.remixerSlug}
         catalogNumber={release.catalogNumber}
         releaseType={release.releaseType}
         releaseDate={release.releaseDate}

@@ -29,7 +29,14 @@ export const release = defineType({
       name: "displayArtist",
       title: "Display Artist",
       type: "string",
-      description: "Full artist credit as shown on release (e.g. 'Player Dave & sumthin sumthin'). Overrides the artist reference for display.",
+      description: "Overrides the primary artist name for display (e.g. remixer name). Use Additional Artists for collabs instead.",
+    }),
+    defineField({
+      name: "additionalArtists",
+      title: "Additional Artists",
+      type: "array",
+      of: [{ type: "reference", to: [{ type: "artist" }] }],
+      description: "Other credited artists (collaborators, featured artists, etc.)",
     }),
     defineField({
       name: "coverArt",
@@ -112,6 +119,12 @@ export const release = defineType({
               name: "trackNumber",
               title: "Track Number",
               type: "number",
+            }),
+            defineField({
+              name: "youtubeUrl",
+              title: "YouTube URL",
+              type: "url",
+              description: "Link to the visualizer or music video on YouTube",
             }),
           ],
           preview: {

@@ -24,6 +24,12 @@ export const RELEASE_DETAIL = `
     displayArtist,
     "artist": coalesce(displayArtist, artist->name),
     "artistSlug": artist->slug.current,
+    "primaryArtistName": artist->name,
+    "additionalArtists": additionalArtists[]->{ name, "slug": slug.current },
+    "remixerSlug": select(
+      releaseType == "remix" => *[_type == "artist" && name == ^.displayArtist][0].slug.current,
+      null
+    ),
     coverArt,
     catalogNumber,
     releaseType,
@@ -39,6 +45,7 @@ export const RELEASE_DETAIL = `
       trackArtist,
       duration,
       trackNumber,
+      youtubeUrl,
       "audioUrl": audioFile.asset->url
     }
   }

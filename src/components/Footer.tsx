@@ -14,20 +14,28 @@ export default function Footer() {
                 Independent electronic music label based in San Diego, California.
               </p>
             </div>
-            <div className="flex gap-3 text-sm">
+            <div className="flex flex-wrap gap-3 text-sm">
               <a
                 href="https://instagram.com/daisychainsd"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-1.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
               >
                 Instagram
+              </a>
+              <a
+                href="https://www.youtube.com/@DaisyChain-sd"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+              >
+                YouTube
               </a>
               <a
                 href="https://daisychainsd.bandcamp.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-1.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
               >
                 Bandcamp
               </a>
@@ -35,14 +43,14 @@ export default function Footer() {
                 href="https://soundcloud.com/daisychainsd"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-1.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
               >
                 SoundCloud
               </a>
             </div>
           </div>
           <div className="divider-glow mt-8 mb-6" />
-          <p className="text-text-muted text-xs">
+          <p className="text-text-muted text-sm">
             &copy; {new Date().getFullYear()} Daisy Chain Records. San Diego, CA.
           </p>
         </div>

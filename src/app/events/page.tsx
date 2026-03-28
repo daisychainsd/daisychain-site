@@ -31,7 +31,7 @@ export default async function EventsPage() {
 
       {upcoming.length > 0 && (
         <section className="mb-16">
-          <span className="container-pill-l inline-block px-4 py-1.5 text-xs uppercase tracking-wider text-amber-300 border border-amber-300/20 bg-amber-300/5 mb-6" data-mono>
+          <span className="container-pill-l inline-block px-4 py-2 text-sm uppercase tracking-wider text-amber-300 border border-amber-300/20 bg-amber-300/5 mb-6" data-mono>
             Upcoming
           </span>
           <div className="space-y-6">
@@ -71,7 +71,7 @@ function EventCard({ event, isUpcoming }: { event: Event; isUpcoming?: boolean }
         </div>
       )}
       <div className="py-1">
-        <p className={`text-sm ${isUpcoming ? "text-amber-300" : "text-text-secondary"}`}>
+        <p className={`text-base ${isUpcoming ? "text-amber-300" : "text-text-secondary"}`}>
           {date.toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
@@ -80,9 +80,9 @@ function EventCard({ event, isUpcoming }: { event: Event; isUpcoming?: boolean }
           })}
         </p>
         <h3 className="text-title mt-1">{event.title}</h3>
-        {event.venue && <p className="text-text-secondary text-sm">{event.venue}</p>}
+        {event.venue && <p className="text-text-secondary text-base">{event.venue}</p>}
         {event.lineup && (
-          <p className="text-text-secondary text-sm mt-2">
+          <p className="text-text-secondary text-base mt-2">
             {event.lineup.map((a) => a.name).join(" / ")}
           </p>
         )}
@@ -91,7 +91,7 @@ function EventCard({ event, isUpcoming }: { event: Event; isUpcoming?: boolean }
             href={event.ticketUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`container-pill-r inline-flex items-center gap-2 mt-3 text-sm font-medium px-5 py-1.5 transition-all ${
+            className={`container-pill-r inline-flex items-center gap-2 mt-3 text-base font-medium px-5 py-2.5 transition-all ${
               isUpcoming
                 ? "bg-amber-300 text-bg-deep hover:bg-amber-400"
                 : "text-blue-300 border border-blue-300/30 hover:bg-blue-300/10"
