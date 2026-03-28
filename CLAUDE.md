@@ -23,13 +23,16 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - `sanity.config.ts` — uses relative imports (`./src/sanity/schemas`), NOT `@/` aliases
 
 ### Schemas
-- **release** — title, slug, artist (ref), displayArtist (string override), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage), price, embedUrl, description
+- **release** — title, slug, artist (ref), displayArtist (string override), additionalArtists (array of artist refs for collabs), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage + youtubeUrl), price, embedUrl, description
 - **artist** — name, slug, photo, bio, links (website, instagram, bandcamp, soundcloud)
 - **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description
 
 ### Key patterns
-- `displayArtist` field overrides the artist reference name for display (e.g. "Player Dave & sumthin sumthin" instead of just "Player Dave")
-- GROQ: `coalesce(displayArtist, artist->name)` for fallback display name
+- **Multi-artist credits**: `artist` is the primary reference; `additionalArtists` is an array of refs for collaborators. ALL credited artists are displayed equally as comma-separated individually linked names.
+- `displayArtist` field overrides the primary artist name for display (used mainly for remixer name on remix releases)
+- GROQ: `coalesce(displayArtist, artist->name)` for fallback display name on cards
+- GROQ detail query fetches `primaryArtistName`, `additionalArtists[]->{ name, slug }`, and `remixerSlug` for full artist credit rendering
+- **Remix rule (`.5` catalog numbers)**: DCR#X.5 is a remix of DCR#X. The `artist` ref stays as the OG artist, `displayArtist` is the remixer, `additionalArtists` carries any other OG collaborators. UI shows: remixer, OG artist(s) — all linked equally.
 - All images use plain `<img>` tags (not next/image) to avoid Sanity CDN hostname config issues
 - Cover art is always null-checked before calling `urlFor()`
 
@@ -49,10 +52,12 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 ## Components
 
-- **TrackList** (`src/components/TrackList.tsx`) — audio playback, per-track download, buy button. Shows "Buy EP — $X.XX" when price > 0, "Download All" when free.
+- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art, metadata, multi-artist credit links, format toggle, tracklist wrapper
+- **TrackList** (`src/components/TrackList.tsx`) — audio playback, per-track download, YouTube icon links, buy button. Shows "Buy EP — $X.XX" when price > 0, "Download All" when free.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
 - **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + placeholder fallback
-- **Header/Footer** — site-wide layout components
+- **MobileNav** (`src/components/MobileNav.tsx`) — hamburger menu for mobile screens
+- **Header/Footer** — site-wide layout; Footer includes YouTube channel link
 
 ## Stripe Integration
 
@@ -71,29 +76,48 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 ## Catalogue Data
 
-- **14 active releases** (DCR#01–DCR#23, with singles collapsed into their parent EPs)
+- **14 active releases** (DCR#01–DCR#23, with singles collapsed into their parent EPs, plus 2 remixes as `.5` entries)
+- **Canonical reference**: `CATALOG.md` in project root — the single source of truth for all artist and release data
 - Source data: WAV files from `~/Dropbox/DCR/RELEASES/`, metadata from Google Sheets (`NEW DCR METADATA`, ID: `1puynz8uXInwJOVGNpmNzWJDwVBL6Nt3JeAmtFGnORyA`)
+- Artist photos sourced from `~/Dropbox/DCR/RELEASES/DCR#20 Dream Disc/Assets/ART/Dream Disc artist Assets/` (13 of 20 artists have photos)
 - WAV files uploaded to Sanity file assets via `scripts/seed-tracks.mjs` and `scripts/seed-tracks-resume.mjs`
 - Initial seeding via `scripts/seed.mjs` (created 20 artists + 23 releases with cover art)
 
 ### EP grouping (singles collapsed into parent EPs)
-- DCR#03, 04, 06 → DCR#07 "and then i started floating EP"
+- DCR#03, 04, 06 → DCR#07 "and then i started floating EP" (4 tracks)
 - DCR#08, 09 → DCR#10 "2Kids EP"
-- DCR#11 → DCR#12 "URL;;irl EP"
+- DCR#11 → DCR#12 "URL;;irl EP" (4 tracks)
 - DCR#13, 15, 17 → DCR#19 "Heartbeat EP"
+
+### Remix releases (`.5` catalog numbers)
+- DCR#02.5 "Daydream (Player Dave Remix)" — artist: Mirror Maze, displayArtist: Player Dave
+- DCR#18.5 "Cocky (Coido Remix)" — artist: Mirror Maze, additionalArtists: [Niles], displayArtist: Coido
 
 ### Missing cover art
 - DCR#02, DCR#10, DCR#20 (Dream Disc)
+
+### Artists without photos
+- Allegra Miles, Belay, Coido, Elohim, Monotrope, Peter Sheppard, sumthin sumthin
 
 ## What's Not Done Yet
 
 - Per-track individual purchasing (Stripe)
 - Shopify Storefront API connection (merch shop)
 - Events page content
-- Design customization / theming
-- Vercel deployment (live test URL)
-- Missing cover art for 3 releases
+- YouTube URLs on individual tracks (field exists in schema, needs data entry in Sanity Studio)
+- Missing cover art for 3 releases (DCR#02, DCR#10, DCR#20)
+- Missing artist photos for 7 artists
 - Parcel Sound API integration (future, low priority)
+
+## What's Done
+
+- Vercel deployment (auto-deploys from `main` branch)
+- Mobile-responsive design with hamburger nav
+- Typography/legibility polish across all pages
+- Multi-artist credits with individual links
+- YouTube channel link in footer
+- 13 artist profile photos uploaded
+- Canonical catalog data in `CATALOG.md`
 
 ## Environment
 
