@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/", label: "Releases" },
@@ -13,11 +14,23 @@ const links = [
 
 export default function MobileNav() {
   const [open, setOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) {
+      setIsLoggedIn(false);
+      return;
+    }
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+    });
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -63,6 +76,14 @@ export default function MobileNav() {
                 {label}
               </Link>
             ))}
+            {isLoggedIn !== null && (
+              <Link
+                href={isLoggedIn ? "/account" : "/login"}
+                className="block px-4 py-4 text-lg font-medium text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 rounded-lg transition-all"
+              >
+                {isLoggedIn ? "Account" : "Login"}
+              </Link>
+            )}
           </nav>
         </div>
       )}

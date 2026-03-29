@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   const supabase = await createClient();
   if (!supabase) {
     return NextResponse.json({ error: "Auth not configured" }, { status: 500 });
@@ -16,12 +16,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { releaseId, title, artist, price, slug } = await req.json();
-
-  if (!price || price <= 0) {
-    return NextResponse.json({ error: "No price set" }, { status: 400 });
-  }
-
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     customer_email: user.email,
@@ -30,21 +24,21 @@ export async function POST(req: NextRequest) {
         price_data: {
           currency: "usd",
           product_data: {
-            name: title,
-            description: `${artist} — Digital Download (WAV)`,
+            name: "Daisy Chain Unlimited Pass",
+            description:
+              "Lifetime access to download all current and future Daisy Chain releases in WAV format.",
           },
-          unit_amount: Math.round(price * 100),
+          unit_amount: 10000,
         },
         quantity: 1,
       },
     ],
     mode: "payment",
-    success_url: `${req.nextUrl.origin}/account?purchased=${slug}`,
-    cancel_url: `${req.nextUrl.origin}/releases/${slug}`,
+    success_url: `${req.nextUrl.origin}/account?pass=activated`,
+    cancel_url: `${req.nextUrl.origin}/account`,
     metadata: {
       userId: user.id,
-      releaseId,
-      slug,
+      type: "unlimited_pass",
     },
   });
 

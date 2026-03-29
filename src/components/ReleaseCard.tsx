@@ -6,7 +6,6 @@ interface ReleaseCardProps {
   artist: string;
   coverUrl: string;
   catalogNumber?: string;
-  format?: string[];
 }
 
 export default function ReleaseCard({
@@ -36,7 +35,7 @@ export default function ReleaseCard({
 
         {/* Metadata inside outer container */}
         <div className="px-3 pt-3 pb-3">
-          <p className="text-text-primary font-semibold text-base truncate">{title}</p>
+          <p className="text-text-primary font-semibold text-base truncate">{title.replace(/\s+(EP|Album)$/i, "")}</p>
           <p className="text-text-secondary text-sm truncate">{artist}</p>
           {catalogNumber && (
             <p className="text-meta mt-2">{catalogNumber}</p>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MobileNav from "./MobileNav";
+import AuthNavLink from "./AuthNavLink";
 
 export default function Header() {
   return (
@@ -34,6 +35,7 @@ export default function Header() {
           >
             Events
           </Link>
+          <AuthNavLink className="px-3 py-1.5 rounded-lg text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all" />
         </div>
         <MobileNav />
       </nav>

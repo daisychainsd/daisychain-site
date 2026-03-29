@@ -37,6 +37,9 @@ export default function RootLayout({
       lang="en"
       className={`${outfit.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="stylesheet" href="https://use.typekit.net/ecz5lqw.css" />
+      </head>
       <body className="min-h-full flex flex-col">
         <Header />
         <main className="flex-1 pt-24">{children}</main>

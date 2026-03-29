@@ -74,72 +74,76 @@ function UpcomingCard({ event }: { event: Event }) {
             />
           </div>
         )}
-        <div className="flex flex-col justify-center p-2 sm:p-4">
-          <span
-            className="container-pill-l inline-block w-fit px-4 py-1.5 text-sm uppercase tracking-wider text-amber-300 border border-amber-300/20 bg-amber-300/5 mb-4"
-            data-mono
-          >
-            Upcoming
-          </span>
-
-          <p className="text-amber-300 text-lg font-semibold mb-1">
-            {date.toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </p>
-
-          <h2 className="text-headline mb-3">{event.title}</h2>
-
-          {event.venue && (
-            <p className="text-text-secondary text-base mb-4">{event.venue}</p>
-          )}
-
-          {event.lineup && event.lineup.length > 0 && (
-            <div className="mb-6">
-              <p className="text-label mb-2">Lineup</p>
-              <div className="flex flex-wrap gap-x-2 gap-y-1 text-xl">
-                {event.lineup.map((act, i) => (
-                  <span key={act.name} className="flex items-baseline gap-x-2">
-                    {i > 0 && <span className="text-text-muted">/</span>}
-                    {act.artistSlug ? (
-                      <a
-                        href={`/artists/${act.artistSlug}`}
-                        className="text-blue-300 hover:underline"
-                      >
-                        {act.name}
-                      </a>
-                    ) : (
-                      <span className="text-text-primary">{act.name}</span>
-                    )}
-                  </span>
-                ))}
-              </div>
+        <div className="flex flex-col justify-between p-4 sm:p-6">
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <span
+                className="container-pill-l inline-block px-4 py-1.5 text-sm uppercase tracking-wider text-amber-300 border border-amber-300/20 bg-amber-300/5"
+                data-mono
+              >
+                Upcoming
+              </span>
+              <span className="text-text-muted text-sm" data-mono>
+                {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
+              </span>
             </div>
-          )}
 
-          {event.ticketUrl ? (
-            <a
-              href={event.ticketUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-semibold px-6 py-3 bg-amber-300 text-bg-deep hover:bg-amber-400 hover:shadow-[0_0_24px_rgba(232,184,108,0.2)] transition-all"
-            >
-              Get Tickets
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
-              </svg>
-            </a>
-          ) : (
-            <span
-              className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-medium px-6 py-3 text-amber-300/60 border border-amber-300/20 bg-amber-300/5"
-              data-mono
-            >
-              Tickets Coming Soon
-            </span>
-          )}
+            <p className="text-amber-300 font-mono text-4xl sm:text-5xl font-bold tracking-tight mb-1">
+              {date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}
+            </p>
+            <p className="text-text-muted text-sm mb-6" data-mono>{date.getFullYear()}</p>
+
+            <h2 className="text-headline mb-2">{event.title}</h2>
+
+            {event.venue && (
+              <p className="text-text-secondary text-base mb-6">{event.venue}</p>
+            )}
+          </div>
+
+          <div>
+            {event.lineup && event.lineup.length > 0 && (
+              <div className="mb-6 pt-6 border-t border-blue-300/10">
+                <p className="text-label mb-3">Lineup</p>
+                <div className="flex flex-col gap-1.5">
+                  {event.lineup.map((act) => (
+                    <div key={act.name}>
+                      {act.artistSlug ? (
+                        <a
+                          href={`/artists/${act.artistSlug}`}
+                          className="text-blue-300 hover:underline text-xl"
+                        >
+                          {act.name}
+                        </a>
+                      ) : (
+                        <span className="text-text-primary text-xl">{act.name}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {event.ticketUrl ? (
+              <a
+                href={event.ticketUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-semibold px-6 py-3 bg-amber-300 text-bg-deep hover:bg-amber-400 hover:shadow-[0_0_24px_rgba(232,184,108,0.2)] transition-all"
+              >
+                Get Tickets
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
+                </svg>
+              </a>
+            ) : (
+              <span
+                className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-medium px-6 py-3 text-amber-300/60 border border-amber-300/20 bg-amber-300/5"
+                data-mono
+              >
+                Tickets Coming Soon
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -90,6 +90,38 @@ export const ARTIST_DETAIL = `
   }
 `;
 
+export const RELEASES_BY_SLUGS = `
+  *[_type == "release" && slug.current in $slugs] | order(releaseDate desc) {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(displayArtist, artist->name),
+    coverArt,
+    catalogNumber,
+    tracks[] {
+      title,
+      trackArtist,
+      trackNumber,
+      "audioUrl": audioFile.asset->url
+    }
+  }
+`;
+
+export const ALL_RELEASES_DOWNLOAD = `
+  *[_type == "release"] | order(releaseDate desc) {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(displayArtist, artist->name),
+    coverArt,
+    catalogNumber,
+    tracks[] {
+      title,
+      trackArtist,
+      trackNumber,
+      "audioUrl": audioFile.asset->url
+    }
+  }
+`;
+
 export const EVENTS_LIST = `
   *[_type == "event"] | order(date desc) {
     title,

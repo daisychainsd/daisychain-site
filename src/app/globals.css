@@ -49,8 +49,8 @@
   --text-micro: 0.8125rem;
 
   /* Typography */
-  --font-heading: var(--font-outfit);
-  --font-body: var(--font-ibm-plex-sans);
+  --font-heading: "azo-sans-web", var(--font-outfit);
+  --font-body: "azo-sans-web", var(--font-ibm-plex-sans);
   --font-mono: var(--font-ibm-plex-mono);
 }
 
@@ -235,7 +235,7 @@ body::before {
 .text-display {
   font-family: var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-display);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 0.9;
   letter-spacing: -0.03em;
 }
@@ -243,15 +243,15 @@ body::before {
 .text-headline {
   font-family: var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-headline);
-  font-weight: 700;
+  font-weight: 900;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
 .text-title {
-  font-family: var(--font-heading), system-ui, sans-serif;
+  font-family: "azo-sans-web", var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-title);
-  font-weight: 600;
+  font-weight: 900;
   line-height: 1.2;
 }
 
