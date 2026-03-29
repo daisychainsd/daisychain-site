@@ -13,15 +13,19 @@ export default function AuthNavLink({ className }: { className?: string }) {
       setUser(false);
       return;
     }
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(!!user);
-    });
+    supabase.auth.getUser().then(
+      (res: { data: { user: unknown } }) => {
+        setUser(!!res.data.user);
+      },
+    );
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(!!session?.user);
-    });
+    } = supabase.auth.onAuthStateChange(
+      (_event: string, session: { user?: unknown } | null) => {
+        setUser(!!session?.user);
+      },
+    );
 
     return () => subscription.unsubscribe();
   }, []);

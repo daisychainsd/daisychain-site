@@ -5,7 +5,6 @@ interface ReleaseCardProps {
   slug: string;
   artist: string;
   coverUrl: string;
-  catalogNumber?: string;
 }
 
 export default function ReleaseCard({
@@ -13,7 +12,6 @@ export default function ReleaseCard({
   slug,
   artist,
   coverUrl,
-  catalogNumber,
 }: ReleaseCardProps) {
   return (
     <Link href={`/releases/${slug}`} className="group block">
@@ -28,18 +26,14 @@ export default function ReleaseCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-text-muted text-xs bg-bg-raised">
-              {catalogNumber || title}
+              {title}
             </div>
           )}
         </div>
 
-        {/* Metadata inside outer container */}
         <div className="px-3 pt-3 pb-3">
           <p className="text-text-primary font-semibold text-base truncate">{title.replace(/\s+(EP|Album)$/i, "")}</p>
           <p className="text-text-secondary text-sm truncate">{artist}</p>
-          {catalogNumber && (
-            <p className="text-meta mt-2">{catalogNumber}</p>
-          )}
         </div>
       </div>
     </Link>

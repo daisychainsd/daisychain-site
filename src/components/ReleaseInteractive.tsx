@@ -61,21 +61,21 @@ export default function ReleaseInteractive({
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user);
-    });
+    supabase.auth.getUser().then(
+      (res: { data: { user: unknown } }) => {
+        setIsLoggedIn(!!res.data.user);
+      },
+    );
   }, []);
+
+  const [buying, setBuying] = useState(false);
 
   const physical = isPhysical(activeFormat);
   const activePrice = physical ? physicalPrice : price;
   const hasToggle = formats && formats.length > 1;
-
   const displayTitle = releaseType && ["ep", "album"].includes(releaseType)
     ? releaseTitle.replace(/\s+(EP|Album)$/i, "")
     : releaseTitle;
-
-  const hasMultipleTracks = tracks.length > 1;
-  const [buying, setBuying] = useState(false);
 
   async function handleBuy() {
     if (!isLoggedIn) {
@@ -98,11 +98,10 @@ export default function ReleaseInteractive({
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-    } catch {
+    } finally {
       setBuying(false);
     }
   }
-
 
   return (
     <div>
@@ -182,36 +181,17 @@ export default function ReleaseInteractive({
 
             </div>
 
-            <div className="pt-4 border-t border-blue-300/10">
+            <div className="pt-6 border-t border-blue-300/10 space-y-5">
               {hasToggle && (
-                <div className="mb-4">
-                  <FormatToggle
-                    formats={formats}
-                    activeFormat={activeFormat}
-                    onFormatChange={setActiveFormat}
-                  />
-                </div>
+                <FormatToggle
+                  formats={formats}
+                  activeFormat={activeFormat}
+                  onFormatChange={setActiveFormat}
+                />
               )}
 
-              {physical && !physicalPrice ? (
-                <button
-                  disabled
-                  className="container-pill-r px-6 py-2.5 bg-blue-300/20 text-blue-300/40 font-medium text-sm cursor-not-allowed mb-4"
-                >
-                  Coming Soon
-                </button>
-              ) : activePrice && activePrice > 0 ? (
-                <button
-                  onClick={handleBuy}
-                  disabled={buying}
-                  className="container-pill-r flex items-center gap-2 px-6 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-all disabled:opacity-50 mb-4"
-                >
-                  {buying ? "Redirecting..." : `Buy ${hasMultipleTracks ? releaseType || "Release" : "Track"} — $${activePrice.toFixed(2)}`}
-                </button>
-              ) : null}
-
               {releaseDate && (
-                <p className="text-text-secondary text-base">
+                <p className="text-text-muted text-sm">
                   Released{" "}
                   {new Date(releaseDate).toLocaleDateString("en-US", {
                     year: "numeric",
@@ -225,13 +205,36 @@ export default function ReleaseInteractive({
         </div>
       </div>
 
-      {/* Track List */}
-      {tracks.length > 0 && (
-        <section className="mt-12">
-          <div className="mb-4">
+      {/* Buy */}
+      {physical && !physicalPrice ? (
+        <div className="mt-8 flex items-center justify-between">
+          <p className="text-label mb-1">Tracks</p>
+          <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
+        </div>
+      ) : activePrice && activePrice > 0 ? (
+        <div className="mt-8 flex items-center justify-between">
+          <div>
             <p className="text-label mb-1">Tracks</p>
             <h2 className="text-title text-text-primary">Tracklist</h2>
           </div>
+          <button
+            onClick={handleBuy}
+            disabled={buying}
+            className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors duration-200 disabled:opacity-50"
+          >
+            {buying ? "Redirecting..." : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${activePrice.toFixed(2)}`}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-8 mb-4">
+          <p className="text-label mb-1">Tracks</p>
+          <h2 className="text-title text-text-primary">Tracklist</h2>
+        </div>
+      )}
+
+      {/* Track List */}
+      {tracks.length > 0 && (
+        <section className="mt-4">
           <TrackList tracks={tracks} releaseArtist={releaseArtist} />
         </section>
       )}

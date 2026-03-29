@@ -4,6 +4,7 @@ export interface Track {
   duration?: string;
   trackNumber?: number;
   audioUrl?: string;
+  previewUrl?: string;
   youtubeUrl?: string;
 }
 

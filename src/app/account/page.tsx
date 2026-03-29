@@ -45,7 +45,7 @@ export default async function AccountPage() {
       .select("release_slug")
       .eq("user_id", user.id);
 
-    const slugs = purchases?.map((p) => p.release_slug) ?? [];
+    const slugs = purchases?.map((p: { release_slug: string }) => p.release_slug) ?? [];
 
     if (slugs.length > 0) {
       releases = await sanityFetch<DownloadRelease>(RELEASES_BY_SLUGS, {

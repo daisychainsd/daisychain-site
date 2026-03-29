@@ -51,6 +51,7 @@
   /* Typography */
   --font-heading: "azo-sans-web", var(--font-outfit);
   --font-body: "azo-sans-web", var(--font-ibm-plex-sans);
+  --font-label: "azo-sans-web", var(--font-ibm-plex-sans);
   --font-mono: var(--font-ibm-plex-mono);
 }
 
@@ -64,8 +65,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading), system-ui, sans-serif;
 }
 
-code, pre, [data-mono] {
+code, pre {
   font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+[data-label] {
+  font-family: var(--font-label), system-ui, sans-serif;
 }
 
 ::selection {
@@ -155,9 +160,9 @@ body::before {
   z-index: 1;
   cursor: pointer;
   transition: color 0.2s ease, background 0.2s ease;
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-label), system-ui, sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: var(--color-text-muted);
   background: transparent;
   border: none;
@@ -226,10 +231,6 @@ body::before {
   background: var(--color-bg-deep);
 }
 
-.zone-surface {
-  background: var(--color-bg-surface);
-}
-
 /* ─── Typography Presets ─── */
 
 .text-display {
@@ -249,26 +250,18 @@ body::before {
 }
 
 .text-title {
-  font-family: "azo-sans-web", var(--font-heading), system-ui, sans-serif;
+  font-family: var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-title);
   font-weight: 900;
   line-height: 1.2;
 }
 
 .text-label {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-label), system-ui, sans-serif;
   font-size: var(--text-caption);
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-muted);
-}
-
-.text-meta {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: var(--text-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--color-text-muted);
 }
 

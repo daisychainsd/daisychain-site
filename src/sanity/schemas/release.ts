@@ -116,6 +116,12 @@ export const release = defineType({
               },
             }),
             defineField({
+              name: "previewFile",
+              title: "Preview File (MP3 for streaming)",
+              type: "file",
+              options: { accept: "audio/mpeg" },
+            }),
+            defineField({
               name: "trackNumber",
               title: "Track Number",
               type: "number",

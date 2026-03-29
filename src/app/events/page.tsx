@@ -79,11 +79,11 @@ function UpcomingCard({ event }: { event: Event }) {
             <div className="flex items-center gap-3 mb-6">
               <span
                 className="container-pill-l inline-block px-4 py-1.5 text-sm uppercase tracking-wider text-amber-300 border border-amber-300/20 bg-amber-300/5"
-                data-mono
+                data-label
               >
                 Upcoming
               </span>
-              <span className="text-text-muted text-sm" data-mono>
+              <span className="text-text-muted text-sm" data-label>
                 {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
               </span>
             </div>
@@ -91,7 +91,7 @@ function UpcomingCard({ event }: { event: Event }) {
             <p className="text-amber-300 font-mono text-4xl sm:text-5xl font-bold tracking-tight mb-1">
               {date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}
             </p>
-            <p className="text-text-muted text-sm mb-6" data-mono>{date.getFullYear()}</p>
+            <p className="text-text-muted text-sm mb-6" data-label>{date.getFullYear()}</p>
 
             <h2 className="text-headline mb-2">{event.title}</h2>
 
@@ -128,7 +128,7 @@ function UpcomingCard({ event }: { event: Event }) {
                 href={event.ticketUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-semibold px-6 py-3 bg-amber-300 text-bg-deep hover:bg-amber-400 hover:shadow-[0_0_24px_rgba(232,184,108,0.2)] transition-all"
+                className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-semibold px-6 py-3 bg-amber-300 text-bg-deep hover:bg-amber-400 hover:shadow-[0_0_24px_rgba(232,184,108,0.2)] transition-[background-color,box-shadow] duration-200"
               >
                 Get Tickets
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -138,7 +138,7 @@ function UpcomingCard({ event }: { event: Event }) {
             ) : (
               <span
                 className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-medium px-6 py-3 text-amber-300/60 border border-amber-300/20 bg-amber-300/5"
-                data-mono
+                data-label
               >
                 Tickets Coming Soon
               </span>
@@ -169,7 +169,7 @@ function PastCard({ event }: { event: Event }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/90 via-bg-deep/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-5">
-          <p className="text-text-secondary text-sm mb-1" data-mono>
+          <p className="text-text-secondary text-sm mb-1" data-label>
             {date.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",

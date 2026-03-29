@@ -125,13 +125,13 @@ export default function AccountClient({
           </div>
           <div className="flex items-center gap-3">
             {hasUnlimitedPass && (
-              <span className="px-3 py-1.5 bg-blue-300/10 text-blue-300 text-xs font-mono uppercase tracking-wider rounded-full border border-blue-300/20">
+              <span className="px-3 py-1.5 bg-blue-300/10 text-blue-300 text-xs uppercase tracking-wider rounded-full border border-blue-300/20" data-label>
                 Unlimited Pass
               </span>
             )}
             <button
               onClick={handleSignOut}
-              className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary border border-blue-300/10 rounded-lg hover:border-blue-300/20 transition-all"
+              className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary border border-blue-300/10 rounded-lg hover:border-blue-300/20 transition-colors"
             >
               Sign Out
             </button>
@@ -155,7 +155,7 @@ export default function AccountClient({
               <button
                 onClick={handleBuyPass}
                 disabled={buyingPass}
-                className="shrink-0 container-pill-r px-6 py-3 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-all disabled:opacity-50"
+                className="shrink-0 container-pill-r px-6 py-3 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
               >
                 {buyingPass ? "Redirecting..." : "Get Unlimited — $100"}
               </button>
@@ -168,7 +168,7 @@ export default function AccountClient({
           <>
             {/* Format picker */}
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-text-muted text-xs font-mono uppercase tracking-wider">
+              <span className="text-text-muted text-xs uppercase tracking-wider" data-label>
                 Format
               </span>
               <div className="container-toggle">
@@ -235,7 +235,7 @@ export default function AccountClient({
 
                       <div className="flex items-center gap-3 shrink-0">
                         {downloadable.length > 0 && (
-                          <span className="text-text-muted text-xs font-mono">
+                          <span className="text-text-muted text-xs" data-label>
                             {downloadable.length}{" "}
                             {downloadable.length === 1 ? "track" : "tracks"}
                           </span>
@@ -272,7 +272,7 @@ export default function AccountClient({
                                 key={i}
                                 className="flex items-center gap-4 px-4 py-3 border-b border-blue-300/5 last:border-b-0 hover:bg-bg-elevated transition-colors"
                               >
-                                <span className="w-8 text-center text-text-muted text-sm font-mono shrink-0">
+                                <span className="w-8 text-center text-text-muted text-sm shrink-0" data-label>
                                   {track.trackNumber || i + 1}
                                 </span>
                                 <div className="flex-1 min-w-0">
@@ -329,7 +329,7 @@ export default function AccountClient({
                                 e.stopPropagation();
                                 handleDownloadAll(release);
                               }}
-                              className="container-pill-r flex items-center gap-2 px-5 py-2 bg-blue-300 text-bg-deep font-medium text-xs hover:bg-blue-200 transition-all"
+                              className="container-pill-r flex items-center gap-2 px-5 py-2 bg-blue-300 text-bg-deep font-medium text-xs hover:bg-blue-200 transition-colors"
                             >
                               <svg
                                 width="14"
@@ -363,7 +363,7 @@ export default function AccountClient({
             </p>
             <a
               href="/"
-              className="inline-block container-pill-r px-6 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 transition-all"
+              className="inline-block container-pill-r px-6 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 transition-colors"
             >
               Browse Releases
             </a>

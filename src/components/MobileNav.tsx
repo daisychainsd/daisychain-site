@@ -27,9 +27,11 @@ export default function MobileNav() {
       setIsLoggedIn(false);
       return;
     }
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user);
-    });
+    supabase.auth.getUser().then(
+      (res: { data: { user: unknown } }) => {
+        setIsLoggedIn(!!res.data.user);
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function MobileNav() {
               <Link
                 key={href}
                 href={href}
-                className="block px-4 py-4 text-lg font-medium text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 rounded-lg transition-all"
+                className="block px-4 py-4 text-lg font-medium text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 rounded-lg transition-colors"
               >
                 {label}
               </Link>
@@ -79,7 +81,7 @@ export default function MobileNav() {
             {isLoggedIn !== null && (
               <Link
                 href={isLoggedIn ? "/account" : "/login"}
-                className="block px-4 py-4 text-lg font-medium text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 rounded-lg transition-all"
+                className="block px-4 py-4 text-lg font-medium text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 rounded-lg transition-colors"
               >
                 {isLoggedIn ? "Account" : "Login"}
               </Link>

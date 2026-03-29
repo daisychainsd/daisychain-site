@@ -43,7 +43,7 @@ export default async function ArtistPage({
                     href={artist.links.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-all"
+                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
                   >
                     Instagram
                   </a>
@@ -53,7 +53,7 @@ export default async function ArtistPage({
                     href={artist.links.bandcamp}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-all"
+                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
                   >
                     Bandcamp
                   </a>
@@ -63,7 +63,7 @@ export default async function ArtistPage({
                     href={artist.links.soundcloud}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-all"
+                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
                   >
                     SoundCloud
                   </a>
@@ -91,8 +91,6 @@ export default async function ArtistPage({
               slug={release.slug}
               artist={artist.name}
               coverUrl={release.coverArt ? urlFor(release.coverArt).width(600).url() : ""}
-              catalogNumber={release.catalogNumber}
-              format={release.format}
             />
           ))}
         </div>

@@ -46,7 +46,8 @@ export const RELEASE_DETAIL = `
       duration,
       trackNumber,
       youtubeUrl,
-      "audioUrl": audioFile.asset->url
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
     }
   }
 `;
@@ -63,7 +64,8 @@ export const RELEASE_DOWNLOAD = `
       title,
       trackArtist,
       trackNumber,
-      "audioUrl": audioFile.asset->url
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
     }
   }
 `;
@@ -101,7 +103,8 @@ export const RELEASES_BY_SLUGS = `
       title,
       trackArtist,
       trackNumber,
-      "audioUrl": audioFile.asset->url
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
     }
   }
 `;
@@ -117,7 +120,8 @@ export const ALL_RELEASES_DOWNLOAD = `
       title,
       trackArtist,
       trackNumber,
-      "audioUrl": audioFile.asset->url
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
     }
   }
 `;
