@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createDraftOrder } from "@/lib/shopify-admin";
 import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET!,
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -26,49 +27,97 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId;
-
-    if (!userId) {
-      console.error("No userId in session metadata");
-      return NextResponse.json({ received: true });
-    }
-
-    const supabase = createAdminClient();
     const purchaseType = session.metadata?.type;
 
-    if (purchaseType === "unlimited_pass") {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          has_unlimited_pass: true,
-          unlimited_pass_purchased_at: new Date().toISOString(),
-        })
-        .eq("id", userId);
-
-      if (error) {
-        console.error("Failed to activate unlimited pass:", error);
-      }
+    if (purchaseType === "physical") {
+      await handlePhysicalOrder(session);
     } else {
-      const slug = session.metadata?.slug;
-      if (!slug) {
-        console.error("No slug in session metadata");
-        return NextResponse.json({ received: true });
-      }
-
-      const { error } = await supabase.from("purchases").upsert(
-        {
-          user_id: userId,
-          release_slug: slug,
-          stripe_session_id: session.id,
-        },
-        { onConflict: "user_id,release_slug" }
-      );
-
-      if (error) {
-        console.error("Failed to record purchase:", error);
-      }
+      await handleDigitalPurchase(session);
     }
   }
 
   return NextResponse.json({ received: true });
+}
+
+async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
+  const variantsRaw = session.metadata?.variants;
+  if (!variantsRaw) {
+    console.error("No variants in physical order metadata");
+    return;
+  }
+
+  let variants: { vid: string; qty: number }[];
+  try {
+    variants = JSON.parse(variantsRaw);
+  } catch {
+    console.error("Failed to parse variants metadata:", variantsRaw);
+    return;
+  }
+
+  const shippingInfo = session.collected_information?.shipping_details;
+  const shipping = shippingInfo?.address;
+  const name = shippingInfo?.name || session.customer_details?.name;
+
+  try {
+    const draftOrder = await createDraftOrder(
+      {
+        name: name || undefined,
+        line1: shipping?.line1 || undefined,
+        line2: shipping?.line2 || undefined,
+        city: shipping?.city || undefined,
+        state: shipping?.state || undefined,
+        postal_code: shipping?.postal_code || undefined,
+        country: shipping?.country || undefined,
+      },
+      variants.map((v) => ({ variantId: v.vid, quantity: v.qty })),
+      session.customer_details?.email || undefined,
+    );
+    console.log("Created Shopify draft order:", draftOrder?.name);
+  } catch (err) {
+    console.error("Failed to create Shopify draft order:", err);
+  }
+}
+
+async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.userId;
+  if (!userId) {
+    console.error("No userId in session metadata");
+    return;
+  }
+
+  const supabase = createAdminClient();
+  const purchaseType = session.metadata?.type;
+
+  if (purchaseType === "unlimited_pass") {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        has_unlimited_pass: true,
+        unlimited_pass_purchased_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (error) {
+      console.error("Failed to activate unlimited pass:", error);
+    }
+  } else {
+    const slug = session.metadata?.slug;
+    if (!slug) {
+      console.error("No slug in session metadata");
+      return;
+    }
+
+    const { error } = await supabase.from("purchases").upsert(
+      {
+        user_id: userId,
+        release_slug: slug,
+        stripe_session_id: session.id,
+      },
+      { onConflict: "user_id,release_slug" },
+    );
+
+    if (error) {
+      console.error("Failed to record purchase:", error);
+    }
+  }
 }

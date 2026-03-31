@@ -1,11 +1,46 @@
-import { sanityFetch } from "@/sanity/client";
+import { client, sanityFetch } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
-import { RELEASES_LIST } from "@/lib/queries";
+import { RELEASES_LIST, LATEST_RELEASE, NEXT_EVENT } from "@/lib/queries";
+import { getProducts } from "@/lib/shopify";
 import type { ReleaseCard as ReleaseCardType } from "@/lib/types";
 import CatalogGrid from "@/components/CatalogGrid";
+import HeroSlideshow from "@/components/HeroSlideshow";
+import NewsletterSignup from "@/components/NewsletterSignup";
+
+interface HeroRelease {
+  title: string;
+  slug: string;
+  artist: string;
+  coverArt?: any;
+  releaseType?: string;
+}
+
+interface HeroEvent {
+  title: string;
+  slug: string;
+  date: string;
+  venue?: string;
+  flyer?: any;
+  ticketUrl?: string;
+}
+
+async function getShopHeroImage(): Promise<string> {
+  try {
+    const products = await getProducts();
+    const img = products[0]?.images.edges[0]?.node.url;
+    return img || "";
+  } catch {
+    return "";
+  }
+}
 
 export default async function HomePage() {
-  const releases = await sanityFetch<ReleaseCardType>(RELEASES_LIST);
+  const [releases, latestRelease, nextEvent, shopImageUrl] = await Promise.all([
+    sanityFetch<ReleaseCardType>(RELEASES_LIST),
+    client?.fetch<HeroRelease | null>(LATEST_RELEASE) ?? null,
+    client?.fetch<HeroEvent | null>(NEXT_EVENT) ?? null,
+    getShopHeroImage(),
+  ]);
 
   const catalogReleases = releases.map((release) => ({
     title: release.title,
@@ -16,48 +51,45 @@ export default async function HomePage() {
     format: release.format,
   }));
 
+  const heroRelease = latestRelease
+    ? {
+        title: latestRelease.title,
+        slug: latestRelease.slug,
+        artist: latestRelease.artist,
+        coverUrl: latestRelease.coverArt
+          ? urlFor(latestRelease.coverArt).width(1200).url()
+          : "",
+        releaseType: latestRelease.releaseType,
+      }
+    : undefined;
+
+  const heroEvent = nextEvent
+    ? {
+        title: nextEvent.title,
+        slug: nextEvent.slug,
+        date: nextEvent.date,
+        venue: nextEvent.venue,
+        flyerUrl: nextEvent.flyer
+          ? urlFor(nextEvent.flyer).width(1200).url()
+          : "",
+        ticketUrl: nextEvent.ticketUrl,
+      }
+    : undefined;
+
   return (
     <>
-      {/* Hero — zone-abyss */}
-      <section className="zone-abyss relative overflow-hidden py-24 sm:py-32">
-        {/* Decorative blob */}
-        <div className="blob w-[600px] h-[600px] bg-blue-400 top-[-100px] right-[-100px] animate-drift" />
+      <HeroSlideshow
+        latestRelease={heroRelease}
+        nextEvent={heroEvent}
+        shopImageUrl={shopImageUrl}
+      />
 
-        {/* Watermark flower — offset to right */}
-        <div className="absolute top-1/2 right-[10%] -translate-y-1/2 pointer-events-none">
-          <img
-            src="/PD-FlowerOutlined_White_2021.png"
-            alt=""
-            className="w-[500px] h-[500px] object-contain opacity-[0.04] animate-slow-spin"
-          />
-        </div>
-
-        {/* Radial glow */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          background: "radial-gradient(ellipse at 30% 50%, rgba(124,185,232,0.06) 0%, transparent 60%)",
-        }} />
-
-        <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="container-organic p-8 sm:p-12 max-w-2xl">
-            <h1 className="text-display text-text-primary">
-              DAISY<br />CHAIN
-            </h1>
-            <div className="w-24 h-1 bg-gradient-to-r from-blue-300 to-blue-500 mt-6 mb-5 rounded-full" />
-            <p className="text-text-secondary text-lg max-w-md">
-              Independent electronic music — San Diego, CA
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Divider */}
       <div className="divider-glow" />
 
-      {/* Catalog — zone-deep */}
-      <section className="zone-deep relative py-16 sm:py-20">
-        {/* Decorative blob */}
-        <div className="blob w-[400px] h-[400px] bg-blue-300 bottom-[-50px] left-[-100px] animate-drift" />
+      <NewsletterSignup />
 
+      <section className="zone-deep relative py-16 sm:py-20">
+        <div className="blob w-[400px] h-[400px] bg-blue-300 bottom-[-50px] left-[-100px] animate-drift" />
         <div className="max-w-7xl mx-auto px-6 relative">
           <CatalogGrid releases={catalogReleases} />
         </div>

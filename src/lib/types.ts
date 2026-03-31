@@ -25,6 +25,7 @@ export interface Release {
   _id?: string;
   price?: number;
   physicalPrice?: number;
+  shopifyHandle?: string;
   embedUrl?: string;
   description?: any;
   tracks?: Track[];

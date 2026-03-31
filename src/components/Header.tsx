@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MobileNav from "./MobileNav";
 import AuthNavLink from "./AuthNavLink";
+import CartButton from "./CartButton";
 
 export default function Header() {
   return (
@@ -10,7 +11,7 @@ export default function Header() {
           <img src="/flower-white.png" alt="" className="w-7 h-7 transition-[filter] duration-300 group-hover:drop-shadow-[0_0_8px_rgba(124,185,232,0.5)]" />
           DAISY CHAIN
         </Link>
-        <div className="hidden sm:flex gap-1 text-sm tracking-wide">
+        <div className="hidden sm:flex items-center gap-1 text-sm tracking-wide">
           <Link
             href="/"
             className="px-3 py-1.5 rounded-lg text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
@@ -36,8 +37,12 @@ export default function Header() {
             Events
           </Link>
           <AuthNavLink className="px-3 py-1.5 rounded-lg text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors" />
+          <CartButton />
         </div>
-        <MobileNav />
+        <div className="flex items-center gap-2 sm:hidden">
+          <CartButton />
+          <MobileNav />
+        </div>
       </nav>
     </header>
   );

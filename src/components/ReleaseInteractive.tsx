@@ -4,8 +4,10 @@ import { Fragment, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
+import { useCart } from "./CartProvider";
 import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/lib/types";
+import type { ShopifyProduct } from "@/lib/shopify";
 
 interface ReleaseInteractiveProps {
   formats?: string[];
@@ -24,6 +26,7 @@ interface ReleaseInteractiveProps {
   releaseType?: string;
   releaseDate?: string;
   coverUrl?: string;
+  shopifyHandle?: string;
   embedUrl?: string;
 }
 
@@ -49,14 +52,19 @@ export default function ReleaseInteractive({
   releaseType,
   releaseDate,
   coverUrl,
+  shopifyHandle,
   embedUrl,
 }: ReleaseInteractiveProps) {
   const router = useRouter();
+  const { addItem } = useCart();
 
   const [activeFormat, setActiveFormat] = useState(
     formats?.[0] || "digital"
   );
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [shopifyProduct, setShopifyProduct] = useState<ShopifyProduct | null>(null);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -68,7 +76,19 @@ export default function ReleaseInteractive({
     );
   }, []);
 
+  useEffect(() => {
+    if (!shopifyHandle) return;
+    fetch(`/api/shopify-product?handle=${shopifyHandle}`)
+      .then((r) => r.json())
+      .then((data) => { if (data.product) setShopifyProduct(data.product); })
+      .catch(() => {});
+  }, [shopifyHandle]);
+
   const [buying, setBuying] = useState(false);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [activeFormat]);
 
   const physical = isPhysical(activeFormat);
   const activePrice = physical ? physicalPrice : price;
@@ -103,14 +123,74 @@ export default function ReleaseInteractive({
     }
   }
 
+  function handleAddPhysicalToCart() {
+    if (!shopifyProduct) return;
+    const variant = shopifyProduct.variants.edges[0]?.node;
+    if (!variant) return;
+    const image = shopifyProduct.images.edges[0]?.node;
+    addItem({
+      variantId: variant.id,
+      productId: shopifyProduct.id,
+      handle: shopifyProduct.handle,
+      title: shopifyProduct.title,
+      variantTitle: variant.title,
+      price: parseFloat(variant.price.amount),
+      currency: variant.price.currencyCode,
+      imageUrl: image?.url || coverUrl || "",
+    });
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+  }
+
   return (
     <div>
       {/* Cover + Metadata in one organic container */}
       <div className="container-organic p-3 sm:p-4">
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Cover Art — inset container */}
-          <div className="container-inset aspect-square max-h-[70vw] md:max-h-none relative">
-            {coverUrl ? (
+          {/* Cover Art / Product Photos */}
+          <div className="container-inset aspect-square max-h-[70vw] md:max-h-none relative overflow-hidden">
+            {physical && shopifyProduct && shopifyProduct.images.edges.length > 0 ? (
+              <>
+                <img
+                  key={selectedImageIndex}
+                  src={shopifyProduct.images.edges[selectedImageIndex]?.node.url}
+                  alt={`${shopifyProduct.title} — photo ${selectedImageIndex + 1}`}
+                  className="w-full h-full object-cover animate-fade-in"
+                />
+                {shopifyProduct.images.edges.length > 1 && (
+                  <>
+                    {selectedImageIndex > 0 && (
+                      <button
+                        onClick={() => setSelectedImageIndex((prev) => prev - 1)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white flex items-center justify-center transition-colors duration-150"
+                        aria-label="Previous photo"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                      </button>
+                    )}
+                    {selectedImageIndex < shopifyProduct.images.edges.length - 1 && (
+                      <button
+                        onClick={() => setSelectedImageIndex((prev) => prev + 1)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white flex items-center justify-center transition-colors duration-150"
+                        aria-label="Next photo"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                      </button>
+                    )}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {shopifyProduct.images.edges.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`block w-1.5 h-1.5 rounded-full transition-colors duration-150 ${
+                            i === selectedImageIndex ? "bg-white" : "bg-white/40"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : coverUrl ? (
               <img
                 src={coverUrl}
                 alt={releaseTitle}
@@ -181,6 +261,12 @@ export default function ReleaseInteractive({
 
             </div>
 
+            <p className={`text-blue-300/60 text-xs tracking-wide transition-opacity duration-200 ${
+              physical && shopifyHandle ? "opacity-100" : "opacity-0 invisible"
+            }`}>
+              All physical purchases include downloadable digital files
+            </p>
+
             <div className="pt-6 border-t border-blue-300/10 space-y-5">
               {hasToggle && (
                 <FormatToggle
@@ -206,10 +292,27 @@ export default function ReleaseInteractive({
       </div>
 
       {/* Buy */}
-      {physical && !physicalPrice ? (
+      {physical && !physicalPrice && !shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">
           <p className="text-label mb-1">Tracks</p>
           <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
+        </div>
+      ) : physical && shopifyProduct ? (
+        <div className="mt-8 flex items-center justify-between">
+          <div>
+            <p className="text-label mb-1">Tracks</p>
+            <h2 className="text-title text-text-primary">Tracklist</h2>
+          </div>
+          <button
+            onClick={handleAddPhysicalToCart}
+            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-colors duration-200 ${
+              addedToCart
+                ? "bg-green-500/20 text-green-400 border border-green-400/30"
+                : "bg-blue-300 text-bg-deep hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)]"
+            }`}
+          >
+            {addedToCart ? "Added to Cart" : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${parseFloat(shopifyProduct.variants.edges[0]?.node.price.amount || "0").toFixed(2)}`}
+          </button>
         </div>
       ) : activePrice && activePrice > 0 ? (
         <div className="mt-8 flex items-center justify-between">

@@ -38,6 +38,7 @@ export const RELEASE_DETAIL = `
     _id,
     price,
     physicalPrice,
+    shopifyHandle,
     embedUrl,
     description,
     tracks[] {
@@ -123,6 +124,27 @@ export const ALL_RELEASES_DOWNLOAD = `
       "audioUrl": audioFile.asset->url,
       "previewUrl": previewFile.asset->url
     }
+  }
+`;
+
+export const LATEST_RELEASE = `
+  *[_type == "release"] | order(releaseDate desc)[0] {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(displayArtist, artist->name),
+    coverArt,
+    releaseType
+  }
+`;
+
+export const NEXT_EVENT = `
+  *[_type == "event" && date > now()] | order(date asc)[0] {
+    title,
+    "slug": slug.current,
+    date,
+    venue,
+    flyer,
+    ticketUrl
   }
 `;
 

@@ -162,6 +162,12 @@ export const release = defineType({
       description: "Price for vinyl/cassette. Leave blank if not yet available for purchase.",
     }),
     defineField({
+      name: "shopifyHandle",
+      title: "Shopify Product Handle",
+      type: "string",
+      description: "Handle of the linked Shopify product (e.g. 'dream-disc-cd'). Used for physical format purchases.",
+    }),
+    defineField({
       name: "embedUrl",
       title: "Embed URL (Bandcamp/Soundcloud/Spotify)",
       type: "url",

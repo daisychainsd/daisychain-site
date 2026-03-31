@@ -125,14 +125,18 @@ export default function TrackList({
               </span>
             )}
 
-            <div className="flex-1 min-w-0 relative">
+            <div className="flex-1 min-w-0">
               {isActive ? (
-                <div className="relative">
-                  <p className="text-[0.625rem] text-blue-300/70 font-medium leading-none mb-0.5 truncate">
-                    {track.title}
-                    <span className="text-text-muted"> · {track.trackArtist || releaseArtist}</span>
-                  </p>
-                  <div id={`waveform-${i}`} className="w-full" />
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0">
+                    <p className="text-base font-medium truncate text-blue-300">
+                      {track.title}
+                    </p>
+                    <p className="text-sm text-text-secondary truncate">
+                      {track.trackArtist || releaseArtist}
+                    </p>
+                  </div>
+                  <div id={`waveform-${i}`} className="flex-1 min-w-0" />
                 </div>
               ) : (
                 <>

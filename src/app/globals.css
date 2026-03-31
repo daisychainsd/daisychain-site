@@ -287,9 +287,19 @@ body::before {
   animation: drift 20s ease-in-out infinite;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-slow-spin,
-  .animate-drift {
+  .animate-drift,
+  .animate-fade-in {
     animation: none;
   }
 }

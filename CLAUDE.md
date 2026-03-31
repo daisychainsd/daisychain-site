@@ -13,7 +13,9 @@ Daisy Chain SD is an independent electronic music label based in San Diego, run 
 - **Supabase** — email+password auth, profiles + purchases tables, RLS
 - **wavesurfer.js** — real waveform audio player with scrubbing (`@wavesurfer/react`)
 - **ffmpeg-static** — server-side audio format conversion (WAV → MP3/FLAC/AIFF)
-- **Shopify Storefront API** — not yet connected (placeholder token in .env.local)
+- **Shopify Storefront API** — headless product data/inventory for `/shop`
+- **Shopify Admin API** — creates draft orders after physical purchase (fulfillment via Pirate Ship)
+- **beehiiv** — newsletter email collection via API (publication: "Daisy Chain Mail")
 
 ## Architecture
 
@@ -26,7 +28,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - `sanity.config.ts` — uses relative imports (`./src/sanity/schemas`), NOT `@/` aliases
 
 ### Schemas
-- **release** — title, slug, artist (ref), displayArtist (string override), additionalArtists (array of artist refs for collabs), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl), price, physicalPrice, embedUrl, description
+- **release** — title, slug, artist (ref), displayArtist (string override), additionalArtists (array of artist refs for collabs), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), embedUrl, description
 - **artist** — name, slug, photo, bio, links (website, instagram, bandcamp, soundcloud)
 - **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description
 
@@ -51,11 +53,14 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 | Route | Purpose |
 |---|---|
-| `/` | Homepage — hero + release catalog grid |
-| `/releases/[slug]` | Release detail — cover art, metadata, waveform TrackList |
+| `/` | Homepage — hero slideshow (latest release, next event, shop) + newsletter signup + release catalog grid |
+| `/releases/[slug]` | Release detail — cover art (or product photos for physical), metadata, waveform TrackList |
 | `/artists/[slug]` | Artist page |
 | `/events` | Events listing — upcoming (hero card) + past (flyer grid) |
-| `/shop` | Shopify storefront (not yet connected) |
+| `/shop` | Physical merch grid (vinyl, shirts — fetched from Shopify Storefront API) |
+| `/shop/[handle]` | Product detail — image gallery, variant/size selection, add to cart |
+| `/shop/checkout` | Embedded Stripe Checkout (address, shipping, payment — all inline) |
+| `/shop/checkout/success` | Order confirmation page, clears cart |
 | `/login` | Email+password login |
 | `/signup` | Email+password signup |
 | `/account` | User downloads dashboard — purchased releases, format selector, unlimited pass |
@@ -64,12 +69,15 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/api/checkout` | Creates Stripe checkout session (requires auth) |
 | `/api/checkout-pass` | Creates Stripe session for $100 unlimited pass |
 | `/api/verify-purchase` | Verifies Stripe session before allowing downloads |
+| `/api/checkout-physical` | Creates Stripe Embedded Checkout session for physical products with shipping |
 | `/api/convert` | Server-side audio format conversion (WAV → MP3/FLAC/AIFF via ffmpeg) |
+| `/api/shopify-product` | GET endpoint returning Shopify product data by handle (used by ReleaseInteractive for physical format display) |
+| `/api/newsletter` | POST endpoint — subscribes email to beehiiv newsletter (Daisy Chain Mail) with UTM tracking |
 
 ## Components
 
-- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art, metadata, multi-artist credit links, format toggle, buy button (between container and tracklist), release date
-- **TrackList** (`src/components/TrackList.tsx`) — wavesurfer.js waveform player with real audio waveforms from MP3 previews. Play replaces title/artist text with a clickable/draggable waveform. Pre-loads wavesurfer module on mount for instant playback. Properly cleans up media elements on track switch.
+- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to Shopify product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout.
+- **TrackList** (`src/components/TrackList.tsx`) — wavesurfer.js waveform player with real audio waveforms from MP3 previews. Active track shows title/artist at normal size on the left with waveform inline to the right. Pre-loads wavesurfer module on mount for instant playback. Properly cleans up media elements on track switch.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
 - **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + placeholder fallback. Title strips "EP"/"Album" suffix since release type is shown elsewhere.
 - **CatalogGrid** (`src/components/CatalogGrid.tsx`) — homepage release grid with optional physical format filter
@@ -78,7 +86,12 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **MobileNav** (`src/components/MobileNav.tsx`) — hamburger menu for mobile screens, includes auth-aware account/login link
 - **AuthNavLink** (`src/components/AuthNavLink.tsx`) — conditional Account/Login link based on Supabase auth state
 - **AccountClient** (`src/components/AccountClient.tsx`) — downloads dashboard UI with format selector and unlimited pass CTA
-- **Header/Footer** — site-wide layout; Footer includes YouTube channel link
+- **CartProvider** (`src/components/CartProvider.tsx`) — React context + localStorage for shop cart state
+- **CartDrawer** (`src/components/CartDrawer.tsx`) — slide-out cart drawer with quantity controls
+- **CartButton** (`src/components/CartButton.tsx`) — header cart icon with item count badge
+- **HeroSlideshow** (`src/components/HeroSlideshow.tsx`) — homepage hero: 3 auto-advancing crossfade slides (latest release, next event, shop/merch) with dot indicators, pause on hover/touch, mobile-first
+- **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and catalog grid on homepage.
+- **Header/Footer** — site-wide layout; Footer includes YouTube channel link, Header includes cart icon
 
 ## Events
 
@@ -92,9 +105,28 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 ## Stripe Integration
 
 - Test mode key in `.env.local` as `STRIPE_SECRET_KEY`
-- Checkout flow: Buy button → `/api/checkout` (creates session, requires Supabase auth) → Stripe hosted checkout → `/account?purchased={slug}` → downloads visible in account dashboard
-- Unlimited pass: $100 one-time purchase for all current + future downloads → `/api/checkout-pass`
+- **Digital checkout**: Buy button → `/api/checkout` (requires Supabase auth) → Stripe hosted checkout → `/account?purchased={slug}` → downloads visible in dashboard
+- **Physical checkout**: Cart → `/shop/checkout` → Stripe Embedded Checkout (inline on page, collects shipping address) → `/shop/checkout/success`
+- **Unlimited pass**: $100 one-time purchase for all current + future downloads → `/api/checkout-pass`
+- **Webhook** (`/api/webhooks/stripe`): handles `checkout.session.completed` — records digital purchases to Supabase, creates Shopify draft orders for physical purchases
 - Test card: `4242 4242 4242 4242`
+
+## Shopify Integration (Physical Products)
+
+- **Storefront API** (`src/lib/shopify.ts`): fetches products, variants, images, inventory for the shop pages. Read-only, public token. Also used by release pages to fetch product photos for physical formats via `getProductByHandle()`.
+- **Admin API** (`src/lib/shopify-admin.ts`): creates draft orders after Stripe payment. Requires `SHOPIFY_ADMIN_ACCESS_TOKEN` (create via Shopify admin > Settings > Apps > Develop apps).
+- **Release → Shopify linking**: Releases with physical formats have a `shopifyHandle` field in Sanity that maps to a Shopify product. Currently linked: Dream Disc CD (`dream-disc-cd`), and then i started floating vinyl (`and-then-i-started-floating-vinyl`).
+- **Flow**: Customer browses → adds to cart → Stripe Embedded Checkout (with shipping) → payment → webhook creates Shopify draft order → fulfill via Pirate Ship
+- **Shipping tiers**: Standard ($5.99, 5-7 days), Priority ($9.99, 2-3 days), International ($15.99, 7-14 days) — defined in `/api/checkout-physical`
+- Physical checkout does NOT require Supabase auth (guest checkout)
+
+## Newsletter (beehiiv)
+
+- **Publication**: "Daisy Chain Mail" (`pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed`)
+- **API route**: `/api/newsletter` — server-only, uses `BEEHIIV_API_KEY`
+- **UTM tracking**: `utm_source: "daisychainsd.com"`, `utm_medium: "website"`, `utm_campaign: "homepage_signup"`
+- **Frontend**: `NewsletterSignup` component on homepage (between hero and catalog grid)
+- No Supabase involvement — emails go directly to beehiiv via their v2 API
 
 ## Supabase Auth
 
@@ -156,11 +188,9 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 ## What's Not Done Yet
 
 - Per-track individual purchasing (Stripe)
-- Shopify Storefront API connection (merch shop)
 - YouTube URLs on individual tracks (field exists in schema, needs data entry in Sanity Studio)
 - Missing cover art for 3 releases (DCR#02, DCR#10, DCR#20)
 - Missing artist photos for 7 artists
-- Stripe webhook for recording purchases to Supabase (`checkout.session.completed`)
 - Parcel Sound API integration (future, low priority)
 
 ## What's Done
@@ -179,12 +209,21 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - Downloads dashboard with format selector (WAV/FLAC/AIFF/MP3)
 - Unlimited pass ($100) checkout flow
 - Server-side audio format conversion via ffmpeg
-- Buy button UX: shows format + price, positioned below main container
-- Clean CSS: removed dead classes, scoped all transitions, consistent font system
+- Buy button UX: shows format + price, positioned below main container; physical buy adds to cart, digital goes to Stripe
+- Clean CSS: removed dead classes, scoped all transitions, consistent font system, `animate-fade-in` keyframe for image transitions
+- Physical merch shop: product grid, detail pages, variant selection, cart, embedded Stripe checkout
+- Shopify Admin API integration for automatic draft order creation after purchase
+- Release ↔ Shopify product linking: `shopifyHandle` field on releases connects to Shopify products for physical format purchases
+- Physical format UX on release pages: cover art swaps to Shopify product photos (arrow nav + dots), "All physical purchases include downloadable digital files" note, Buy CD/Vinyl button adds to cart
+- Inline waveform layout: active track shows title/artist at normal size with waveform to the right (not stacked)
+- Stripe webhook handles both digital (records to Supabase) and physical (creates Shopify draft order) purchases
+- Shopify Storefront API fully connected with real credentials
+- Homepage hero slideshow: 3 auto-advancing crossfade slides (latest release, next event, shop), mobile-first, pause on hover/touch
+- Newsletter signup (beehiiv integration): email form on homepage, POSTs to `/api/newsletter`, UTM-tracked as `daisychainsd.com / website / homepage_signup`
 
 ## Environment
 
-- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_ADMIN_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`
 - Sanity API token is an Editor-level token (needed for mutations/uploads)
 - Supabase keys are from the Supabase dashboard (project settings → API)
 - Google Workspace metadata accessible via `gws` CLI (see gdrive skill)
