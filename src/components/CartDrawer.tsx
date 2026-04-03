@@ -32,7 +32,7 @@ export default function CartDrawer() {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity ease-in-out ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
@@ -40,7 +40,7 @@ export default function CartDrawer() {
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-bg-surface border-l border-blue-300/10 shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-bg-surface border-l border-blue-300/10 shadow-2xl transition-transform ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

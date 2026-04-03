@@ -20,7 +20,7 @@ function ProductCard({ product }: { product: ShopifyProduct }) {
             <img
               src={image.url}
               alt={image.altText || product.title}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-text-muted text-xs bg-bg-raised">

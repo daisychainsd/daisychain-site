@@ -162,7 +162,7 @@ export default function ReleaseInteractive({
                     {selectedImageIndex > 0 && (
                       <button
                         onClick={() => setSelectedImageIndex((prev) => prev - 1)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white flex items-center justify-center transition-colors duration-150"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white flex items-center justify-center transition-colors"
                         aria-label="Previous photo"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -171,7 +171,7 @@ export default function ReleaseInteractive({
                     {selectedImageIndex < shopifyProduct.images.edges.length - 1 && (
                       <button
                         onClick={() => setSelectedImageIndex((prev) => prev + 1)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white flex items-center justify-center transition-colors duration-150"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white/70 hover:bg-black/60 hover:text-white flex items-center justify-center transition-colors"
                         aria-label="Next photo"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -181,7 +181,7 @@ export default function ReleaseInteractive({
                       {shopifyProduct.images.edges.map((_, i) => (
                         <span
                           key={i}
-                          className={`block w-1.5 h-1.5 rounded-full transition-colors duration-150 ${
+                          className={`block w-1.5 h-1.5 rounded-full transition-colors ${
                             i === selectedImageIndex ? "bg-white" : "bg-white/40"
                           }`}
                         />
@@ -261,7 +261,7 @@ export default function ReleaseInteractive({
 
             </div>
 
-            <p className={`text-blue-300/60 text-xs tracking-wide transition-opacity duration-200 ${
+            <p className={`text-blue-300/60 text-xs tracking-wide transition-opacity ease-in-out ${
               physical && shopifyHandle ? "opacity-100" : "opacity-0 invisible"
             }`}>
               All physical purchases include downloadable digital files
@@ -305,7 +305,7 @@ export default function ReleaseInteractive({
           </div>
           <button
             onClick={handleAddPhysicalToCart}
-            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-colors duration-200 ${
+            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
               addedToCart
                 ? "bg-green-500/20 text-green-400 border border-green-400/30"
                 : "bg-blue-300 text-bg-deep hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)]"
@@ -323,7 +323,7 @@ export default function ReleaseInteractive({
           <button
             onClick={handleBuy}
             disabled={buying}
-            className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors duration-200 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
           >
             {buying ? "Redirecting..." : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${activePrice.toFixed(2)}`}
           </button>

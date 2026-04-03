@@ -64,7 +64,7 @@ export default function NewsletterSignup() {
                 <button
                   type="submit"
                   disabled={status === "loading"}
-                  className="px-6 py-3 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 transition-colors duration-200 disabled:opacity-50 shrink-0"
+                  className="px-6 py-3 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 transition-colors disabled:opacity-50 shrink-0"
                 >
                   {status === "loading" ? "Signing up..." : "Subscribe"}
                 </button>

@@ -53,6 +53,12 @@
   --font-body: "azo-sans-web", var(--font-ibm-plex-sans);
   --font-label: "azo-sans-web", var(--font-ibm-plex-sans);
   --font-mono: var(--font-ibm-plex-mono);
+
+  /* Site-wide motion: longer ease-in-out */
+  --default-transition-duration: 250ms;
+  --default-transition-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  --ease-daisy: cubic-bezier(0.42, 0, 0.58, 1);
+  --duration-hero: 1200ms;
 }
 
 body {
@@ -159,7 +165,10 @@ body::before {
   position: relative;
   z-index: 1;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition:
+    color var(--default-transition-duration) var(--default-transition-timing-function),
+    background-color var(--default-transition-duration) var(--default-transition-timing-function),
+    border-color var(--default-transition-duration) var(--default-transition-timing-function);
   font-family: var(--font-label), system-ui, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -193,7 +202,9 @@ body::before {
 /* ─── Utility Classes ─── */
 
 .hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform var(--default-transition-duration) var(--default-transition-timing-function),
+    box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
 }
 .hover-lift:hover {
   transform: translateY(-3px);
@@ -284,7 +295,7 @@ body::before {
 }
 
 .animate-drift {
-  animation: drift 20s ease-in-out infinite;
+  animation: drift 28s var(--ease-daisy) infinite;
 }
 
 @keyframes fade-in {
@@ -293,7 +304,7 @@ body::before {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+  animation: fade-in 0.75s var(--ease-daisy);
 }
 
 @media (prefers-reduced-motion: reduce) {

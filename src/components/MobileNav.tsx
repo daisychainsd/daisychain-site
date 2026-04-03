@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const links = [
-  { href: "/", label: "Releases" },
+  { href: "/music", label: "Music" },
   { href: "/artists", label: "Artists" },
   { href: "/shop", label: "Shop" },
   { href: "/events", label: "Events" },
