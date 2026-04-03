@@ -38,6 +38,7 @@ export const RELEASE_DETAIL = `
     _id,
     price,
     physicalPrice,
+    shopifyHandle,
     embedUrl,
     description,
     tracks[] {
@@ -46,7 +47,8 @@ export const RELEASE_DETAIL = `
       duration,
       trackNumber,
       youtubeUrl,
-      "audioUrl": audioFile.asset->url
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
     }
   }
 `;
@@ -63,7 +65,8 @@ export const RELEASE_DOWNLOAD = `
       title,
       trackArtist,
       trackNumber,
-      "audioUrl": audioFile.asset->url
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
     }
   }
 `;
@@ -87,6 +90,61 @@ export const ARTIST_DETAIL = `
     "releases": *[_type == "release" && references(^._id)] | order(releaseDate desc) {
       ${releaseCardFields}
     }
+  }
+`;
+
+export const RELEASES_BY_SLUGS = `
+  *[_type == "release" && slug.current in $slugs] | order(releaseDate desc) {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(displayArtist, artist->name),
+    coverArt,
+    catalogNumber,
+    tracks[] {
+      title,
+      trackArtist,
+      trackNumber,
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
+    }
+  }
+`;
+
+export const ALL_RELEASES_DOWNLOAD = `
+  *[_type == "release"] | order(releaseDate desc) {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(displayArtist, artist->name),
+    coverArt,
+    catalogNumber,
+    tracks[] {
+      title,
+      trackArtist,
+      trackNumber,
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
+    }
+  }
+`;
+
+export const LATEST_RELEASE = `
+  *[_type == "release"] | order(releaseDate desc)[0] {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(displayArtist, artist->name),
+    coverArt,
+    releaseType
+  }
+`;
+
+export const NEXT_EVENT = `
+  *[_type == "event" && date > now()] | order(date asc)[0] {
+    title,
+    "slug": slug.current,
+    date,
+    venue,
+    flyer,
+    ticketUrl
   }
 `;
 

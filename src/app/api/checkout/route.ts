@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "Auth not configured" }, { status: 500 });
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const { releaseId, title, artist, price, slug } = await req.json();
 
   if (!price || price <= 0) {
@@ -10,6 +24,7 @@ export async function POST(req: NextRequest) {
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
+    customer_email: user.email,
     line_items: [
       {
         price_data: {
@@ -24,9 +39,10 @@ export async function POST(req: NextRequest) {
       },
     ],
     mode: "payment",
-    success_url: `${req.nextUrl.origin}/download/${slug}?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${req.nextUrl.origin}/account?purchased=${slug}`,
     cancel_url: `${req.nextUrl.origin}/releases/${slug}`,
     metadata: {
+      userId: user.id,
       releaseId,
       slug,
     },

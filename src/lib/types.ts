@@ -4,6 +4,7 @@ export interface Track {
   duration?: string;
   trackNumber?: number;
   audioUrl?: string;
+  previewUrl?: string;
   youtubeUrl?: string;
 }
 
@@ -24,6 +25,7 @@ export interface Release {
   _id?: string;
   price?: number;
   physicalPrice?: number;
+  shopifyHandle?: string;
   embedUrl?: string;
   description?: any;
   tracks?: Track[];

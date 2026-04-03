@@ -49,9 +49,16 @@
   --text-micro: 0.8125rem;
 
   /* Typography */
-  --font-heading: var(--font-outfit);
-  --font-body: var(--font-ibm-plex-sans);
+  --font-heading: "azo-sans-web", var(--font-outfit);
+  --font-body: "azo-sans-web", var(--font-ibm-plex-sans);
+  --font-label: "azo-sans-web", var(--font-ibm-plex-sans);
   --font-mono: var(--font-ibm-plex-mono);
+
+  /* Site-wide motion: longer ease-in-out */
+  --default-transition-duration: 250ms;
+  --default-transition-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  --ease-daisy: cubic-bezier(0.42, 0, 0.58, 1);
+  --duration-hero: 1200ms;
 }
 
 body {
@@ -64,8 +71,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading), system-ui, sans-serif;
 }
 
-code, pre, [data-mono] {
+code, pre {
   font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+[data-label] {
+  font-family: var(--font-label), system-ui, sans-serif;
 }
 
 ::selection {
@@ -154,10 +165,13 @@ body::before {
   position: relative;
   z-index: 1;
   cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
-  font-family: var(--font-mono), ui-monospace, monospace;
+  transition:
+    color var(--default-transition-duration) var(--default-transition-timing-function),
+    background-color var(--default-transition-duration) var(--default-transition-timing-function),
+    border-color var(--default-transition-duration) var(--default-transition-timing-function);
+  font-family: var(--font-label), system-ui, sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: var(--color-text-muted);
   background: transparent;
   border: none;
@@ -188,7 +202,9 @@ body::before {
 /* ─── Utility Classes ─── */
 
 .hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform var(--default-transition-duration) var(--default-transition-timing-function),
+    box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
 }
 .hover-lift:hover {
   transform: translateY(-3px);
@@ -226,16 +242,12 @@ body::before {
   background: var(--color-bg-deep);
 }
 
-.zone-surface {
-  background: var(--color-bg-surface);
-}
-
 /* ─── Typography Presets ─── */
 
 .text-display {
   font-family: var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-display);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 0.9;
   letter-spacing: -0.03em;
 }
@@ -243,7 +255,7 @@ body::before {
 .text-headline {
   font-family: var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-headline);
-  font-weight: 700;
+  font-weight: 900;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
@@ -251,24 +263,16 @@ body::before {
 .text-title {
   font-family: var(--font-heading), system-ui, sans-serif;
   font-size: var(--text-title);
-  font-weight: 600;
+  font-weight: 900;
   line-height: 1.2;
 }
 
 .text-label {
-  font-family: var(--font-mono), ui-monospace, monospace;
+  font-family: var(--font-label), system-ui, sans-serif;
   font-size: var(--text-caption);
-  font-weight: 500;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-muted);
-}
-
-.text-meta {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: var(--text-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   color: var(--color-text-muted);
 }
 
@@ -291,12 +295,22 @@ body::before {
 }
 
 .animate-drift {
-  animation: drift 20s ease-in-out infinite;
+  animation: drift 28s var(--ease-daisy) infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.75s var(--ease-daisy);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-slow-spin,
-  .animate-drift {
+  .animate-drift,
+  .animate-fade-in {
     animation: none;
   }
 }

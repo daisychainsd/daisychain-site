@@ -1,243 +1,177 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { Track } from "@/lib/types";
 
 export default function TrackList({
   tracks,
   releaseArtist,
-  releaseTitle,
-  releaseId,
-  releaseSlug,
-  price,
-  formatMode = "digital",
 }: {
   tracks: Track[];
   releaseArtist: string;
-  releaseTitle: string;
-  releaseId?: string;
-  releaseSlug?: string;
-  price?: number;
-  formatMode?: "digital" | "physical";
 }) {
-  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const wsRef = useRef<any>(null);
+  const mediaRef = useRef<HTMLAudioElement | null>(null);
+  const WaveSurferMod = useRef<any>(null);
 
-  const downloadableTracks = tracks.filter((t) => t.audioUrl);
-  const hasMultipleTracks = downloadableTracks.length > 1;
+  useEffect(() => {
+    import("wavesurfer.js").then((mod) => {
+      WaveSurferMod.current = mod.default;
+    });
+  }, []);
 
-  function handlePlay(index: number, url: string) {
-    if (playingIndex === index) {
-      if (audioRef.current?.paused) {
-        audioRef.current.play();
-      } else {
-        audioRef.current?.pause();
-      }
+  const destroy = useCallback(() => {
+    if (mediaRef.current) {
+      mediaRef.current.pause();
+      mediaRef.current.src = "";
+      mediaRef.current.load();
+      mediaRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.destroy();
+      wsRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => destroy();
+  }, [destroy]);
+
+  function initWavesurfer(container: HTMLElement, url: string) {
+    destroy();
+    const WS = WaveSurferMod.current;
+    if (!WS) return;
+
+    const ws = WS.create({
+      container,
+      url,
+      height: 36,
+      barWidth: 1,
+      barGap: 0,
+      barRadius: 0,
+      waveColor: "#1F2A3A",
+      progressColor: "#7CB9E8",
+      cursorColor: "transparent",
+      normalize: true,
+      hideScrollbar: true,
+      interact: true,
+    });
+    ws.on("finish", () => setIsPlaying(false));
+    ws.on("play", () => setIsPlaying(true));
+    ws.on("pause", () => setIsPlaying(false));
+    ws.on("ready", () => ws.play());
+    wsRef.current = ws;
+  }
+
+  function handlePlay(index: number, track: Track) {
+    if (activeIndex === index) {
+      wsRef.current?.playPause();
       return;
     }
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-    }
+    const streamUrl = track.previewUrl || track.audioUrl;
+    if (!streamUrl) return;
 
-    const audio = new Audio(url);
-    audio.play();
-    audio.onended = () => setPlayingIndex(null);
-    audioRef.current = audio;
-    setPlayingIndex(index);
-  }
+    setActiveIndex(index);
+    setIsPlaying(true);
 
-  const [buying, setBuying] = useState(false);
-
-  async function handleBuy() {
-    setBuying(true);
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        releaseId,
-        title: releaseTitle,
-        artist: releaseArtist,
-        price,
-        slug: releaseSlug,
-      }),
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`waveform-${index}`);
+      if (el) initWavesurfer(el, streamUrl);
     });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    }
-    setBuying(false);
   }
 
-  async function handleDownloadAll() {
-    for (const track of downloadableTracks) {
-      const a = document.createElement("a");
-      a.href = track.audioUrl + "?dl=";
-      a.download = `${track.trackArtist || releaseArtist} - ${track.title}.wav`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      // Small delay between downloads so browser doesn't block them
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
+  const sorted = [...tracks].sort(
+    (a, b) => (a.trackNumber || 0) - (b.trackNumber || 0)
+  );
 
   return (
-    <div>
-      <div className="container-scoop">
-        {tracks
-          .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0))
-          .map((track, i) => (
-            <div
-              key={i}
-              className={`flex items-center gap-4 px-4 py-3.5 border-b border-blue-300/5 last:border-b-0 hover:bg-bg-elevated transition-colors ${
-                playingIndex === i
-                  ? "bg-blue-300/5 border-l-2 border-l-blue-300"
-                  : "border-l-2 border-l-transparent"
-              }`}
-            >
-              {track.audioUrl ? (
-                <button
-                  onClick={() => handlePlay(i, track.audioUrl!)}
-                  className="w-10 h-10 flex items-center justify-center text-text-secondary hover:text-blue-300 transition-colors shrink-0"
-                >
-                  {playingIndex === i ? (
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 16 16"
-                      fill="currentColor"
-                    >
-                      <rect x="3" y="2" width="4" height="12" rx="1" />
-                      <rect x="9" y="2" width="4" height="12" rx="1" />
-                    </svg>
-                  ) : (
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 16 16"
-                      fill="currentColor"
-                    >
-                      <path d="M4 2l10 6-10 6V2z" />
-                    </svg>
-                  )}
-                </button>
-              ) : (
-                <span className="w-10 text-center text-text-muted text-sm shrink-0" data-mono>
-                  {track.trackNumber || i + 1}
-                </span>
-              )}
+    <div className="container-scoop">
+      {sorted.map((track, i) => {
+        const isActive = activeIndex === i;
+        const showPause = isActive && isPlaying;
+        const hasAudio = track.previewUrl || track.audioUrl;
 
-              <div className="flex-1 min-w-0">
-                <p
-                  className={`text-base font-medium truncate ${
-                    playingIndex === i ? "text-blue-300" : "text-text-primary"
-                  }`}
-                >
-                  {track.title}
-                </p>
-                {track.trackArtist && (
-                  <p className="text-sm text-text-secondary truncate">
-                    {track.trackArtist}
-                  </p>
+        return (
+          <div
+            key={track.trackNumber ?? i}
+            className={`flex items-center gap-4 px-4 py-3.5 border-b border-blue-300/5 last:border-b-0 hover:bg-bg-elevated transition-colors ${
+              isActive
+                ? "bg-blue-300/5 border-l-2 border-l-blue-300"
+                : "border-l-2 border-l-transparent"
+            }`}
+          >
+            {hasAudio ? (
+              <button
+                onClick={() => handlePlay(i, track)}
+                className="w-10 h-10 flex items-center justify-center text-text-secondary hover:text-blue-300 transition-colors shrink-0"
+              >
+                {showPause ? (
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="3" y="2" width="4" height="12" rx="1" />
+                    <rect x="9" y="2" width="4" height="12" rx="1" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M4 2l10 6-10 6V2z" />
+                  </svg>
                 )}
-              </div>
+              </button>
+            ) : (
+              <span className="w-10 text-center text-text-muted text-sm shrink-0" data-label>
+                {track.trackNumber || i + 1}
+              </span>
+            )}
 
-              {track.duration && (
-                <span className="text-sm text-text-muted shrink-0" data-mono>
-                  {track.duration}
-                </span>
-              )}
-
-              {track.youtubeUrl && (
-                <a
-                  href={track.youtubeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 flex items-center justify-center text-text-muted hover:text-red-400 transition-colors shrink-0"
-                  title={`Watch ${track.title} on YouTube`}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                  </svg>
-                </a>
-              )}
-
-              {track.audioUrl && formatMode === "digital" && (
-                <a
-                  href={track.audioUrl + "?dl="}
-                  download={`${track.trackArtist || releaseArtist} - ${track.title}.wav`}
-                  className="w-10 h-10 flex items-center justify-center text-text-muted hover:text-blue-300 transition-colors shrink-0"
-                  title={`Download ${track.title}`}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
-                  </svg>
-                </a>
+            <div className="flex-1 min-w-0">
+              {isActive ? (
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0">
+                    <p className="text-base font-medium truncate text-blue-300">
+                      {track.title}
+                    </p>
+                    <p className="text-sm text-text-secondary truncate">
+                      {track.trackArtist || releaseArtist}
+                    </p>
+                  </div>
+                  <div id={`waveform-${i}`} className="flex-1 min-w-0" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-base font-medium truncate text-text-primary">
+                    {track.title}
+                  </p>
+                  <p className="text-sm text-text-secondary truncate">
+                    {track.trackArtist || releaseArtist}
+                  </p>
+                </>
               )}
             </div>
-          ))}
-      </div>
 
-      {/* Buy / Download buttons */}
-      {formatMode === "physical" ? (
-        <div className="flex flex-wrap gap-3 mt-6">
-          {price && price > 0 ? (
-            <button
-              disabled
-              className="container-pill-r flex items-center gap-2 px-6 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm opacity-50 cursor-not-allowed"
-            >
-              Add to Cart — ${price.toFixed(2)}
-            </button>
-          ) : (
-            <button
-              disabled
-              className="container-pill-r px-6 py-2.5 bg-blue-300/20 text-blue-300/40 font-medium text-sm cursor-not-allowed"
-            >
-              Coming Soon
-            </button>
-          )}
-        </div>
-      ) : downloadableTracks.length > 0 ? (
-        <div className="flex flex-wrap gap-3 mt-6">
-          {price && price > 0 ? (
-            <button
-              onClick={handleBuy}
-              disabled={buying}
-              className="container-pill-r flex items-center gap-2 px-6 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-all disabled:opacity-50"
-            >
-              {buying ? "Redirecting..." : `Buy ${hasMultipleTracks ? "EP" : "Track"} — $${price.toFixed(2)}`}
-            </button>
-          ) : (
-            <button
-              onClick={handleDownloadAll}
-              className="container-pill-r flex items-center gap-2 px-5 py-2.5 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-all"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+            {track.duration && (
+              <span className="text-sm text-text-muted shrink-0" data-label>
+                {track.duration}
+              </span>
+            )}
+
+            {track.youtubeUrl && (
+              <a
+                href={track.youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center text-text-muted hover:text-red-400 transition-colors shrink-0"
+                title={`Watch ${track.title} on YouTube`}
               >
-                <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
-              </svg>
-              {hasMultipleTracks
-                ? `Download All (${downloadableTracks.length} tracks)`
-                : "Download WAV"}
-            </button>
-          )}
-        </div>
-      ) : null}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                </svg>
+              </a>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

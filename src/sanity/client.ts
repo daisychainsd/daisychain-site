@@ -10,7 +10,8 @@ export const client = isConfigured
       projectId,
       dataset,
       apiVersion: "2024-01-01",
-      useCdn: true,
+      // CDN caches API responses; in dev that makes Studio edits feel “stuck” on localhost.
+      useCdn: process.env.NODE_ENV === "production",
     })
   : null;
 

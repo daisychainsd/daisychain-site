@@ -116,6 +116,12 @@ export const release = defineType({
               },
             }),
             defineField({
+              name: "previewFile",
+              title: "Preview File (MP3 for streaming)",
+              type: "file",
+              options: { accept: "audio/mpeg" },
+            }),
+            defineField({
               name: "trackNumber",
               title: "Track Number",
               type: "number",
@@ -154,6 +160,12 @@ export const release = defineType({
       title: "Physical Price (USD)",
       type: "number",
       description: "Price for vinyl/cassette. Leave blank if not yet available for purchase.",
+    }),
+    defineField({
+      name: "shopifyHandle",
+      title: "Shopify Product Handle",
+      type: "string",
+      description: "Handle of the linked Shopify product (e.g. 'dream-disc-cd'). Used for physical format purchases.",
     }),
     defineField({
       name: "embedUrl",

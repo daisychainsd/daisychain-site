@@ -19,7 +19,7 @@ export default function Footer() {
                 href="https://instagram.com/daisychainsd"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
               >
                 Instagram
               </a>
@@ -27,7 +27,7 @@ export default function Footer() {
                 href="https://www.youtube.com/@DaisyChain-sd"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
               >
                 YouTube
               </a>
@@ -35,7 +35,7 @@ export default function Footer() {
                 href="https://daisychainsd.bandcamp.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
               >
                 Bandcamp
               </a>
@@ -43,7 +43,7 @@ export default function Footer() {
                 href="https://soundcloud.com/daisychainsd"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-all"
+                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
               >
                 SoundCloud
               </a>

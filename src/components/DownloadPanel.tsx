@@ -6,12 +6,10 @@ import type { Track } from "@/lib/types";
 export default function DownloadPanel({
   sessionId,
   tracks,
-  releaseTitle,
   releaseArtist,
 }: {
   sessionId: string;
   tracks: Track[];
-  releaseTitle: string;
   releaseArtist: string;
 }) {
   const [verified, setVerified] = useState(false);
@@ -63,7 +61,7 @@ export default function DownloadPanel({
     <div>
       <button
         onClick={downloadAll}
-        className="inline-flex items-center gap-2 px-8 py-3 bg-blue-300 text-bg-deep font-bold text-base rounded-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-all mb-8"
+        className="inline-flex items-center gap-2 px-8 py-3 bg-blue-300 text-bg-deep font-bold text-base rounded-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors mb-8"
       >
         <svg
           width="20"
@@ -88,7 +86,7 @@ export default function DownloadPanel({
             download={`${track.trackArtist || releaseArtist} - ${track.title}.wav`}
             className="flex items-center gap-3 px-4 py-3 border-b border-blue-300/5 last:border-b-0 hover:bg-bg-elevated transition-colors"
           >
-            <span className="text-text-muted text-sm w-6 text-center" data-mono>
+            <span className="text-text-muted text-sm w-6 text-center" data-label>
               {track.trackNumber || i + 1}
             </span>
             <div className="flex-1 min-w-0">
