@@ -24,7 +24,7 @@ function formatTicketDateTimeLine(d: Date) {
 
 export default function EventTicketCard({ event }: { event: Event }) {
   const eventDate = new Date(event.date);
-  const flyerUrl = event.flyer ? urlFor(event.flyer).width(800).height(450).url() : null;
+  const flyerUrl = event.flyer ? urlFor(event.flyer).width(800).url() : null;
   const headline =
     event.lineup && event.lineup.length > 0 ? event.lineup[0].name : "Daisy Chain";
 
