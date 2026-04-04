@@ -103,17 +103,15 @@ export default function HeroSlideshow({
       });
     }
 
-    if (shopImageUrl) {
-      list.push({
-        label: "Merch",
-        laneLabel: "Shop",
-        title: "Shop Daisy Chain",
-        subtitle: "Vinyl, tees, accessories",
-        imageUrl: shopImageUrl,
-        href: "/shop",
-        cta: "Browse Shop",
-      });
-    }
+    list.push({
+      label: "Merch",
+      laneLabel: "Shop",
+      title: "Shop Daisy Chain",
+      subtitle: "Vinyl, tees, accessories",
+      imageUrl: shopImageUrl || "",
+      href: "/shop",
+      cta: "Browse Shop",
+    });
 
     return list;
   }, [latestRelease, nextEvent, shopImageUrl]);
@@ -226,11 +224,13 @@ export default function HeroSlideshow({
                 i === active ? "opacity-100 z-0" : "opacity-0 z-0"
               }`}
             >
-              <img
-                src={slide.imageUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              {slide.imageUrl && (
+                <img
+                  src={slide.imageUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-bg-abyss via-bg-abyss/50 to-bg-abyss/20" />
             </div>
           ))}
