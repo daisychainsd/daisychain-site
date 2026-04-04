@@ -21,6 +21,7 @@ interface DownloadRelease {
 
 export default async function AccountPage() {
   const supabase = await createClient();
+  if (!supabase) redirect("/login");
   const {
     data: { user },
   } = await supabase.auth.getUser();
