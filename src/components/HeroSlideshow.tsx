@@ -228,7 +228,11 @@ export default function HeroSlideshow({
                 <img
                   src={slide.imageUrl}
                   alt=""
-                  className="absolute inset-0 w-full h-full object-cover object-top"
+                  className={`absolute inset-0 w-full h-full ${
+                    slide.laneLabel === "Shop"
+                      ? "object-cover object-center"
+                      : "object-cover object-center"
+                  }`}
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-bg-abyss via-bg-abyss/50 to-bg-abyss/20" />

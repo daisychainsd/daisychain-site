@@ -57,7 +57,7 @@ export default async function HomePage() {
         slug: latestRelease.slug,
         artist: latestRelease.artist,
         coverUrl: latestRelease.coverArt
-          ? urlFor(latestRelease.coverArt).width(1200).url()
+          ? (urlFor(latestRelease.coverArt) as any).width(1400).height(620).fit("crop").crop("center").url()
           : "",
         releaseType: latestRelease.releaseType,
       }
@@ -70,7 +70,7 @@ export default async function HomePage() {
         date: nextEvent.date,
         venue: nextEvent.venue,
         flyerUrl: nextEvent.flyer
-          ? urlFor(nextEvent.flyer).width(1200).url()
+          ? (urlFor(nextEvent.flyer) as any).width(1400).height(620).fit("crop").crop("top").url()
           : "",
         ticketUrl: nextEvent.ticketUrl,
       }
