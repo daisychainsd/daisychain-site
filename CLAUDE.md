@@ -2,6 +2,26 @@
 
 # Daisy Chain SD — Website Project
 
+## Branching & Deployment Workflow
+
+**Always build and test on `dev` first. Never push to `main` until the feature looks correct on localhost.**
+
+```
+dev branch  →  test on localhost:3000  →  happy with it?  →  merge to main  →  Vercel auto-deploys
+```
+
+- **Active dev branch**: `dev` — all new work goes here
+- **Production branch**: `main` — Vercel auto-deploys on every push to `main`
+- **Rule**: Only merge `dev` → `main` when explicitly asked to deploy/go live
+- **Local dev server**: `npm run dev` (Turbopack, localhost:3000)
+- **Before merging to main**: run `npm run build` locally to catch TypeScript/build errors before Vercel sees them
+- **Merging to main**:
+  ```bash
+  git checkout main && git merge dev && git push origin main && git checkout dev
+  ```
+- **Vercel env vars**: All keys from `.env.local` must also exist in Vercel → Project → Settings → Environment Variables for production to work. Use "Import .env File" to bulk-add them.
+- **Sanity CDN**: `useCdn` is `false` in dev (live API, instant Studio updates) and `true` in production (cached, faster)
+
 Daisy Chain SD is an independent electronic music label based in San Diego, run by Player Dave. This site replaces the old Squarespace site at daisychainsd.com and aims to be a self-hosted Bandcamp alternative.
 
 ## Stack
