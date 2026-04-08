@@ -24,7 +24,7 @@ export default async function MusicPage() {
   }));
 
   return (
-    <section className="zone-deep relative py-16 sm:py-20">
+    <section className="relative py-16 sm:py-20 overflow-hidden">
       <div className="blob w-[400px] h-[400px] bg-blue-300 bottom-[-50px] left-[-100px] animate-drift" />
       <div className="max-w-7xl mx-auto px-6 relative">
         <CatalogGrid releases={catalogReleases} />

@@ -43,7 +43,7 @@ export default function SignupForm() {
   }
 
   return (
-    <section className="zone-deep min-h-[60vh] flex items-center justify-center py-20">
+    <section className="min-h-[60vh] flex items-center justify-center py-20">
       <div className="w-full max-w-md px-6">
         <div className="container-organic p-8 sm:p-10">
           <div className="mb-8">

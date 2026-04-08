@@ -34,6 +34,7 @@ interface HeroSlide {
   title: string;
   subtitle: string;
   imageUrl: string;
+  mobileImageUrl?: string;
   href: string;
   cta: string;
   external?: boolean;
@@ -45,6 +46,7 @@ interface HeroSlideshowProps {
     slug: string;
     artist: string;
     coverUrl: string;
+    mobileCoverUrl?: string;
     releaseType?: string;
   };
   nextEvent?: {
@@ -53,6 +55,7 @@ interface HeroSlideshowProps {
     date: string;
     venue?: string;
     flyerUrl: string;
+    mobileFlyerUrl?: string;
     ticketUrl?: string;
   };
   shopImageUrl?: string;
@@ -79,6 +82,7 @@ export default function HeroSlideshow({
         title: displayTitle,
         subtitle: latestRelease.artist,
         imageUrl: latestRelease.coverUrl,
+        mobileImageUrl: latestRelease.mobileCoverUrl,
         href: `/releases/${latestRelease.slug}`,
         cta: "Listen Now",
       });
@@ -97,6 +101,7 @@ export default function HeroSlideshow({
         title: nextEvent.title,
         subtitle: `${eventDate} — ${venueName}`,
         imageUrl: nextEvent.flyerUrl,
+        mobileImageUrl: nextEvent.mobileFlyerUrl,
         href: nextEvent.ticketUrl || `/events`,
         cta: "Get Tickets",
         external: !!nextEvent.ticketUrl,
@@ -207,7 +212,7 @@ export default function HeroSlideshow({
   );
 
   return (
-    <div className="relative -mt-24 pt-24">
+    <div className="relative -mt-24">
       <section
         className="relative w-full h-[62vh] max-h-[620px] min-h-[320px] overflow-hidden max-[480px]:min-h-[280px] [@media(max-height:500px)]:min-h-[240px]"
         onMouseEnter={() => setHoverPaused(true)}
@@ -215,7 +220,7 @@ export default function HeroSlideshow({
         aria-roledescription="carousel"
         aria-label="Featured highlights"
       >
-        <div className="absolute inset-x-3 sm:inset-x-5 top-0 bottom-0 overflow-hidden rounded-t-2xl sm:rounded-t-3xl bg-bg-deep">
+        <div className="absolute inset-0 overflow-hidden bg-bg-deep">
           {slides.map((slide, i) => (
             <div
               key={slide.href + slide.laneLabel}
@@ -225,17 +230,17 @@ export default function HeroSlideshow({
               }`}
             >
               {slide.imageUrl && (
-                <img
-                  src={slide.imageUrl}
-                  alt=""
-                  className={`absolute inset-0 w-full h-full ${
-                    slide.laneLabel === "Shop"
-                      ? "object-cover object-center"
-                      : "object-cover object-center"
-                  }`}
-                />
+                <picture className="absolute inset-0 w-full h-full">
+                  <source media="(min-width: 768px)" srcSet={slide.imageUrl} />
+                  <img
+                    src={slide.mobileImageUrl || slide.imageUrl}
+                    alt=""
+                    className="w-full h-full object-cover object-center"
+                  />
+                </picture>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-bg-abyss via-bg-abyss/50 to-bg-abyss/20" />
+              <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-bg-deep/[0.08] to-transparent" />
             </div>
           ))}
 

@@ -47,10 +47,10 @@ export default function TrackList({
     const ws = WS.create({
       container,
       url,
-      height: 36,
-      barWidth: 1,
-      barGap: 0,
-      barRadius: 0,
+      height: 40,
+      barWidth: 2,
+      barGap: 1,
+      barRadius: 2,
       waveColor: "#1F2A3A",
       progressColor: "#7CB9E8",
       cursorColor: "transparent",
@@ -128,7 +128,7 @@ export default function TrackList({
             <div className="flex-1 min-w-0">
               {isActive ? (
                 <div className="flex items-center gap-3">
-                  <div className="shrink-0">
+                  <div className="shrink-0 max-w-[45%] min-w-0">
                     <p className="text-base font-medium truncate text-blue-300">
                       {track.title}
                     </p>

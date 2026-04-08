@@ -5,6 +5,7 @@ interface ReleaseCardProps {
   slug: string;
   artist: string;
   coverUrl: string;
+  catalogNumber?: string;
 }
 
 export default function ReleaseCard({
@@ -12,9 +13,10 @@ export default function ReleaseCard({
   slug,
   artist,
   coverUrl,
+  catalogNumber,
 }: ReleaseCardProps) {
   return (
-    <Link href={`/releases/${slug}`} className="group block">
+    <Link href={`/releases/${slug}`} className="group block min-w-0">
       <div className="container-organic-md p-2 hover-lift">
         {/* Cover art — inset container */}
         <div className="container-inset-md aspect-square relative overflow-hidden">
@@ -28,6 +30,11 @@ export default function ReleaseCard({
             <div className="w-full h-full flex items-center justify-center text-text-muted text-xs bg-bg-raised">
               {title}
             </div>
+          )}
+          {catalogNumber && (
+            <span className="absolute bottom-2 left-2 z-10 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-mono text-white/80 backdrop-blur-sm select-none">
+              {catalogNumber}
+            </span>
           )}
         </div>
 

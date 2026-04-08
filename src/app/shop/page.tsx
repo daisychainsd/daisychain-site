@@ -61,7 +61,7 @@ export default async function ShopPage() {
   const products = await getProducts();
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 relative">
+    <div className="max-w-7xl mx-auto px-6 py-12 relative overflow-hidden">
       <div className="blob w-[400px] h-[400px] bg-amber-300 top-[-100px] right-[-150px] animate-drift" />
 
       <div className="mb-10">

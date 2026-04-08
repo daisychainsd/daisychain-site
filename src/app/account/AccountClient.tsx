@@ -114,7 +114,7 @@ export default function AccountClient({
   }
 
   return (
-    <section className="zone-deep min-h-[60vh] py-16 sm:py-20">
+    <section className="min-h-[60vh] py-16 sm:py-20">
       <div className="max-w-5xl mx-auto px-6">
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-4 mb-10">

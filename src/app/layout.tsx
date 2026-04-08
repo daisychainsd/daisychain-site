@@ -43,6 +43,22 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/ecz5lqw.css" />
       </head>
       <body className="min-h-full flex flex-col">
+        <style>{`
+          .site-bg { background-image: url('/bg-dc28-portrait.webp'); }
+          @media (min-width: 768px) {
+            .site-bg { background-image: url('/bg-dc28-landscape.webp'); }
+          }
+        `}</style>
+        <div
+          aria-hidden
+          className="site-bg pointer-events-none fixed inset-0 z-0 select-none"
+          style={{
+            backgroundSize: "cover",
+            backgroundPosition: "center center",
+            backgroundRepeat: "no-repeat",
+            opacity: 0.10,
+          }}
+        />
         <CartProvider>
           <Header />
           <CartDrawer />

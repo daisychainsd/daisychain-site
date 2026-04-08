@@ -148,7 +148,7 @@ export default function ReleaseInteractive({
       <div className="container-organic p-3 sm:p-4">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Cover Art / Product Photos */}
-          <div className="container-inset aspect-square max-h-[70vw] md:max-h-none relative overflow-hidden">
+          <div className="container-inset aspect-square relative overflow-hidden">
             {physical && shopifyProduct && shopifyProduct.images.edges.length > 0 ? (
               <>
                 <img

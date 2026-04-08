@@ -4,6 +4,7 @@ import { urlFor } from "@/sanity/image";
 import { EVENTS_LIST } from "@/lib/queries";
 import type { Event } from "@/lib/types";
 import EventsToggle from "@/components/EventsToggle";
+import UpcomingEventCard from "@/components/UpcomingEventCard";
 
 export default async function EventsPage() {
   const events = await sanityFetch<Event>(EVENTS_LIST);
@@ -13,7 +14,7 @@ export default async function EventsPage() {
   const past = events.filter((e) => e.date < now);
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 relative">
+    <div className="max-w-5xl mx-auto px-6 py-12 relative overflow-hidden">
       <div className="blob w-[400px] h-[400px] bg-lavender-300 top-[-100px] right-[-150px] animate-drift" />
 
       <div className="flex items-end justify-between mb-10 gap-4 flex-wrap">
@@ -21,7 +22,7 @@ export default async function EventsPage() {
           <p className="text-label mb-2">Live</p>
           <h1 className="text-headline text-text-primary">Events</h1>
         </div>
-        {(upcoming.length > 0 && past.length > 0) && (
+        {upcoming.length > 0 && past.length > 0 && (
           <EventsToggle upcomingCount={upcoming.length} pastCount={past.length} />
         )}
       </div>
@@ -39,7 +40,15 @@ export default async function EventsPage() {
         <section id="upcoming" className="mb-16 scroll-mt-28">
           <div className="space-y-8">
             {upcoming.map((event) => (
-              <UpcomingCard key={event.slug} event={event} />
+              <UpcomingEventCard
+                key={event.slug}
+                title={event.title}
+                date={event.date}
+                venue={event.venue}
+                flyerUrl={event.flyer ? urlFor(event.flyer).width(800).url() : undefined}
+                ticketUrl={event.ticketUrl}
+                lineup={event.lineup}
+              />
             ))}
           </div>
         </section>
@@ -56,97 +65,6 @@ export default async function EventsPage() {
           </div>
         </section>
       )}
-    </div>
-  );
-}
-
-function UpcomingCard({ event }: { event: Event }) {
-  const date = new Date(event.date);
-
-  return (
-    <div className="container-organic p-3 sm:p-4">
-      <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-        {event.flyer && (
-          <div className="container-inset aspect-[4/5] relative">
-            <img
-              src={urlFor(event.flyer).width(800).url()}
-              alt={event.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-        <div className="flex flex-col justify-between p-4 sm:p-6">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <span
-                className="container-pill-l inline-block px-4 py-1.5 text-sm uppercase tracking-wider text-amber-300 border border-amber-300/20 bg-amber-300/5"
-                data-label
-              >
-                Upcoming
-              </span>
-              <span className="text-text-muted text-sm" data-label>
-                {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
-              </span>
-            </div>
-
-            <p className="text-amber-300 font-mono text-4xl sm:text-5xl font-bold tracking-tight mb-1">
-              {date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}
-            </p>
-            <p className="text-text-muted text-sm mb-6" data-label>{date.getFullYear()}</p>
-
-            <h2 className="text-headline mb-2">{event.title}</h2>
-
-            {event.venue && (
-              <p className="text-text-secondary text-base mb-6">{event.venue}</p>
-            )}
-          </div>
-
-          <div>
-            {event.lineup && event.lineup.length > 0 && (
-              <div className="mb-6 pt-6 border-t border-blue-300/10">
-                <p className="text-label mb-3">Lineup</p>
-                <div className="flex flex-col gap-1.5">
-                  {event.lineup.map((act) => (
-                    <div key={act.name}>
-                      {act.artistSlug ? (
-                        <a
-                          href={`/artists/${act.artistSlug}`}
-                          className="text-blue-300 hover:underline text-xl"
-                        >
-                          {act.name}
-                        </a>
-                      ) : (
-                        <span className="text-text-primary text-xl">{act.name}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {event.ticketUrl ? (
-              <a
-                href={event.ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-semibold px-6 py-3 bg-amber-300 text-bg-deep hover:bg-amber-400 hover:shadow-[0_0_24px_rgba(232,184,108,0.2)] transition-[background-color,box-shadow]"
-              >
-                Get Tickets
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
-                </svg>
-              </a>
-            ) : (
-              <span
-                className="container-pill-r inline-flex items-center gap-2 w-fit text-base font-medium px-6 py-3 text-amber-300/60 border border-amber-300/20 bg-amber-300/5"
-                data-label
-              >
-                Tickets Coming Soon
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -171,11 +89,7 @@ function PastCard({ event }: { event: Event }) {
         <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/90 via-bg-deep/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-5">
           <p className="text-text-secondary text-sm mb-1" data-label>
-            {date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
           <h3 className="text-title text-text-primary">{event.title}</h3>
           {event.lineup && (

@@ -34,7 +34,7 @@ export default function NewsletterSignup() {
   }
 
   return (
-    <section className="zone-deep py-12 sm:py-16">
+    <section className="py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-6">
         <div className="max-w-2xl mx-auto text-center">
           {status === "success" ? (

@@ -144,7 +144,11 @@ export const NEXT_EVENT = `
     date,
     venue,
     flyer,
-    ticketUrl
+    ticketUrl,
+    lineup[] {
+      name,
+      "artistSlug": artist->slug.current
+    }
   }
 `;
 

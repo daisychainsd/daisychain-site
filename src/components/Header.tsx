@@ -9,7 +9,7 @@ const navLinkClass =
 export default function Header() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-bg-deep pt-[max(0.5rem,env(safe-area-inset-top))]">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <nav className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <Link
           href="/"
           aria-label="Daisy Chain Records home"

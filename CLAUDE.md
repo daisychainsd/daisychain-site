@@ -193,6 +193,27 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 ### Artists without photos
 - Allegra Miles, Belay, Coido, Elohim, Monotrope, Peter Sheppard, sumthin sumthin
 
+## Design References & UI Agent
+
+### UI Design Agent
+When making **any UI or visual design decision** — layout, spacing, component shape, color usage, interaction patterns, accessibility — **always consult `ui-designer.md`** in the project root. Follow its execution flow and design principles.
+
+### Design System References
+The `design-md/` folder in the project root contains `DESIGN.md` files from 58 real-world design systems (Spotify, Stripe, Apple, Linear, Notion, Vercel, Supabase, Sanity, etc.), sourced from [awesome-design-md](https://github.com/VoltAgent/awesome-design-md).
+
+**When making design decisions, consult relevant files:**
+- **Music/streaming UI**: `design-md/spotify/DESIGN.md`
+- **Checkout/payment flows**: `design-md/stripe/DESIGN.md`
+- **Dark, minimal product UI**: `design-md/linear.app/DESIGN.md`, `design-md/raycast/DESIGN.md`
+- **Content/editorial layouts**: `design-md/notion/DESIGN.md`
+- **Developer tools / data-dense UI**: `design-md/vercel/DESIGN.md`, `design-md/supabase/DESIGN.md`
+- **CMS/studio UI**: `design-md/sanity/DESIGN.md`
+- **E-commerce / product pages**: `design-md/stripe/DESIGN.md`, `design-md/coinbase/DESIGN.md`
+- **Events / tickets**: `design-md/airbnb/DESIGN.md`
+- **Brand/luxury**: `design-md/apple/DESIGN.md`, `design-md/ferrari/DESIGN.md`
+
+Do not blindly copy a single design system — instead cross-reference the most relevant ones and apply patterns that fit the Daisy Chain brand (dark, electronic music label aesthetic).
+
 ## Typography & Design System
 
 - **Headings**: Azo Sans Web (Black, weight 900) via Adobe Typekit (`https://use.typekit.net/ecz5lqw.css`)
@@ -240,6 +261,43 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - Shopify Storefront API fully connected with real credentials
 - Homepage hero slideshow: 3 auto-advancing crossfade slides (latest release, next event, shop), mobile-first, pause on hover/touch
 - Newsletter signup (beehiiv integration): email form on homepage, POSTs to `/api/newsletter`, UTM-tracked as `daisychainsd.com / website / homepage_signup`
+
+## Layout & Styling Rules
+
+These conventions must be followed when adding any new page or component.
+
+### Page wrapper pattern
+Every new page gets a single outer wrapper — pick the right max-width for the content type:
+- **Editorial content** (releases, artists, events, account): `max-w-5xl mx-auto px-6 py-12`
+- **Catalog / shop grids** (music, shop, shop detail): `max-w-7xl mx-auto px-6 py-12`
+- **Focused flows** (checkout, success): `max-w-4xl` or `max-w-2xl` as appropriate
+- **Auth forms** (login, signup): `max-w-md` centered via flexbox on the section
+
+Always include `mx-auto` and `px-6`. Never use `px-4` on page content (header is the only exception to mobile padding — it now also uses `px-6`).
+
+### Decorative blobs
+Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). Any container that holds a blob **must** also have `overflow-hidden` to prevent horizontal scroll on narrow viewports. Pattern:
+```tsx
+<div className="max-w-5xl mx-auto px-6 py-12 relative overflow-hidden">
+  <div className="blob w-[400px] h-[400px] bg-blue-300 top-[-100px] right-[-150px] animate-drift" />
+  ...
+</div>
+```
+
+### Background zones
+- **Do not use `zone-deep` or `zone-abyss`** on page sections — these solid fills block the DC28 background image that shows on all pages. The page background color comes from `body` (`--color-bg-deep`) and the fixed background image in `layout.tsx`.
+- The only dark-surface containers should be `container-organic` cards, not full-section backgrounds.
+
+### Flex/grid overflow safety
+- CSS grid items (e.g. `ReleaseCard`) must have `min-w-0` on their root element so truncation works correctly.
+- Any `shrink-0` title block inside a flex row must also have `max-w-[45%] min-w-0` so it cannot squeeze adjacent flex-grow elements (e.g. waveform in TrackList) to zero on narrow viewports.
+
+### Transitions
+- Never use `transition-all` — always scope to specific properties (`transition-colors`, `transition-[transform]`, etc.) to prevent layout jank.
+
+### Images
+- All images use plain `<img>` tags (not `next/image`) to avoid Sanity CDN hostname config issues.
+- Cover art containers use `aspect-square` alone — do not add `max-h-[...]` constraints that conflict with the aspect ratio.
 
 ## Environment
 

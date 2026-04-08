@@ -18,7 +18,7 @@ export default async function ProductPage({
   if (!product) return notFound();
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 relative">
+    <div className="max-w-7xl mx-auto px-6 py-12 relative overflow-hidden">
       <div className="blob w-[400px] h-[400px] bg-amber-300 top-[-100px] right-[-150px] animate-drift" />
       <ProductDetail product={product} />
     </div>

@@ -10,6 +10,7 @@ interface CatalogRelease {
   artist: string;
   coverUrl: string;
   format?: string[];
+  catalogNumber?: string;
 }
 
 export default function CatalogGrid({ releases }: { releases: CatalogRelease[] }) {
@@ -52,6 +53,7 @@ export default function CatalogGrid({ releases }: { releases: CatalogRelease[] }
               slug={release.slug}
               artist={release.artist}
               coverUrl={release.coverUrl}
+              catalogNumber={release.catalogNumber}
             />
           ))}
         </div>
