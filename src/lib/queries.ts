@@ -8,7 +8,8 @@ const releaseCardFields = `
   coverArt,
   catalogNumber,
   format,
-  releaseDate
+  releaseDate,
+  status
 `;
 
 export const RELEASES_LIST = `
@@ -39,6 +40,8 @@ export const RELEASE_DETAIL = `
     price,
     physicalPrice,
     shopifyHandle,
+    status,
+    presaveUrl,
     embedUrl,
     description,
     tracks[] {

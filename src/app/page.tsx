@@ -32,6 +32,7 @@ export default async function HomePage() {
     coverUrl: r.coverArt ? urlFor(r.coverArt).width(600).url() : "",
     catalogNumber: r.catalogNumber,
     format: r.format,
+    status: r.status,
   }));
 
   const featuredReleases = releases.slice(0, 3).map((r) => ({

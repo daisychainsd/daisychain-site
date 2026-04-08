@@ -27,6 +27,8 @@ interface ReleaseInteractiveProps {
   releaseDate?: string;
   coverUrl?: string;
   shopifyHandle?: string;
+  status?: string;
+  presaveUrl?: string;
   embedUrl?: string;
 }
 
@@ -53,8 +55,11 @@ export default function ReleaseInteractive({
   releaseDate,
   coverUrl,
   shopifyHandle,
+  status,
+  presaveUrl,
   embedUrl,
 }: ReleaseInteractiveProps) {
+  const isUpcoming = status === "upcoming";
   const router = useRouter();
   const { addItem } = useCart();
 
@@ -206,11 +211,14 @@ export default function ReleaseInteractive({
           {/* Details */}
           <div className="flex flex-col justify-between p-4 sm:p-6">
             <div>
-            <p className="text-label mb-3">
+            <p className="text-label mb-3 flex items-center gap-3">
               {catalogNumber}
               {releaseType && (
-                <span className="ml-2 text-blue-300/70">
-                  {releaseType}
+                <span className="text-blue-300/70">{releaseType}</span>
+              )}
+              {isUpcoming && (
+                <span className="inline-block rounded-full bg-blue-300/10 border border-blue-300/20 px-2.5 py-0.5 text-[11px] text-blue-300 uppercase tracking-wider">
+                  Coming Soon
                 </span>
               )}
             </p>
@@ -291,8 +299,27 @@ export default function ReleaseInteractive({
         </div>
       </div>
 
-      {/* Buy */}
-      {physical && !physicalPrice && !shopifyProduct ? (
+      {/* Pre-save (upcoming) or Buy (live) */}
+      {isUpcoming ? (
+        <div className="mt-8 flex items-center justify-between">
+          <div>
+            <p className="text-label mb-1">Tracks</p>
+            <h2 className="text-title text-text-primary">Tracklist</h2>
+          </div>
+          {presaveUrl ? (
+            <a
+              href={presaveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-[background-color,box-shadow]"
+            >
+              Pre-save
+            </a>
+          ) : (
+            <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
+          )}
+        </div>
+      ) : physical && !physicalPrice && !shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">
           <p className="text-label mb-1">Tracks</p>
           <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>

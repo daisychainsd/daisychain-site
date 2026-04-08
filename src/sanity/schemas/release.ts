@@ -168,6 +168,26 @@ export const release = defineType({
       description: "Handle of the linked Shopify product (e.g. 'dream-disc-cd'). Used for physical format purchases.",
     }),
     defineField({
+      name: "status",
+      title: "Status",
+      type: "string",
+      initialValue: "live",
+      options: {
+        list: [
+          { title: "Live — available to buy/stream", value: "live" },
+          { title: "Upcoming — pre-save only", value: "upcoming" },
+        ],
+        layout: "radio",
+      },
+      description: "Set to 'Upcoming' to show a Pre-save button instead of Buy.",
+    }),
+    defineField({
+      name: "presaveUrl",
+      title: "Pre-save URL",
+      type: "url",
+      description: "Link to pre-save on Spotify, Apple Music, etc. Only shown when Status is Upcoming.",
+    }),
+    defineField({
       name: "embedUrl",
       title: "Embed URL (Bandcamp/Soundcloud/Spotify)",
       type: "url",

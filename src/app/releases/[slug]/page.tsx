@@ -37,6 +37,8 @@ export default async function ReleasePage({
         releaseDate={release.releaseDate}
         coverUrl={release.coverArt ? urlFor(release.coverArt).width(800).url() : undefined}
         shopifyHandle={release.shopifyHandle}
+        status={release.status}
+        presaveUrl={release.presaveUrl}
         embedUrl={release.embedUrl}
       />
     </div>

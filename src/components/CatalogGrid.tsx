@@ -11,6 +11,7 @@ interface CatalogRelease {
   coverUrl: string;
   format?: string[];
   catalogNumber?: string;
+  status?: string;
 }
 
 export default function CatalogGrid({ releases }: { releases: CatalogRelease[] }) {
@@ -54,6 +55,7 @@ export default function CatalogGrid({ releases }: { releases: CatalogRelease[] }
               artist={release.artist}
               coverUrl={release.coverUrl}
               catalogNumber={release.catalogNumber}
+              status={release.status}
             />
           ))}
         </div>

@@ -26,6 +26,8 @@ export interface Release {
   price?: number;
   physicalPrice?: number;
   shopifyHandle?: string;
+  status?: string;
+  presaveUrl?: string;
   embedUrl?: string;
   description?: any;
   tracks?: Track[];
@@ -39,6 +41,7 @@ export interface ReleaseCard {
   catalogNumber?: string;
   format?: string[];
   releaseDate?: string;
+  status?: string;
 }
 
 export interface Artist {

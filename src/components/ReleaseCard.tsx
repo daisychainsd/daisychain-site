@@ -6,6 +6,7 @@ interface ReleaseCardProps {
   artist: string;
   coverUrl: string;
   catalogNumber?: string;
+  status?: string;
 }
 
 export default function ReleaseCard({
@@ -14,7 +15,9 @@ export default function ReleaseCard({
   artist,
   coverUrl,
   catalogNumber,
+  status,
 }: ReleaseCardProps) {
+  const isUpcoming = status === "upcoming";
   return (
     <Link href={`/releases/${slug}`} className="group block min-w-0">
       <div className="container-organic-md p-2 hover-lift">
@@ -34,6 +37,11 @@ export default function ReleaseCard({
           {catalogNumber && (
             <span className="absolute bottom-2 left-2 z-10 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-mono text-white/80 backdrop-blur-sm select-none">
               {catalogNumber}
+            </span>
+          )}
+          {isUpcoming && (
+            <span className="absolute top-2 right-2 z-10 rounded-full bg-blue-300/20 border border-blue-300/30 px-2 py-0.5 text-[10px] text-blue-300 uppercase tracking-wider backdrop-blur-sm select-none">
+              Soon
             </span>
           )}
         </div>
