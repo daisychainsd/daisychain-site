@@ -47,7 +47,6 @@ export default async function EventsPage() {
                 venue={event.venue}
                 flyerUrl={event.flyer ? urlFor(event.flyer).width(800).url() : undefined}
                 ticketUrl={event.ticketUrl}
-                lineup={event.lineup}
               />
             ))}
           </div>
