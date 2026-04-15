@@ -4,18 +4,19 @@
 
 ## Branching & Deployment Workflow
 
-**Always build and test on `dev` first. Never push to `main` until the feature looks correct on localhost.**
+**All pushes go to `dev`. Never touch `main` directly. Only merge to `main` when explicitly asked to go live.**
 
 ```
-dev branch  →  test on localhost:3000  →  happy with it?  →  merge to main  →  Vercel auto-deploys
+local work  →  push to dev  →  Vercel preview URL auto-builds  →  review it  →  happy?  →  merge to main  →  daisychainsd.com updates
 ```
 
-- **Active dev branch**: `dev` — all new work goes here
-- **Production branch**: `main` — Vercel auto-deploys on every push to `main`
-- **Rule**: Only merge `dev` → `main` when explicitly asked to deploy/go live
+- **Active dev branch**: `dev` — ALL pushes go here, always
+- **Production branch**: `main` — only merged into when explicitly told to deploy/go live
+- **Vercel preview**: every push to `dev` auto-builds a preview URL (e.g. `daisychain-site-git-dev-....vercel.app`) — use this to review before promoting to production
+- **Collaborator workflow**: Niko pushes to `dev` (or a feature branch → PR into `dev`). Review at the Vercel preview URL before merging to `main`.
 - **Local dev server**: `npm run dev` (Turbopack, localhost:3000)
 - **Before merging to main**: run `npm run build` locally to catch TypeScript/build errors before Vercel sees them
-- **Merging to main**:
+- **Merging to main** (only when ready to go live):
   ```bash
   git checkout main && git merge dev && git push origin main && git checkout dev
   ```
@@ -73,7 +74,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 | Route | Purpose |
 |---|---|
-| `/` | Homepage — full-width hero photo + "Shows" section (UpcomingEventCard) + "Music" section (3 featured releases) + newsletter signup + full catalog grid |
+| `/` | Homepage — responsive hero photo (horizontal ≥1280px / vertical <1280px) + newsletter signup + CMS-driven "Upcoming" section (shows + releases side-by-side at ≥1280px, stacked below) |
 | `/releases/[slug]` | Release detail — cover art (or product photos for physical), metadata, waveform TrackList |
 | `/artists/[slug]` | Artist page |
 | `/events` | Events listing — upcoming (hero card) + past (flyer grid) |
@@ -101,7 +102,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
 - **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + catalog number badge (bottom-left) + "Soon" badge (top-right, when status is upcoming). Title strips "EP"/"Album" suffix.
 - **CatalogGrid** (`src/components/CatalogGrid.tsx`) — release grid with optional physical format filter. Passes `status` through to ReleaseCard.
-- **UpcomingEventCard** (`src/components/UpcomingEventCard.tsx`) — shared event card used on both the homepage SHOWS section and the events page. Shows date, venue, lineup, ticket CTA. Blue accent color. Used by both `src/app/page.tsx` and `src/app/events/page.tsx`.
+- **UpcomingEventCard** (`src/components/UpcomingEventCard.tsx`) — shared event card used on both the homepage Upcoming section and the events page. Always side-by-side layout (flyer left, info right) using `grid-cols-2`. Shows date, venue, and Get Tickets CTA. Blue accent color. Lineup is intentionally excluded from this card — kept on the full events page only. All font sizes and padding use `clamp()` for fluid scaling.
 - **EventsToggle** (`src/components/EventsToggle.tsx`) — client-side upcoming/past tab toggle for events page
 - **FormatToggle** (`src/components/FormatToggle.tsx`) — digital/physical/vinyl format switcher pill
 - **MobileNav** (`src/components/MobileNav.tsx`) — hamburger menu for mobile screens, includes auth-aware account/login link
@@ -110,8 +111,9 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **CartProvider** (`src/components/CartProvider.tsx`) — React context + localStorage for shop cart state
 - **CartDrawer** (`src/components/CartDrawer.tsx`) — slide-out cart drawer with quantity controls
 - **CartButton** (`src/components/CartButton.tsx`) — header cart icon with item count badge
-- **HeroSlideshow** (`src/components/HeroSlideshow.tsx`) — kept in codebase but no longer used on homepage. Homepage now uses a static full-width photo (`/public/hero.png`).
-- **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between MUSIC section and catalog grid on homepage.
+- **HeroSlideshow** (`src/components/HeroSlideshow.tsx`) — kept in codebase but no longer used on homepage.
+- **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and Upcoming section on homepage.
+- **LayloModal** (`src/components/LayloModal.tsx`) — client component that opens a modal popup embedding the Laylo drop iframe (`dropId: feb0139b-a3c8-48cb-9aea-97055521f1b6`). Triggered by "i hate presaving things, just notify me when it's out →" text. Shown on all upcoming release views (homepage card + release detail page). Loads `laylo-sdk.js` dynamically and locks body scroll while open.
 - **Header/Footer** — site-wide layout; Footer includes YouTube channel link, Header includes cart icon
 
 ## Events
@@ -235,6 +237,9 @@ Do not blindly copy a single design system — instead cross-reference the most 
 - Missing cover art for 3 releases (DCR#02, DCR#10, DCR#20)
 - Missing artist photos for 7 artists
 - DCR#22 pre-save URL (add in Sanity Studio when link is ready)
+- Auto-switch Pre-save → Buy button on `releaseDate` (compare today's date to releaseDate in ReleaseInteractive)
+- Streaming platform links on release pages (Spotify, Apple Music, YouTube, SoundCloud, Bandcamp) — add `links[]` array to release schema
+- Laylo Partner API integration for pushing phone numbers from signup to Laylo contact list — waiting on Partner API credentials from contact@laylo.com. Also needs `LAYLO_CUSTOMER_API_KEY` from laylo.com/settings?tab=Integrations and Supabase `phone` column migration
 - Parcel Sound API integration (future, low priority)
 
 ## What's Done
@@ -263,9 +268,12 @@ Do not blindly copy a single design system — instead cross-reference the most 
 - Stripe webhook handles both digital (records to Supabase) and physical (creates Shopify draft order) purchases
 - Shopify Storefront API fully connected with real credentials
 - Newsletter signup (beehiiv integration): email form on homepage, POSTs to `/api/newsletter`, UTM-tracked as `daisychainsd.com / website / homepage_signup`
-- Homepage redesigned: full-width hero photo (`/public/hero.png`), SHOWS section (UpcomingEventCard), MUSIC section (3 featured releases), catalog grid below
-- Shared UpcomingEventCard component (blue accents) used by homepage + events page
-- Upcoming release support: `status` + `presaveUrl` fields on release schema. "Coming Soon" badge on cards, Pre-save button on release detail page
+- Homepage redesigned: responsive hero (`/public/hero-horizontal.png` ≥1280px, `/public/hero-vertical.png` <1280px), newsletter signup, then CMS-driven Upcoming section
+- Upcoming section: side-by-side at ≥1280px (matching horizontal hero breakpoint), stacked below. Left-aligned with fluid padding. Configured entirely from Sanity Studio → Homepage singleton
+- `homepageSettings` Sanity singleton: ordered `upcoming[]` array of show/release references — add/remove/reorder items without code changes
+- Shared UpcomingEventCard component (blue accents, lineup intentionally removed) used by homepage + events page
+- Upcoming release support: `status` + `presaveUrl` fields on release schema. "Coming Soon" overlay on cards, Pre-save button on release detail + homepage card
+- LayloModal popup for upcoming releases ("i hate presaving things..." trigger) embeds Laylo drop iframe
 - Catalog number badge overlay on release cards (bottom-left frosted pill)
 - Container borders switched to neutral white (not blue-tinted)
 - Waveform bar refinements: barWidth 2, barGap 1, barRadius 2

@@ -40,9 +40,11 @@ export default function ReleaseCard({
             </span>
           )}
           {isUpcoming && (
-            <span className="absolute top-2 right-2 z-10 rounded-full bg-blue-300/20 border border-blue-300/30 px-2 py-0.5 text-[10px] text-blue-300 uppercase tracking-wider backdrop-blur-sm select-none">
-              Soon
-            </span>
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-950/50">
+              <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
+                Coming Soon
+              </span>
+            </div>
           )}
         </div>
 

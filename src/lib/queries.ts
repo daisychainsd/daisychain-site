@@ -155,6 +155,16 @@ export const NEXT_EVENT = `
   }
 `;
 
+export const HOMEPAGE_SETTINGS = `
+  *[_type == "homepageSettings"][0] {
+    upcoming[] {
+      itemType,
+      show->{ title, "slug": slug.current, date, venue, flyer, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },
+      release->{ title, "slug": slug.current, "artist": coalesce(displayArtist, artist->name), coverArt, presaveUrl, catalogNumber, status }
+    }
+  }
+`;
+
 export const EVENTS_LIST = `
   *[_type == "event"] | order(date desc) {
     title,

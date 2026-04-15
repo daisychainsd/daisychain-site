@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect } from "react";
+import LayloModal from "./LayloModal";
 import { useRouter } from "next/navigation";
 import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
@@ -206,6 +207,27 @@ export default function ReleaseInteractive({
                 {catalogNumber}
               </div>
             )}
+            {isUpcoming && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-950/50">
+                {presaveUrl ? (
+                  <a
+                    href={presaveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full bg-blue-300 text-bg-deep px-6 py-2.5 text-sm font-semibold hover:bg-blue-200 transition-colors flex items-center gap-2"
+                  >
+                    Pre-save
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
+                    </svg>
+                  </a>
+                ) : (
+                  <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-blue-300">
+                    Coming Soon
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Details */}
@@ -306,18 +328,21 @@ export default function ReleaseInteractive({
             <p className="text-label mb-1">Tracks</p>
             <h2 className="text-title text-text-primary">Tracklist</h2>
           </div>
-          {presaveUrl ? (
-            <a
-              href={presaveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-[background-color,box-shadow]"
-            >
-              Pre-save
-            </a>
-          ) : (
-            <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {presaveUrl ? (
+              <a
+                href={presaveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-[background-color,box-shadow]"
+              >
+                Pre-save
+              </a>
+            ) : (
+              <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
+            )}
+            <LayloModal />
+          </div>
         </div>
       ) : physical && !physicalPrice && !shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">
