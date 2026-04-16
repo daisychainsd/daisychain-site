@@ -7,21 +7,24 @@
 **All pushes go to `dev`. Never touch `main` directly. Only merge to `main` when explicitly asked to go live.**
 
 ```
-local work  →  push to dev  →  Vercel preview URL auto-builds  →  review it  →  happy?  →  merge to main  →  daisychainsd.com updates
+local work  →  push to dev  →  dev.daisychainsd.com auto-builds  →  review it  →  happy?  →  merge to main  →  daisychainsd.com updates
 ```
 
 - **Active dev branch**: `dev` — ALL pushes go here, always
 - **Production branch**: `main` — only merged into when explicitly told to deploy/go live
-- **Vercel preview**: every push to `dev` auto-builds a preview URL (e.g. `daisychain-site-git-dev-....vercel.app`) — use this to review before promoting to production
-- **Collaborator workflow**: Niko pushes to `dev` (or a feature branch → PR into `dev`). Review at the Vercel preview URL before merging to `main`.
+- **Stable preview URL**: **`https://dev.daisychainsd.com`** — CNAME `dev` → `cname.vercel-dns.com` at Squarespace Domains (ex-Google Domains). Aliased in Vercel → Domains to the `dev` git branch so every push to `dev` auto-updates this URL. Bookmark it; don't rely on the random per-deploy URLs like `daisychain-site-<hash>-….vercel.app` (those are pinned forever to a single build).
+- **Production URL**: **`https://daisychainsd.com`** — follows `main`.
+- **Collaborator workflow**: Niko pushes to `dev` (or a feature branch → PR into `dev`). Review at **`dev.daisychainsd.com`** before merging to `main`.
 - **Local dev server**: `npm run dev` (Turbopack, localhost:3000)
 - **Before merging to main**: run `npm run build` locally to catch TypeScript/build errors before Vercel sees them
 - **Merging to main** (only when ready to go live):
   ```bash
   git checkout main && git merge dev && git push origin main && git checkout dev
   ```
-- **Vercel env vars**: All keys from `.env.local` must also exist in Vercel → Project → Settings → Environment Variables for production to work. Use "Import .env File" to bulk-add them.
-- **Sanity CDN**: `useCdn` is `false` in dev (live API, instant Studio updates) and `true` in production (cached, faster)
+- **Vercel env vars**: All keys from `.env.local` must also exist in Vercel → Project → Settings → Environment Variables with **Production + Preview + Development** checked (Preview covers `dev`). Use "Import .env File" to bulk-add.
+- **Sanity CDN**: `useCdn` is `false` in dev (live API, instant Studio updates) and `true` in production (cached, faster). Homepage has **`export const revalidate = 60`** so Studio edits to `homepageSettings.upcoming` show up on Vercel within ~60s without a rebuild.
+- **Stale build cache gotcha**: Occasionally Vercel ships a prerendered homepage with empty Sanity data even though Sanity has content (likely an intermittent fetch during build). Nuclear fix: **`git commit --allow-empty -m "rebuild" && git push origin dev`** — a fresh build regenerates the HTML correctly.
+- **Vercel CLI** (`vercel`) is installed and logged in as **playerdave-1800**. Useful: `vercel ls`, `vercel env ls preview`, `vercel env pull /tmp/preview.env --environment=preview --git-branch=dev`, `vercel inspect <url> --logs`.
 
 Daisy Chain SD is an independent electronic music label based in San Diego, run by Player Dave. This site replaces the old Squarespace site at daisychainsd.com and aims to be a self-hosted Bandcamp alternative.
 
@@ -243,6 +246,7 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - **Lead gen / newsletter**: Build from **`@theme` tokens** and shared container patterns (`container-organic`, spacing scale); avoid one-off gradients, arbitrary radii, and inconsistent label typography — should feel as intentional as shop/checkout, not “vibe coded.”
 - **Section titles**: Homepage **“Upcoming”** (and similar) should use **label vs display** hierarchy intentionally (see `--font-label` / `data-label` vs Azo Black headings) — refine if the section head feels weak or mismatched next to hero.
 - **Deploy**: After schema or prop changes, run **`npm run build`** before pushing **`dev`**; fix TypeScript/prop mismatches (e.g. removing obsolete props from pages when component APIs change) so Vercel preview stays green.
+- **Locking streaming**: Upcoming releases (`status === "upcoming"`) auto-lock every track — no stream URL is delivered to the client. Per-track `comingSoon` boolean on `release.tracks[]` covers partial EPs (e.g. one single released, rest upcoming). Locked tracks render a lock icon + **Coming Soon** pill in `TrackList`.
 
 ## Typography & Design System
 
@@ -305,6 +309,9 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - Waveform bar refinements: barWidth 2, barGap 1, barRadius 2
 - UI/accessibility pass: homepage heading hierarchy for Upcoming, global focus-visible, muted text contrast, reduced-motion on hover-lift, newsletter headline **“skip the algorithm”**, shared icons, ReleaseCard overflow fix, Sanity liveEdit + hidden + query filters + Releases sort
 - Upcoming parity + motion: **Coming Soon** pill on cover (release detail + homepage + cards); **Laylo** + Pre-save in action rows; **hover-lift** / image zoom / logo glow gated behind **`(hover: hover)`**; homepage **“Upcoming”** uses **label font** + restrained clamp; newsletter **container-organic** layout
+- Track streaming lock: per-track `comingSoon` bool + auto-lock when release `status === "upcoming"`; GROQ nulls `audioUrl`/`previewUrl` so stream URLs never reach the browser; `TrackList` shows lock icon + Coming Soon pill
+- Homepage ISR: `export const revalidate = 60` so Studio edits propagate without redeploying
+- Stable preview alias: **`dev.daisychainsd.com`** aliased to `dev` branch in Vercel; DNS CNAME set at Squarespace
 
 ## Layout & Styling Rules
 
