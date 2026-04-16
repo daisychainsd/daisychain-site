@@ -27,7 +27,7 @@ export default async function ArtistsPage() {
                     <img
                       src={urlFor(artist.photo).width(400).url()}
                       alt={artist.name}
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter,transform] group-hover:scale-105"
+                      className="w-full h-full object-cover grayscale image-hover-artist-photo"
                     />
                   ) : (
                     <div className="w-full h-full bg-bg-raised" />

@@ -118,7 +118,7 @@ export default function EventTicketCard({ event }: { event: Event }) {
             className="mt-2 text-center font-[family-name:var(--font-mono)] text-[0.55rem] uppercase tracking-[0.3em] text-text-muted/70 sm:mt-2.5 sm:text-[0.6rem]"
             data-label
           >
-            Admit one · Daisy Chain SD
+            Admit one · Daisy Chain
           </p>
         </div>
       </article>

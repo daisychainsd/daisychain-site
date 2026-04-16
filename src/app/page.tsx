@@ -5,12 +5,7 @@ import NewsletterSignup from "@/components/NewsletterSignup";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
 import Link from "next/link";
 import LayloModal from "@/components/LayloModal";
-
-const ArrowIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
-  </svg>
-);
+import { ArrowIcon } from "@/components/icons";
 
 interface UpcomingShow {
   title: string;
@@ -55,7 +50,7 @@ export default async function HomePage() {
           <source media="(min-width: 1280px)" srcSet="/hero-horizontal.png" />
           <img
             src="/hero-horizontal.png"
-            alt="Daisy Chain"
+            alt=""
             className="w-full h-full object-cover object-center"
           />
         </picture>
@@ -73,7 +68,11 @@ export default async function HomePage() {
           <div className="px-6 sm:px-10 lg:px-16">
             <h2
               className="font-black leading-none tracking-tight uppercase text-text-primary mb-8"
-              style={{ fontSize: "clamp(2.75rem, 10vw, 10rem)" }}
+              style={{
+                fontFamily: "var(--font-label), system-ui, sans-serif",
+                fontSize: "clamp(2rem, 5vw, 4rem)",
+                letterSpacing: "0.06em",
+              }}
             >
               Upcoming
             </h2>
@@ -117,22 +116,10 @@ export default async function HomePage() {
                             )}
                           </Link>
                           {isUpcoming && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-blue-950/50">
-                              {rel.presaveUrl ? (
-                                <a
-                                  href={rel.presaveUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="rounded-full bg-blue-300 text-bg-deep px-5 py-2 text-sm font-semibold hover:bg-blue-200 transition-colors flex items-center gap-2"
-                                >
-                                  Pre-save
-                                  <ArrowIcon />
-                                </a>
-                              ) : (
-                                <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-blue-300">
-                                  Coming Soon
-                                </span>
-                              )}
+                            <div className="absolute inset-0 flex items-center justify-center bg-blue-950/50 pointer-events-none">
+                              <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
+                                Coming Soon
+                              </span>
                             </div>
                           )}
                         </div>
@@ -154,10 +141,10 @@ export default async function HomePage() {
                             {rel.catalogNumber && (
                               <p className="text-text-muted font-mono" style={{ fontSize: "clamp(0.55rem, 1.2vw, 0.75rem)", marginBottom: "0.2em" }}>{rel.catalogNumber}</p>
                             )}
-                            <h2
+                            <h3
                               className="font-black leading-tight text-text-primary"
                               style={{ fontSize: "clamp(0.75rem, 2.5vw, 2rem)", marginBottom: "0.2em" }}
-                            >{rel.title}</h2>
+                            >{rel.title}</h3>
                             <p className="text-blue-300" style={{ fontSize: "clamp(0.65rem, 1.8vw, 1.25rem)" }}>{rel.artist}</p>
                           </div>
 

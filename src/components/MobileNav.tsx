@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -16,10 +16,14 @@ export default function MobileNav() {
   const [open, setOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
+    close();
+  }, [pathname, close]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -45,12 +49,42 @@ export default function MobileNav() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        close();
+        toggleRef.current?.focus();
+        return;
+      }
+      if (e.key === "Tab" && navRef.current) {
+        const focusable = navRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, close]);
+
   return (
     <>
       <button
+        ref={toggleRef}
         onClick={() => setOpen(!open)}
-        className="sm:hidden w-10 h-10 flex items-center justify-center text-text-secondary hover:text-blue-300 transition-colors"
+        className="sm:hidden w-10 h-10 flex items-center justify-center text-text-secondary hover:text-blue-300 transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/50"
         aria-label={open ? "Close menu" : "Open menu"}
+        aria-expanded={open}
       >
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -66,9 +100,12 @@ export default function MobileNav() {
       {open && (
         <div
           className="fixed inset-0 top-[60px] z-40 bg-bg-deep/95 backdrop-blur-xl sm:hidden"
-          onClick={() => setOpen(false)}
+          onClick={close}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
         >
-          <nav className="flex flex-col p-6 gap-2" onClick={(e) => e.stopPropagation()}>
+          <nav ref={navRef} className="flex flex-col p-6 gap-2" onClick={(e) => e.stopPropagation()}>
             {links.map(({ href, label }) => (
               <Link
                 key={href}

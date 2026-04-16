@@ -4,6 +4,7 @@ export const artist = defineType({
   name: "artist",
   title: "Artist",
   type: "document",
+  liveEdit: true,
   fields: [
     defineField({
       name: "name",

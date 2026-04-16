@@ -47,7 +47,6 @@ export default function LoginForm() {
       <div className="w-full max-w-md px-6">
         <div className="container-organic p-8 sm:p-10">
           <div className="mb-8">
-            <p className="text-label mb-2">Welcome back</p>
             <h1 className="text-headline">Log In</h1>
           </div>
 
@@ -92,7 +91,7 @@ export default function LoginForm() {
             </div>
 
             {error && (
-              <p className="text-red-400 text-sm">{error}</p>
+              <p id="form-error" className="text-red-400 text-sm" role="alert">{error}</p>
             )}
 
             <button

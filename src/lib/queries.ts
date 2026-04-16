@@ -13,7 +13,7 @@ const releaseCardFields = `
 `;
 
 export const RELEASES_LIST = `
-  *[_type == "release"] | order(releaseDate desc) {
+  *[_type == "release" && hidden != true] | order(releaseDate desc) {
     ${releaseCardFields}
   }
 `;
@@ -50,8 +50,15 @@ export const RELEASE_DETAIL = `
       duration,
       trackNumber,
       youtubeUrl,
-      "audioUrl": audioFile.asset->url,
-      "previewUrl": previewFile.asset->url
+      comingSoon,
+      "audioUrl": select(
+        ^.status == "upcoming" || comingSoon == true => null,
+        audioFile.asset->url
+      ),
+      "previewUrl": select(
+        ^.status == "upcoming" || comingSoon == true => null,
+        previewFile.asset->url
+      )
     }
   }
 `;
@@ -90,7 +97,7 @@ export const ARTIST_DETAIL = `
     photo,
     bio,
     links,
-    "releases": *[_type == "release" && references(^._id)] | order(releaseDate desc) {
+    "releases": *[_type == "release" && references(^._id) && hidden != true] | order(releaseDate desc) {
       ${releaseCardFields}
     }
   }
@@ -131,7 +138,7 @@ export const ALL_RELEASES_DOWNLOAD = `
 `;
 
 export const LATEST_RELEASE = `
-  *[_type == "release"] | order(releaseDate desc)[0] {
+  *[_type == "release" && hidden != true] | order(releaseDate desc)[0] {
     title,
     "slug": slug.current,
     "artist": coalesce(displayArtist, artist->name),
@@ -141,7 +148,7 @@ export const LATEST_RELEASE = `
 `;
 
 export const NEXT_EVENT = `
-  *[_type == "event" && date > now()] | order(date asc)[0] {
+  *[_type == "event" && date > now() && hidden != true] | order(date asc)[0] {
     title,
     "slug": slug.current,
     date,
@@ -166,7 +173,7 @@ export const HOMEPAGE_SETTINGS = `
 `;
 
 export const EVENTS_LIST = `
-  *[_type == "event"] | order(date desc) {
+  *[_type == "event" && hidden != true] | order(date desc) {
     title,
     "slug": slug.current,
     date,

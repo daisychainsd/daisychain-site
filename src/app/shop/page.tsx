@@ -20,7 +20,7 @@ function ProductCard({ product }: { product: ShopifyProduct }) {
             <img
               src={image.url}
               alt={image.altText || product.title}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              className="w-full h-full object-cover image-hover-card-zoom"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-text-muted text-xs bg-bg-raised">
@@ -77,27 +77,7 @@ export default async function ShopPage() {
         </div>
       ) : (
         <div className="text-center py-20">
-          <div className="container-organic inline-block px-12 py-10">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="mx-auto mb-4 text-text-muted/40"
-            >
-              <path
-                d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6zM3 6h18M16 10a4 4 0 01-8 0"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <p className="text-text-secondary text-lg mb-1">Shop coming soon</p>
-            <p className="text-text-muted text-sm">
-              Vinyl, merch, and more — stay tuned.
-            </p>
-          </div>
+          <p className="text-text-muted text-lg">merch drops soon — stay tuned.</p>
         </div>
       )}
     </div>

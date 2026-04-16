@@ -78,7 +78,7 @@ function PastCard({ event }: { event: Event }) {
           <img
             src={urlFor(event.flyer).width(600).url()}
             alt={event.title}
-            className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity ease-in-out"
+            className="w-full h-full object-cover opacity-70 image-hover-past-flyer"
           />
         ) : (
           <div className="w-full h-full bg-bg-raised flex items-center justify-center">

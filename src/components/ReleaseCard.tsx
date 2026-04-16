@@ -20,14 +20,14 @@ export default function ReleaseCard({
   const isUpcoming = status === "upcoming";
   return (
     <Link href={`/releases/${slug}`} className="group block min-w-0">
-      <div className="container-organic-md p-2 hover-lift">
+      <div className="container-organic-md p-2 hover-lift overflow-hidden">
         {/* Cover art — inset container */}
         <div className="container-inset-md aspect-square relative overflow-hidden">
           {coverUrl ? (
             <img
               src={coverUrl}
               alt={`${title} by ${artist}`}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              className="w-full h-full object-cover image-hover-card-zoom"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-text-muted text-xs bg-bg-raised">

@@ -4,7 +4,15 @@ export const event = defineType({
   name: "event",
   title: "Event",
   type: "document",
+  liveEdit: true,
   fields: [
+    defineField({
+      name: "hidden",
+      title: "Hidden",
+      type: "boolean",
+      description: "Hide this event from the public site",
+      initialValue: false,
+    }),
     defineField({
       name: "title",
       title: "Title",

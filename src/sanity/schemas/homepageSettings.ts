@@ -4,6 +4,7 @@ export const homepageSettings = defineType({
   name: "homepageSettings",
   title: "Homepage",
   type: "document",
+  liveEdit: true,
   fields: [
     defineField({
       name: "upcoming",

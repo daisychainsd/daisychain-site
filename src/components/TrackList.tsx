@@ -6,10 +6,13 @@ import type { Track } from "@/lib/types";
 export default function TrackList({
   tracks,
   releaseArtist,
+  releaseStatus,
 }: {
   tracks: Track[];
   releaseArtist: string;
+  releaseStatus?: string;
 }) {
+  const lockAll = releaseStatus === "upcoming";
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const wsRef = useRef<any>(null);
@@ -66,6 +69,7 @@ export default function TrackList({
   }
 
   function handlePlay(index: number, track: Track) {
+    if (lockAll || track.comingSoon) return;
     if (activeIndex === index) {
       wsRef.current?.playPause();
       return;
@@ -88,25 +92,40 @@ export default function TrackList({
   );
 
   return (
-    <div className="container-scoop">
+    <div className="container-scoop" role="region" aria-label="Audio player">
       {sorted.map((track, i) => {
         const isActive = activeIndex === i;
         const showPause = isActive && isPlaying;
-        const hasAudio = track.previewUrl || track.audioUrl;
+        const locked = lockAll || !!track.comingSoon;
+        const hasAudio = !locked && (track.previewUrl || track.audioUrl);
 
         return (
           <div
             key={track.trackNumber ?? i}
-            className={`flex items-center gap-4 px-4 py-3.5 border-b border-blue-300/5 last:border-b-0 hover:bg-bg-elevated transition-colors ${
+            className={`flex items-center gap-4 px-4 py-3.5 border-b border-blue-300/5 last:border-b-0 transition-colors ${
+              locked ? "" : "hover:bg-bg-elevated"
+            } ${
               isActive
                 ? "bg-blue-300/5 border-l-2 border-l-blue-300"
                 : "border-l-2 border-l-transparent"
             }`}
           >
-            {hasAudio ? (
+            {locked ? (
+              <span
+                className="w-10 h-10 flex items-center justify-center text-text-muted shrink-0"
+                aria-label={`${track.title} — coming soon, not streamable`}
+                title="Coming soon"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="4" y="11" width="16" height="10" rx="2" />
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                </svg>
+              </span>
+            ) : hasAudio ? (
               <button
                 onClick={() => handlePlay(i, track)}
-                className="w-10 h-10 flex items-center justify-center text-text-secondary hover:text-blue-300 transition-colors shrink-0"
+                aria-label={showPause ? `Pause ${track.title}` : `Play ${track.title}`}
+                className="w-10 h-10 flex items-center justify-center text-text-secondary hover:text-blue-300 transition-colors shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/50"
               >
                 {showPause ? (
                   <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -126,7 +145,7 @@ export default function TrackList({
             )}
 
             <div className="flex-1 min-w-0">
-              {isActive ? (
+              {isActive && !locked ? (
                 <div className="flex items-center gap-3">
                   <div className="shrink-0 max-w-[45%] min-w-0">
                     <p className="text-base font-medium truncate text-blue-300">
@@ -140,7 +159,11 @@ export default function TrackList({
                 </div>
               ) : (
                 <>
-                  <p className="text-base font-medium truncate text-text-primary">
+                  <p
+                    className={`text-base font-medium truncate ${
+                      locked ? "text-text-secondary" : "text-text-primary"
+                    }`}
+                  >
                     {track.title}
                   </p>
                   <p className="text-sm text-text-secondary truncate">
@@ -150,13 +173,19 @@ export default function TrackList({
               )}
             </div>
 
-            {track.duration && (
+            {locked && (
+              <span className="shrink-0 rounded-full bg-blue-300/10 border border-blue-300/30 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
+                Coming Soon
+              </span>
+            )}
+
+            {!locked && track.duration && (
               <span className="text-sm text-text-muted shrink-0" data-label>
                 {track.duration}
               </span>
             )}
 
-            {track.youtubeUrl && (
+            {!locked && track.youtubeUrl && (
               <a
                 href={track.youtubeUrl}
                 target="_blank"

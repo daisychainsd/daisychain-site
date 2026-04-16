@@ -6,6 +6,7 @@ export interface Track {
   audioUrl?: string;
   previewUrl?: string;
   youtubeUrl?: string;
+  comingSoon?: boolean;
 }
 
 export interface Release {

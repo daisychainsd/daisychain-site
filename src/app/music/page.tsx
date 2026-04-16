@@ -21,6 +21,7 @@ export default async function MusicPage() {
     coverUrl: release.coverArt ? urlFor(release.coverArt).width(600).url() : "",
     catalogNumber: release.catalogNumber,
     format: release.format,
+    status: release.status,
   }));
 
   return (

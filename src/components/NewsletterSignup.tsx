@@ -34,43 +34,60 @@ export default function NewsletterSignup() {
   }
 
   return (
-    <section className="py-12 sm:py-16">
+    <section className="py-12 sm:py-16" aria-labelledby="newsletter-heading">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="container-organic max-w-xl p-6 sm:p-8">
           {status === "success" ? (
-            <div className="py-4">
-              <p className="text-blue-300 font-semibold text-lg">You're in!</p>
-              <p className="text-text-secondary text-sm mt-1">
-                We'll keep you posted on events, music, and more.
+            <div className="py-1" role="status" aria-live="polite">
+              <p className="text-label text-blue-300/90 mb-2">Subscribed</p>
+              <p className="text-title text-text-primary text-xl sm:text-2xl mb-2">
+                you&apos;re on the list
+              </p>
+              <p className="text-text-secondary text-sm">
+                we&apos;ll hit you up when something drops.
               </p>
             </div>
           ) : (
             <>
-              <p className="text-text-secondary text-base sm:text-lg mb-5">
-                Stay up to date with events, music, and more
+              <p className="text-label mb-2" id="newsletter-heading">
+                Newsletter
+              </p>
+              <h2 className="text-title text-text-primary text-2xl sm:text-3xl mb-2">
+                skip the algorithm
+              </h2>
+              <p className="text-text-secondary text-sm mb-6 max-w-md">
+                New releases and shows — straight to your inbox.
               </p>
               <form
                 onSubmit={handleSubmit}
-                className="flex flex-col sm:flex-row gap-3 justify-center"
+                className="flex flex-col sm:flex-row gap-3 sm:items-stretch"
               >
+                <label htmlFor="newsletter-email" className="sr-only">
+                  Email address
+                </label>
                 <input
+                  id="newsletter-email"
                   type="email"
+                  name="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
+                  placeholder="Email"
                   required
-                  className="px-4 py-3 rounded-full bg-bg-elevated border border-blue-300/10 text-text-primary placeholder:text-text-muted text-sm focus:outline-none focus:border-blue-300/40 focus:ring-1 focus:ring-blue-300/20 w-full sm:w-72"
+                  className="min-h-11 flex-1 rounded-lg bg-bg-elevated border border-white/[0.08] px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/40 focus-visible:border-blue-300/30"
                 />
                 <button
                   type="submit"
                   disabled={status === "loading"}
-                  className="px-6 py-3 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 transition-colors disabled:opacity-50 shrink-0"
+                  className="min-h-11 shrink-0 rounded-lg bg-blue-300 px-5 py-3 text-sm font-semibold text-bg-deep hover:bg-blue-200 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-deep"
                 >
-                  {status === "loading" ? "Signing up..." : "Subscribe"}
+                  {status === "loading" ? "Signing up…" : "Subscribe"}
                 </button>
               </form>
               {status === "error" && (
-                <p className="text-red-400 text-sm mt-3">{errorMsg}</p>
+                <p className="text-red-400 text-sm mt-3" role="alert">
+                  {errorMsg}
+                </p>
               )}
             </>
           )}

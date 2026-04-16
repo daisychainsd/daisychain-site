@@ -61,13 +61,7 @@ export default function CatalogGrid({ releases }: { releases: CatalogRelease[] }
         </div>
       ) : (
         <div className="text-center py-20 text-text-muted">
-          <p className="text-2xl mb-2">No releases yet</p>
-          <p className="text-sm">
-            Connect Sanity and add your first release at{" "}
-            <a href="/studio" className="text-blue-300 hover:underline">
-              /studio
-            </a>
-          </p>
+          <p className="text-lg">nothing here yet — check back soon.</p>
         </div>
       )}
     </div>

@@ -58,7 +58,7 @@ export default function LayloModal() {
               frameBorder="0"
               scrolling="no"
               allow="web-share"
-              allowtransparency="true"
+              allowTransparency
               style={{ width: "1px", minWidth: "100%", maxWidth: "1000px", height: "480px", display: "block" }}
               src="https://embed.laylo.com?dropId=feb0139b-a3c8-48cb-9aea-97055521f1b6&color=C8D1DF&minimal=false&theme=dark"
             />

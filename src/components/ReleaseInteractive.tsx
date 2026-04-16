@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect } from "react";
+import Link from "next/link";
 import LayloModal from "./LayloModal";
 import { useRouter } from "next/navigation";
 import FormatToggle from "./FormatToggle";
@@ -183,12 +184,16 @@ export default function ReleaseInteractive({
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                       </button>
                     )}
-                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5" role="tablist" aria-label="Product images">
                       {shopifyProduct.images.edges.map((_, i) => (
-                        <span
+                        <button
                           key={i}
-                          className={`block w-1.5 h-1.5 rounded-full transition-colors ${
-                            i === selectedImageIndex ? "bg-white" : "bg-white/40"
+                          onClick={() => setSelectedImageIndex(i)}
+                          aria-label={`View image ${i + 1} of ${shopifyProduct.images.edges.length}`}
+                          aria-selected={i === selectedImageIndex}
+                          role="tab"
+                          className={`block w-2 h-2 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+                            i === selectedImageIndex ? "bg-white" : "bg-white/40 hover:bg-white/60"
                           }`}
                         />
                       ))}
@@ -208,24 +213,10 @@ export default function ReleaseInteractive({
               </div>
             )}
             {isUpcoming && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-950/50">
-                {presaveUrl ? (
-                  <a
-                    href={presaveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-full bg-blue-300 text-bg-deep px-6 py-2.5 text-sm font-semibold hover:bg-blue-200 transition-colors flex items-center gap-2"
-                  >
-                    Pre-save
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
-                    </svg>
-                  </a>
-                ) : (
-                  <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-blue-300">
-                    Coming Soon
-                  </span>
-                )}
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-950/50 pointer-events-none">
+                <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
+                  Coming Soon
+                </span>
               </div>
             )}
           </div>
@@ -238,64 +229,59 @@ export default function ReleaseInteractive({
               {releaseType && (
                 <span className="text-blue-300/70">{releaseType}</span>
               )}
-              {isUpcoming && (
-                <span className="inline-block rounded-full bg-blue-300/10 border border-blue-300/20 px-2.5 py-0.5 text-[11px] text-blue-300 uppercase tracking-wider">
-                  Coming Soon
-                </span>
-              )}
             </p>
             <h1 className="text-headline mb-2">{displayTitle}</h1>
             <div className="text-xl mb-4 flex flex-wrap items-baseline gap-x-1">
               {releaseType === "remix" && remixerSlug ? (
                 <>
-                  <a
+                  <Link
                     href={`/artists/${remixerSlug}`}
                     className="text-blue-300 hover:underline"
                   >
                     {releaseArtist}
-                  </a>
+                  </Link>
                   {artistSlug && primaryArtistName && (
                     <>
                       <span className="text-text-muted">,</span>
-                      <a
+                      <Link
                         href={`/artists/${artistSlug}`}
                         className="text-blue-300 hover:underline"
                       >
                         {primaryArtistName}
-                      </a>
+                      </Link>
                     </>
                   )}
                 </>
               ) : artistSlug ? (
-                <a
+                <Link
                   href={`/artists/${artistSlug}`}
                   className="text-blue-300 hover:underline"
                 >
                   {releaseArtist}
-                </a>
+                </Link>
               ) : (
                 <span className="text-blue-300">{releaseArtist}</span>
               )}
               {additionalArtists?.map((a) => (
                 <Fragment key={a.slug}>
                   <span className="text-text-muted">,</span>
-                  <a
+                  <Link
                     href={`/artists/${a.slug}`}
                     className="text-blue-300 hover:underline"
                   >
                     {a.name}
-                  </a>
+                  </Link>
                 </Fragment>
               ))}
             </div>
 
             </div>
 
-            <p className={`text-blue-300/60 text-xs tracking-wide transition-opacity ease-in-out ${
-              physical && shopifyHandle ? "opacity-100" : "opacity-0 invisible"
-            }`}>
-              All physical purchases include downloadable digital files
-            </p>
+            {physical && shopifyHandle && (
+              <p className="text-blue-300/60 text-xs tracking-wide">
+                All physical purchases include downloadable digital files
+              </p>
+            )}
 
             <div className="pt-6 border-t border-blue-300/10 space-y-5">
               {hasToggle && (
@@ -323,23 +309,25 @@ export default function ReleaseInteractive({
 
       {/* Pre-save (upcoming) or Buy (live) */}
       {isUpcoming ? (
-        <div className="mt-8 flex items-center justify-between">
+        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-label mb-1">Tracks</p>
             <h2 className="text-title text-text-primary">Tracklist</h2>
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-stretch sm:items-end gap-3 w-full sm:w-auto sm:max-w-xs">
             {presaveUrl ? (
               <a
                 href={presaveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-[background-color,box-shadow]"
+                className="text-center sm:text-left px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-[background-color,box-shadow]"
               >
                 Pre-save
               </a>
             ) : (
-              <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
+              <p className="text-text-muted text-sm uppercase tracking-wider text-center sm:text-right">
+                Coming Soon
+              </p>
             )}
             <LayloModal />
           </div>
@@ -390,7 +378,11 @@ export default function ReleaseInteractive({
       {/* Track List */}
       {tracks.length > 0 && (
         <section className="mt-4">
-          <TrackList tracks={tracks} releaseArtist={releaseArtist} />
+          <TrackList
+            tracks={tracks}
+            releaseArtist={releaseArtist}
+            releaseStatus={status}
+          />
         </section>
       )}
 

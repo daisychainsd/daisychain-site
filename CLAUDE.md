@@ -47,11 +47,15 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - `src/sanity/image.ts` — `urlFor()` helper for Sanity image CDN
 - `src/sanity/schemas/` — release, artist, event, blockContent
 - `sanity.config.ts` — uses relative imports (`./src/sanity/schemas`), NOT `@/` aliases
+- **Studio UX**: `liveEdit: true` on release, artist, event, and homepage singleton — edits publish immediately (no separate “Publish” step for day-to-day tweaks).
+- **Visibility**: **`hidden`** boolean on **release** and **event** — when `true`, document is excluded from **public** GROQ queries (listings, homepage Upcoming, artist discography, etc.). Use instead of leaving drafts unpublished.
+- **Releases list order**: Custom structure in `sanity.config.ts` — default sort for the Releases tool is **`releaseDate` descending** (newest first).
+- **Public queries** (`src/lib/queries.ts`): filter with `hidden != true` (and equivalent for nested references where needed) so hidden content never appears on the site.
 
 ### Schemas
-- **release** — title, slug, artist (ref), displayArtist (string override), additionalArtists (array of artist refs for collabs), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description
+- **release** — title, slug, artist (ref), displayArtist (string override), additionalArtists (array of artist refs for collabs), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true)
 - **artist** — name, slug, photo, bio, links (website, instagram, bandcamp, soundcloud)
-- **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description
+- **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description, **hidden** (exclude from site when true)
 
 ### Audio streaming architecture
 - **WAV files** are the master/purchase format, stored in Sanity as `audioFile` on each track
@@ -97,10 +101,10 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 ## Components
 
-- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to Shopify product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy/pre-save button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout. When `status === "upcoming"`, shows "Coming Soon" badge and Pre-save button linking to `presaveUrl`.
+- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to Shopify product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy/pre-save button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout. When `status === "upcoming"`, cover has **opaque overlay + “Coming Soon” pill** (same as cards); **Pre-save** + **LayloModal** sit in the tracklist header row (not on the cover).
 - **TrackList** (`src/components/TrackList.tsx`) — wavesurfer.js waveform player with real audio waveforms from MP3 previews. Active track shows title/artist at normal size on the left with waveform inline to the right. Pre-loads wavesurfer module on mount for instant playback. Properly cleans up media elements on track switch.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
-- **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + catalog number badge (bottom-left) + "Soon" badge (top-right, when status is upcoming). Title strips "EP"/"Album" suffix.
+- **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + catalog number badge (bottom-left) + "Soon" badge (top-right, when status is upcoming). Title strips "EP"/"Album" suffix. The **outer** `container-organic-md` wrapper uses **`overflow-hidden`** so scale-on-hover does not clip rounded corners (avoid only patching inner layers).
 - **CatalogGrid** (`src/components/CatalogGrid.tsx`) — release grid with optional physical format filter. Passes `status` through to ReleaseCard.
 - **UpcomingEventCard** (`src/components/UpcomingEventCard.tsx`) — shared event card used on both the homepage Upcoming section and the events page. Always side-by-side layout (flyer left, info right) using `grid-cols-2`. Shows date, venue, and Get Tickets CTA. Blue accent color. Lineup is intentionally excluded from this card — kept on the full events page only. All font sizes and padding use `clamp()` for fluid scaling.
 - **EventsToggle** (`src/components/EventsToggle.tsx`) — client-side upcoming/past tab toggle for events page
@@ -112,7 +116,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **CartDrawer** (`src/components/CartDrawer.tsx`) — slide-out cart drawer with quantity controls
 - **CartButton** (`src/components/CartButton.tsx`) — header cart icon with item count badge
 - **HeroSlideshow** (`src/components/HeroSlideshow.tsx`) — kept in codebase but no longer used on homepage.
-- **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and Upcoming section on homepage.
+- **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and Upcoming section on homepage inside **`container-organic`**: **`text-label`** “Newsletter”, **`text-title`** headline **“skip the algorithm”**, supporting line, rounded-lg field + button (not full-width pill row). Headline copy stays direct.
 - **LayloModal** (`src/components/LayloModal.tsx`) — client component that opens a modal popup embedding the Laylo drop iframe (`dropId: feb0139b-a3c8-48cb-9aea-97055521f1b6`). Triggered by "i hate presaving things, just notify me when it's out →" text. Shown on all upcoming release views (homepage card + release detail page). Loads `laylo-sdk.js` dynamically and locks body scroll while open.
 - **Header/Footer** — site-wide layout; Footer includes YouTube channel link, Header includes cart icon
 
@@ -218,6 +222,28 @@ The `design-md/` folder in the project root contains `DESIGN.md` files from 58 r
 
 Do not blindly copy a single design system — instead cross-reference the most relevant ones and apply patterns that fit the Daisy Chain brand (dark, electronic music label aesthetic).
 
+## Recent session work & design decisions (carry forward)
+
+Use this section when changing UI so choices stay consistent across pages (homepage, catalog, release detail, lead gen).
+
+### Done in a recent pass (accessibility, copy, CMS)
+
+- **Heading hierarchy**: On the homepage Upcoming section, each release/event **title** is an **`h3`** under a single section **`h2`**, so cards don’t each introduce a misleading `h2`.
+- **Focus**: Global **`:focus-visible`** styles in `globals.css` for keyboard users; interactive controls (nav, carousel dots, track player) get visible rings.
+- **Contrast**: **`--color-text-muted`** bumped for WCAG AA on small metadata text.
+- **Motion**: **`.hover-lift`** respects **`prefers-reduced-motion`** (disable transform animation when requested).
+- **Sanity**: **`liveEdit`**, **`hidden`** on release/event, public GROQ filters, Releases list default sort by **`releaseDate` desc** — see Sanity CMS above.
+- **Components**: **`next/link`** for in-app artist links on release detail; physical-format note in **ReleaseInteractive** only when a physical format exists; **Laylo** iframe uses **`allowTransparency`** for valid React DOM typing; shared **`ArrowIcon`** in **`src/components/icons.tsx`**.
+- **ReleaseCard**: **Outer** card **`overflow-hidden`** fixes **rounded corner glitches** during hover zoom on `/music` and similar grids.
+
+### Principles for future design work
+
+- **Parity across surfaces**: Upcoming releases use the same **opaque overlay + “Coming Soon” pill** on cover art on **grid**, **homepage Upcoming**, and **release detail**; **Pre-save** lives in actions beside/below the hero, not on the cover. **LayloModal** remains on homepage card + release detail upcoming row.
+- **Touch vs hover**: **`.hover-lift`**, image zoom (`image-hover-card-zoom`, `image-hover-artist-photo`), past-event flyer opacity, and header logo glow apply only inside **`@media (hover: hover)`** so touch doesn’t get sticky hover.
+- **Lead gen / newsletter**: Build from **`@theme` tokens** and shared container patterns (`container-organic`, spacing scale); avoid one-off gradients, arbitrary radii, and inconsistent label typography — should feel as intentional as shop/checkout, not “vibe coded.”
+- **Section titles**: Homepage **“Upcoming”** (and similar) should use **label vs display** hierarchy intentionally (see `--font-label` / `data-label` vs Azo Black headings) — refine if the section head feels weak or mismatched next to hero.
+- **Deploy**: After schema or prop changes, run **`npm run build`** before pushing **`dev`**; fix TypeScript/prop mismatches (e.g. removing obsolete props from pages when component APIs change) so Vercel preview stays green.
+
 ## Typography & Design System
 
 - **Headings**: Azo Sans Web (Black, weight 900) via Adobe Typekit (`https://use.typekit.net/ecz5lqw.css`)
@@ -277,6 +303,8 @@ Do not blindly copy a single design system — instead cross-reference the most 
 - Catalog number badge overlay on release cards (bottom-left frosted pill)
 - Container borders switched to neutral white (not blue-tinted)
 - Waveform bar refinements: barWidth 2, barGap 1, barRadius 2
+- UI/accessibility pass: homepage heading hierarchy for Upcoming, global focus-visible, muted text contrast, reduced-motion on hover-lift, newsletter headline **“skip the algorithm”**, shared icons, ReleaseCard overflow fix, Sanity liveEdit + hidden + query filters + Releases sort
+- Upcoming parity + motion: **Coming Soon** pill on cover (release detail + homepage + cards); **Laylo** + Pre-save in action rows; **hover-lift** / image zoom / logo glow gated behind **`(hover: hover)`**; homepage **“Upcoming”** uses **label font** + restrained clamp; newsletter **container-organic** layout
 
 ## Layout & Styling Rules
 

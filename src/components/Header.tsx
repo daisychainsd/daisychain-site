@@ -4,7 +4,7 @@ import AuthNavLink from "./AuthNavLink";
 import CartButton from "./CartButton";
 
 const navLinkClass =
-  "px-3 py-1.5 rounded-lg text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors";
+  "px-3 py-1.5 rounded-lg text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/50";
 
 export default function Header() {
   return (
@@ -18,7 +18,7 @@ export default function Header() {
           <img
             src="/flower-white.png"
             alt=""
-            className="w-8 h-8 transition-[filter] group-hover:drop-shadow-[0_0_8px_rgba(124,185,232,0.5)]"
+            className="w-8 h-8 transition-[filter] logo-hover-glow"
           />
         </Link>
         <div className="hidden sm:flex items-center gap-1 text-sm tracking-wide">

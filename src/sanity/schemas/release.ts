@@ -4,7 +4,15 @@ export const release = defineType({
   name: "release",
   title: "Release",
   type: "document",
+  liveEdit: true,
   fields: [
+    defineField({
+      name: "hidden",
+      title: "Hidden",
+      type: "boolean",
+      description: "Hide this release from the public site",
+      initialValue: false,
+    }),
     defineField({
       name: "title",
       title: "Title",
@@ -132,16 +140,25 @@ export const release = defineType({
               type: "url",
               description: "Link to the visualizer or music video on YouTube",
             }),
+            defineField({
+              name: "comingSoon",
+              title: "Coming Soon (lock streaming)",
+              type: "boolean",
+              description:
+                "If true, this track can't be streamed on the site — shows a 'Coming Soon' pill instead of a play button. Releases with Status = Upcoming are locked automatically; use this for per-track control on partial EPs.",
+              initialValue: false,
+            }),
           ],
           preview: {
             select: {
               title: "title",
               trackNumber: "trackNumber",
               trackArtist: "trackArtist",
+              comingSoon: "comingSoon",
             },
-            prepare({ title, trackNumber, trackArtist }) {
+            prepare({ title, trackNumber, trackArtist, comingSoon }) {
               return {
-                title: `${trackNumber || "—"}. ${title}`,
+                title: `${trackNumber || "—"}. ${title}${comingSoon ? " (locked)" : ""}`,
                 subtitle: trackArtist || "",
               };
             },

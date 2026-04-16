@@ -24,7 +24,14 @@ export default defineConfig({
                   .documentId("homepageSettings")
               ),
             S.divider(),
-            S.documentTypeListItem("release").title("Releases"),
+            S.listItem()
+              .title("Releases")
+              .schemaType("release")
+              .child(
+                S.documentTypeList("release")
+                  .title("Releases")
+                  .defaultOrdering([{ field: "releaseDate", direction: "desc" }])
+              ),
             S.documentTypeListItem("artist").title("Artists"),
             S.documentTypeListItem("event").title("Events"),
           ]),

@@ -21,7 +21,7 @@
   /* Warm white text */
   --color-text-primary: #E8ECF0;
   --color-text-secondary: #8899AA;
-  --color-text-muted: #556677;
+  --color-text-muted: #6B7F94;
   --color-text-faint: #3A4A5A;
 
   /* Secondary accents */
@@ -69,6 +69,11 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(124, 185, 232, 0.5);
+  outline-offset: 2px;
 }
 
 code, pre {
@@ -212,12 +217,47 @@ body::before {
     transform var(--default-transition-duration) var(--default-transition-timing-function),
     box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
 }
-.hover-lift:hover {
-  transform: translateY(-3px);
-  box-shadow:
-    0 4px 20px rgba(124, 185, 232, 0.08),
-    0 8px 40px rgba(124, 185, 232, 0.04),
-    0 0 0 1px rgba(124, 185, 232, 0.06);
+
+/* Only real hover pointers get lift / image zoom (avoids sticky “hover” on touch) */
+@media (hover: hover) {
+  .hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 4px 20px rgba(124, 185, 232, 0.08),
+      0 8px 40px rgba(124, 185, 232, 0.04),
+      0 0 0 1px rgba(124, 185, 232, 0.06);
+  }
+
+  .group:hover .image-hover-card-zoom {
+    transform: scale(1.05);
+  }
+
+  .group:hover .image-hover-artist-photo {
+    transform: scale(1.05);
+    filter: grayscale(0);
+  }
+
+  .group:hover .image-hover-past-flyer {
+    opacity: 0.9;
+  }
+
+  .group:hover .logo-hover-glow {
+    filter: drop-shadow(0 0 8px rgba(124, 185, 232, 0.5));
+  }
+}
+
+.image-hover-card-zoom {
+  transition: transform var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.image-hover-artist-photo {
+  transition:
+    filter var(--default-transition-duration) var(--default-transition-timing-function),
+    transform var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.image-hover-past-flyer {
+  transition: opacity var(--default-transition-duration) var(--default-transition-timing-function);
 }
 
 .divider-glow {
@@ -318,5 +358,15 @@ body::before {
   .animate-drift,
   .animate-fade-in {
     animation: none;
+  }
+  .hover-lift {
+    transition: none;
+  }
+  .hover-lift:hover {
+    transform: none;
+  }
+  .group:hover .image-hover-card-zoom,
+  .group:hover .image-hover-artist-photo {
+    transform: none;
   }
 }

@@ -1,10 +1,5 @@
 import Link from "next/link";
-
-const ArrowIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 8h10m0 0l-4-4m4 4l-4 4" />
-  </svg>
-);
+import { ArrowIcon } from "./icons";
 
 export interface UpcomingEventCardProps {
   title: string;
@@ -25,8 +20,7 @@ export default function UpcomingEventCard({
 
   return (
     <div className="container-organic overflow-hidden @container">
-      {/* Always side-by-side — flyer left, info right */}
-      <div className="grid grid-cols-2">
+      <div className={flyerUrl ? "grid grid-cols-2" : ""}>
         {flyerUrl && (
           <div className="aspect-[4/5] relative overflow-hidden">
             <img
@@ -74,12 +68,12 @@ export default function UpcomingEventCard({
               {d.getFullYear()}
             </p>
 
-            <h2
+            <h3
               className="font-black leading-tight text-text-primary"
               style={{ fontSize: "clamp(0.75rem, 2.5vw, 2rem)", marginBottom: "0.2em" }}
             >
               {title}
-            </h2>
+            </h3>
 
             {venue && (
               <p
