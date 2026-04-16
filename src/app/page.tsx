@@ -7,6 +7,8 @@ import Link from "next/link";
 import LayloModal from "@/components/LayloModal";
 import { ArrowIcon } from "@/components/icons";
 
+export const revalidate = 60;
+
 interface UpcomingShow {
   title: string;
   slug: string;
@@ -187,16 +189,6 @@ export default async function HomePage() {
         </section>
       )}
 
-      {upcomingItems.length === 0 && (
-        <section className="border-t border-white/[0.06] py-20">
-          <div className="px-6 sm:px-10 lg:px-16 max-w-5xl">
-            <p className="text-text-muted text-sm">
-              Configure upcoming shows and releases in{" "}
-              <a href="/studio" className="text-blue-300 hover:underline">Studio → Homepage</a>.
-            </p>
-          </div>
-        </section>
-      )}
     </>
   );
 }
