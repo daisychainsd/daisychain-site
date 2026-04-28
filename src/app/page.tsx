@@ -65,7 +65,17 @@ export default async function HomePage() {
     client?.fetch<HomepageSettings | null>(HOMEPAGE_SETTINGS) ?? Promise.resolve(null),
     client?.fetch<LatestReleaseData | null>(LATEST_RELEASE) ?? Promise.resolve(null),
   ]);
-  const upcomingItems = settings?.upcoming ?? [];
+  // Auto-prune: once a release flips to status:"live" (via the daily cron on
+  // release day, or manually in Studio), drop it from the Upcoming section so
+  // the homepage doesn't keep advertising a release that's already out.
+  // Show items always render — past-show pruning would need a date check and
+  // is intentionally left for manual control.
+  const upcomingItems = (settings?.upcoming ?? []).filter((item) => {
+    if (item.itemType === "release" && item.release?.status !== "upcoming") {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <>
