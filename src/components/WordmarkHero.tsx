@@ -42,13 +42,12 @@ export default function WordmarkHero() {
   }, []);
 
   return (
-    <section
-      className="relative mx-auto overflow-hidden"
-      style={{
-        padding: "clamp(16px, 3vw, 32px) clamp(24px, 4vw, 48px) 48px",
-        maxWidth: 1440,
-      }}
-    >
+    // Section is full-width. Photo + vignette fill the entire viewport-width
+    // (no max-width). Inner content wrapper handles the 1440 max-width + padding
+    // so wordmark + LeadGen card stay aligned with the rest of the page grid.
+    // Bottom gradient fade bleeds the hero photo into the NewsMarquee's solid
+    // bg-abyss section below for a clean handoff (no visible page bg sliver).
+    <section className="relative w-full overflow-hidden">
       {/* Hero photo — responsive (landscape >=768px / portrait <768px).
           Grainy black-and-white dance floor imagery sits BEHIND the wordmark.
           aria-hidden + empty alt on the img to exclude the decorative photo
@@ -73,9 +72,28 @@ export default function WordmarkHero() {
             "radial-gradient(ellipse at 50% 40%, rgba(10,14,20,0.3) 0%, rgba(10,14,20,0.85) 75%)",
         }}
       />
+      {/* Bottom edge fade — blends hero photo into the abyss-colored marquee
+          immediately below. Without this, you can see the seam between the
+          hero's photo and the marquee's solid background. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0"
+        style={{
+          height: "120px",
+          background:
+            "linear-gradient(to bottom, transparent 0%, var(--color-bg-abyss) 100%)",
+        }}
+      />
 
-      {/* Everything below stacks above the photo */}
-      <div className="relative z-10">
+      {/* Everything below stacks above the photo. Inner wrapper constrains the
+          actual content to the 1440 grid; the photo behind already fills viewport. */}
+      <div
+        className="relative z-10 mx-auto"
+        style={{
+          padding: "clamp(16px, 3vw, 32px) clamp(24px, 4vw, 48px) 48px",
+          maxWidth: 1440,
+        }}
+      >
 
       {/* Top kicker row */}
       <div className="flex justify-between items-start flex-wrap gap-5 mb-6">
