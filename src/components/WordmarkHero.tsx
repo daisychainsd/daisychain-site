@@ -109,15 +109,22 @@ export default function WordmarkHero() {
           font-weight declaration. --font-wordmark is a semantic token reserved
           specifically for this + the NewsMarquee big display type; do NOT
           swap it for --font-heading. */}
+      {/* Each line is its own block so they wrap independently. The font scales
+          with viewport width via clamp; the upper bounds are tuned so neither
+          DAISY nor CHAIN clips against the section padding (Rubik Mono One's
+          H/N/A glyphs are wide). max-width:100% + word-break belt-and-braces
+          for narrow viewports. */}
       <h1
         ref={wordmarkRef}
         className="uppercase text-text-primary text-left"
         style={{
           fontFamily: "var(--font-wordmark), sans-serif",
-          fontSize: "clamp(4rem, 20vw, 22rem)",
+          fontSize: "clamp(3.5rem, 16vw, 17rem)",
           lineHeight: 0.82,
           margin: "4vw 0",
           letterSpacing: "-0.04em",
+          maxWidth: "100%",
+          wordBreak: "break-word",
         }}
       >
         <span className="block">DAISY</span>

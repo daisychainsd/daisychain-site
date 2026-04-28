@@ -30,9 +30,10 @@ export default function NewsMarquee({ items = DEFAULT_ITEMS }: NewsMarqueeProps)
         borderTop: "1px solid rgba(255,255,255,0.06)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
         background: "var(--color-bg-abyss)",
-        // Skip rendering + animating when scrolled out of view
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 420px",
+        // Note: `content-visibility: auto` was previously here as a perf
+        // optimization (skip render when offscreen). It also pauses CSS
+        // animations on the skipped tree — which made the marquee freeze in
+        // production. Removed in favor of the marquee always animating.
       }}
     >
       {/* Kicker row */}
