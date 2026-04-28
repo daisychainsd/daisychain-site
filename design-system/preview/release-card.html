@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Release Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+  .card{padding:8px;border-radius:var(--radius-organic-md);background:var(--color-bg-surface);border:1px solid var(--border);display:block;text-decoration:none}
+  .art{position:relative;border-radius:var(--radius-organic-inv-md);background:var(--color-bg-raised);aspect-ratio:1;overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .art svg{opacity:.5}
+  .pill{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);color:rgba(255,255,255,.8);padding:2px 8px;border-radius:999px;font-family:var(--font-mono);font-size:10px}
+  .soon{position:absolute;top:8px;right:8px;background:rgba(124,185,232,.2);border:1px solid rgba(124,185,232,.3);color:var(--color-blue-300);padding:2px 8px;border-radius:999px;font-family:var(--font-heading);font-size:10px;letter-spacing:.08em;text-transform:uppercase;backdrop-filter:blur(4px)}
+  .meta{padding:12px 10px 8px}
+  .ttl{color:var(--fg1);font-weight:600;font-size:15px}
+  .art-name{color:var(--fg2);font-size:13px;margin-top:2px}
+  .c1{background:linear-gradient(135deg,#7CB9E8 0%,#2670A8 100%)}
+  .c2{background:linear-gradient(135deg,#0A0E14 0%,#1F2A3A 100%)}
+  .c3{background:linear-gradient(135deg,#E8B86C 0%,#A8A0D4 100%)}
+</style></head>
+<body><div class="wrap">
+  <a class="card"><div class="art c1"><div class="pill">DCR#22</div><div class="soon">Soon</div></div><div class="meta"><div class="ttl">Ballerina</div><div class="art-name">Player Dave</div></div></a>
+  <a class="card"><div class="art c2"><div class="pill">DCR#20</div></div><div class="meta"><div class="ttl">Dream Disc</div><div class="art-name">Various Artists</div></div></a>
+  <a class="card"><div class="art c3"><div class="pill">DCR#19</div></div><div class="meta"><div class="ttl">Heartbeat</div><div class="art-name">Player Dave</div></div></a>
+</div></body></html>

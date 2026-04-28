@@ -4,7 +4,7 @@ const releaseCardFields = `
   title,
   "slug": slug.current,
   displayArtist,
-  "artist": coalesce(displayArtist, artist->name),
+  "artist": coalesce(artists[0]->name, displayArtist, artist->name),
   coverArt,
   catalogNumber,
   format,
@@ -23,9 +23,10 @@ export const RELEASE_DETAIL = `
     title,
     "slug": slug.current,
     displayArtist,
-    "artist": coalesce(displayArtist, artist->name),
-    "artistSlug": artist->slug.current,
+    "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+    "artistSlug": coalesce(artists[0]->slug.current, artist->slug.current),
     "primaryArtistName": artist->name,
+    "artists": artists[]->{ name, "slug": slug.current, rosterTier },
     "additionalArtists": additionalArtists[]->{ name, "slug": slug.current },
     "remixerSlug": select(
       releaseType == "remix" => *[_type == "artist" && name == ^.displayArtist][0].slug.current,
@@ -43,10 +44,12 @@ export const RELEASE_DETAIL = `
     status,
     presaveUrl,
     embedUrl,
+    links,
     description,
     tracks[] {
       title,
       trackArtist,
+      "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
       duration,
       trackNumber,
       youtubeUrl,
@@ -68,12 +71,13 @@ export const RELEASE_DOWNLOAD = `
     title,
     "slug": slug.current,
     displayArtist,
-    "artist": coalesce(displayArtist, artist->name),
+    "artist": coalesce(artists[0]->name, displayArtist, artist->name),
     coverArt,
     catalogNumber,
     tracks[] {
       title,
       trackArtist,
+      "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
       trackNumber,
       "audioUrl": audioFile.asset->url,
       "previewUrl": previewFile.asset->url
@@ -82,11 +86,18 @@ export const RELEASE_DOWNLOAD = `
 `;
 
 export const ARTISTS_LIST = `
-  *[_type == "artist"] | order(name asc) {
+  *[_type == "artist" && rosterTier != "side"] | order(name asc) {
     name,
     "slug": slug.current,
     photo,
-    "releaseCount": count(*[_type == "release" && references(^._id)])
+    role,
+    hometown,
+    "releaseCount": count(*[_type == "release" && hidden != true && references(^._id)]),
+    "recentReleases": *[_type == "release" && hidden != true && references(^._id)] | order(releaseDate desc)[0...2] {
+      title,
+      "slug": slug.current,
+      catalogNumber
+    }
   }
 `;
 
@@ -107,12 +118,13 @@ export const RELEASES_BY_SLUGS = `
   *[_type == "release" && slug.current in $slugs] | order(releaseDate desc) {
     title,
     "slug": slug.current,
-    "artist": coalesce(displayArtist, artist->name),
+    "artist": coalesce(artists[0]->name, displayArtist, artist->name),
     coverArt,
     catalogNumber,
     tracks[] {
       title,
       trackArtist,
+      "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
       trackNumber,
       "audioUrl": audioFile.asset->url,
       "previewUrl": previewFile.asset->url
@@ -124,12 +136,13 @@ export const ALL_RELEASES_DOWNLOAD = `
   *[_type == "release"] | order(releaseDate desc) {
     title,
     "slug": slug.current,
-    "artist": coalesce(displayArtist, artist->name),
+    "artist": coalesce(artists[0]->name, displayArtist, artist->name),
     coverArt,
     catalogNumber,
     tracks[] {
       title,
       trackArtist,
+      "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
       trackNumber,
       "audioUrl": audioFile.asset->url,
       "previewUrl": previewFile.asset->url
@@ -138,12 +151,34 @@ export const ALL_RELEASES_DOWNLOAD = `
 `;
 
 export const LATEST_RELEASE = `
-  *[_type == "release" && hidden != true] | order(releaseDate desc)[0] {
+  *[_type == "release" && hidden != true && status != "upcoming"] | order(releaseDate desc)[0] {
     title,
     "slug": slug.current,
-    "artist": coalesce(displayArtist, artist->name),
+    "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+    "artistSlug": artist->slug.current,
     coverArt,
-    releaseType
+    catalogNumber,
+    releaseType,
+    releaseDate,
+    price,
+    description,
+    status,
+    tracks[0...4] {
+      title,
+      trackArtist,
+      "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
+      trackNumber,
+      duration,
+      comingSoon,
+      "audioUrl": select(
+        ^.status == "upcoming" || comingSoon == true => null,
+        audioFile.asset->url
+      ),
+      "previewUrl": select(
+        ^.status == "upcoming" || comingSoon == true => null,
+        previewFile.asset->url
+      )
+    }
   }
 `;
 
@@ -167,8 +202,16 @@ export const HOMEPAGE_SETTINGS = `
     upcoming[] {
       itemType,
       show->{ title, "slug": slug.current, date, venue, flyer, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },
-      release->{ title, "slug": slug.current, "artist": coalesce(displayArtist, artist->name), coverArt, presaveUrl, catalogNumber, status }
+      release->{ title, "slug": slug.current, "artist": coalesce(artists[0]->name, displayArtist, artist->name), coverArt, presaveUrl, catalogNumber, status }
     }
+  }
+`;
+
+export const ABOUT_STATS = `
+  {
+    "releases": count(*[_type == "release" && hidden != true]),
+    "events": count(*[_type == "event" && hidden != true]),
+    "artists": count(*[_type == "artist"])
   }
 `;
 
@@ -180,6 +223,7 @@ export const EVENTS_LIST = `
     venue,
     flyer,
     ticketUrl,
+    recapUrl,
     description,
     lineup[] {
       name,

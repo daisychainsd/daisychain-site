@@ -5,6 +5,8 @@ import { ARTIST_DETAIL } from "@/lib/queries";
 import type { Artist } from "@/lib/types";
 import ReleaseCard from "@/components/ReleaseCard";
 
+export const revalidate = 60;
+
 export default async function ArtistPage({
   params,
 }: {
@@ -48,14 +50,14 @@ export default async function ArtistPage({
                     Instagram
                   </a>
                 )}
-                {artist.links.bandcamp && (
+                {artist.links.spotify && (
                   <a
-                    href={artist.links.bandcamp}
+                    href={artist.links.spotify}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
                   >
-                    Bandcamp
+                    Spotify
                   </a>
                 )}
                 {artist.links.soundcloud && (

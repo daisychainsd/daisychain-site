@@ -1,0 +1,146 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Newsletter Signup</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body)}
+  .wrap{padding:24px;box-sizing:border-box}
+  .card{
+    position:relative;
+    border-radius:var(--radius-organic-lg);
+    background:
+      radial-gradient(ellipse 70% 80% at 15% 100%, rgba(124,185,232,.10), transparent 60%),
+      radial-gradient(ellipse 60% 70% at 100% 0%, rgba(245,110,110,.05), transparent 55%),
+      var(--color-bg-surface);
+    border:1px solid var(--border);
+    padding:36px 40px;
+    overflow:hidden;
+    display:grid;
+    grid-template-columns:1.3fr 1fr;
+    gap:40px;
+    align-items:center;
+  }
+  /* Small, static watermark — sits in the bottom-right, low opacity */
+  .watermark{
+    position:absolute;right:18px;bottom:16px;
+    display:flex;align-items:center;gap:8px;
+    pointer-events:none;opacity:.35;
+  }
+  .watermark img{width:14px;height:14px;opacity:.6}
+  .watermark span{
+    font-family:var(--font-mono);font-size:10px;
+    color:var(--fg3);letter-spacing:.04em;
+  }
+
+  .kicker{
+    font-family:var(--font-heading);font-weight:900;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--color-red-300);
+    display:flex;align-items:center;gap:8px;
+  }
+  .kicker::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--color-red-300);box-shadow:0 0 10px var(--color-red-300);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  h2{
+    font-family:var(--font-heading);font-weight:900;
+    font-size:clamp(36px,4.3vw,56px);line-height:.94;letter-spacing:-.03em;
+    text-transform:uppercase;margin:14px 0 0;
+  }
+  h2 em{font-style:normal;font-family:var(--font-experimental);color:var(--color-blue-300);font-weight:400;letter-spacing:-.02em}
+  .lede{color:var(--fg2);font-size:16px;line-height:1.55;margin:16px 0 20px;max-width:440px;font-weight:500}
+  .lede b{color:var(--color-offwhite);font-weight:700}
+
+  .bullets{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+  .bullets li{
+    display:flex;align-items:flex-start;gap:12px;
+    font-size:14px;color:var(--fg1);line-height:1.45;
+  }
+  .bullets b{color:var(--color-offwhite);font-weight:700}
+  .tick{
+    flex:none;width:22px;height:22px;border-radius:50%;
+    background:rgba(124,185,232,.1);border:1px solid rgba(124,185,232,.25);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--color-blue-300);margin-top:1px;
+  }
+  .tick.red{background:rgba(245,110,110,.1);border-color:rgba(245,110,110,.3);color:var(--color-red-300)}
+
+  /* right column — the form */
+  .form-card{
+    background:var(--color-bg-raised);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius-organic-inv);
+    padding:24px;
+  }
+  .row-label{
+    font-family:var(--font-label);font-weight:900;text-transform:uppercase;
+    font-size:11px;color:var(--fg3);letter-spacing:.08em;margin-bottom:10px;
+    display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .count{font-family:var(--font-mono);font-size:10px;color:var(--color-blue-300);letter-spacing:0;text-transform:none}
+
+  .input-wrap{
+    display:flex;align-items:center;gap:10px;padding:0 16px;
+    background:var(--color-bg-deep);border:1px solid var(--border-strong);
+    border-radius:999px;transition:border-color .2s, box-shadow .2s;
+  }
+  .input-wrap:focus-within{border-color:rgba(124,185,232,.5);box-shadow:0 0 0 3px rgba(124,185,232,.1)}
+  .at{color:var(--fg3);font-family:var(--font-mono);font-size:13px}
+  input{
+    flex:1;min-width:0;background:transparent;border:none;outline:none;
+    color:var(--fg1);font-family:var(--font-body);font-weight:500;font-size:15px;padding:14px 0;
+  }
+  input::placeholder{color:var(--fg4)}
+
+  /* Full-width CTA below the email — no cutoff possible */
+  .cta{
+    margin-top:10px;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    width:100%;padding:14px 22px;border:none;cursor:pointer;
+    background:var(--color-blue-300);color:var(--color-bg-deep);
+    font-family:var(--font-heading);font-weight:900;font-size:14px;
+    letter-spacing:.06em;text-transform:uppercase;
+    border-radius:999px;
+    transition:background-color .2s, box-shadow .2s;
+  }
+  .cta:hover{background:var(--color-blue-200);box-shadow:0 0 24px rgba(124,185,232,.25)}
+  .cta svg{transition:transform .25s var(--ease-daisy)}
+  .cta:hover svg{transform:translateX(4px)}
+
+  .fine{
+    display:flex;justify-content:space-between;gap:12px;align-items:center;
+    margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);
+    font-family:var(--font-mono);font-size:10px;color:var(--fg3);
+  }
+  .fine b{color:var(--color-offwhite);font-weight:700}
+</style></head>
+<body>
+<div class="wrap">
+  <section class="card">
+
+    <div>
+      <div class="kicker">● THE CHAIN · INSIDER LIST</div>
+      <h2>Bypass the <em>algorithm</em></h2>
+      <p class="lede">Stay up to date with what's coming — <b>so you don't miss out.</b></p>
+      <ul class="bullets">
+        <li><span class="tick red">✓</span><span><b>100% of what we drop.</b></span></li>
+        <li><span class="tick">✓</span><span><b>Early access</b> on everything.</span></li>
+      </ul>
+    </div>
+
+    <form class="form-card" onsubmit="event.preventDefault()">
+      <div class="row-label"><span>Your email</span><span class="count">2,847 on chain</span></div>
+      <div class="input-wrap">
+        <span class="at">@</span>
+        <input type="email" placeholder="you@domain.com" value="">
+      </div>
+      <button type="submit" class="cta">
+        Join the Chain
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m0 0l-4-4m4 4l-4 4"/></svg>
+      </button>
+
+      <div class="fine">
+        <span>Unsubscribe any time · read our <b>privacy policy</b>.</span>
+      </div>
+    </form>
+
+    <div class="watermark"><img src="../assets/flower-white.png" alt=""><span>DCSD</span></div>
+  </section>
+</div>
+</body></html>

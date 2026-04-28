@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Colors — Text</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:24px;display:grid;gap:14px}
+  .row{display:grid;grid-template-columns:1fr auto auto;align-items:baseline;gap:16px;padding:10px 14px;border-bottom:1px solid var(--border)}
+  .label{font-family:var(--font-heading);font-size:18px;font-weight:900;letter-spacing:-.01em}
+  .tok{font-family:var(--font-mono);font-size:11px;color:var(--fg3)}
+  .hex{font-family:var(--font-mono);font-size:11px;color:var(--fg3)}
+</style></head>
+<body><div class="wrap">
+  <div class="row"><div class="label" style="color:#E8ECF0">Primary — the main voice</div><div class="tok">text-primary</div><div class="hex">#E8ECF0</div></div>
+  <div class="row"><div class="label" style="color:#8899AA">Secondary — metadata + body</div><div class="tok">text-secondary</div><div class="hex">#8899AA</div></div>
+  <div class="row"><div class="label" style="color:#556677">Muted — captions, labels</div><div class="tok">text-muted</div><div class="hex">#556677</div></div>
+  <div class="row"><div class="label" style="color:#3A4A5A">Faint — disabled, hints</div><div class="tok">text-faint</div><div class="hex">#3A4A5A</div></div>
+</div></body></html>

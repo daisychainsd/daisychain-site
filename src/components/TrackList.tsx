@@ -1,7 +1,46 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Fragment } from "react";
+import Link from "next/link";
 import type { Track } from "@/lib/types";
+
+// Renders the per-track credit. If trackArtists (refs) exist, each name is a
+// clickable link to /artists/[slug] separated by a comma. Falls back to the
+// trackArtist text string, then to the release-level primary artist name.
+function TrackCredit({
+  track,
+  releaseArtist,
+}: {
+  track: Track;
+  releaseArtist: string;
+}) {
+  if (track.trackArtists && track.trackArtists.length > 0) {
+    return (
+      <>
+        {track.trackArtists.map((a, idx) => {
+          // Side-tier artists are credited but not linked. Main and undefined link out.
+          const isSide = a.rosterTier === "side";
+          return (
+            <Fragment key={a.slug || idx}>
+              {idx > 0 && ", "}
+              {a.slug && !isSide ? (
+                <Link
+                  href={`/artists/${a.slug}`}
+                  className="hover:text-blue-300 transition-colors"
+                >
+                  {a.name}
+                </Link>
+              ) : (
+                <span>{a.name}</span>
+              )}
+            </Fragment>
+          );
+        })}
+      </>
+    );
+  }
+  return <>{track.trackArtist || releaseArtist}</>;
+}
 
 export default function TrackList({
   tracks,
@@ -152,7 +191,7 @@ export default function TrackList({
                       {track.title}
                     </p>
                     <p className="text-sm text-text-secondary truncate">
-                      {track.trackArtist || releaseArtist}
+                      <TrackCredit track={track} releaseArtist={releaseArtist} />
                     </p>
                   </div>
                   <div id={`waveform-${i}`} className="flex-1 min-w-0" />
@@ -167,7 +206,7 @@ export default function TrackList({
                     {track.title}
                   </p>
                   <p className="text-sm text-text-secondary truncate">
-                    {track.trackArtist || releaseArtist}
+                    <TrackCredit track={track} releaseArtist={releaseArtist} />
                   </p>
                 </>
               )}
@@ -175,7 +214,7 @@ export default function TrackList({
 
             {locked && (
               <span className="shrink-0 rounded-full bg-blue-300/10 border border-blue-300/30 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
-                Coming Soon
+                Soon
               </span>
             )}
 

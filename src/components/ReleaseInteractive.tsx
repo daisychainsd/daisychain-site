@@ -6,10 +6,19 @@ import LayloModal from "./LayloModal";
 import { useRouter } from "next/navigation";
 import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
+import DspRow from "./DspRow";
 import { useCart } from "./CartProvider";
 import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/lib/types";
 import type { ShopifyProduct } from "@/lib/shopify";
+
+interface DspLinks {
+  spotify?: string;
+  appleMusic?: string;
+  bandcamp?: string;
+  soundcloud?: string;
+  youtube?: string;
+}
 
 interface ReleaseInteractiveProps {
   formats?: string[];
@@ -22,6 +31,7 @@ interface ReleaseInteractiveProps {
   releaseSlug?: string;
   artistSlug?: string;
   primaryArtistName?: string;
+  artists?: { name: string; slug: string; rosterTier?: string }[];
   additionalArtists?: { name: string; slug: string }[];
   remixerSlug?: string;
   catalogNumber?: string;
@@ -32,6 +42,7 @@ interface ReleaseInteractiveProps {
   status?: string;
   presaveUrl?: string;
   embedUrl?: string;
+  links?: DspLinks;
 }
 
 function isPhysical(format: string) {
@@ -50,6 +61,7 @@ export default function ReleaseInteractive({
   releaseSlug,
   artistSlug,
   primaryArtistName,
+  artists,
   additionalArtists,
   remixerSlug,
   catalogNumber,
@@ -60,6 +72,7 @@ export default function ReleaseInteractive({
   status,
   presaveUrl,
   embedUrl,
+  links,
 }: ReleaseInteractiveProps) {
   const isUpcoming = status === "upcoming";
   const router = useRouter();
@@ -213,11 +226,9 @@ export default function ReleaseInteractive({
               </div>
             )}
             {isUpcoming && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-950/50 pointer-events-none">
-                <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
-                  Coming Soon
-                </span>
-              </div>
+              <span className="absolute top-3 right-3 z-10 rounded-full bg-blue-300/20 border border-blue-300/30 backdrop-blur-sm px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none pointer-events-none">
+                Soon
+              </span>
             )}
           </div>
 
@@ -232,47 +243,75 @@ export default function ReleaseInteractive({
             </p>
             <h1 className="text-headline mb-2">{displayTitle}</h1>
             <div className="text-xl mb-4 flex flex-wrap items-baseline gap-x-1">
-              {releaseType === "remix" && remixerSlug ? (
+              {/* Prefer the new `artists` array (canonical source). Fall back to the
+                  legacy displayArtist/artist/additionalArtists triple for releases
+                  that haven't been migrated yet. Both render as comma-separated links. */}
+              {artists && artists.length > 0 ? (
+                artists.map((a, idx) => {
+                  // Side-tier artists render as plain blue text, no link.
+                  // Main-tier (and undefined) artists are linked.
+                  const isSide = a.rosterTier === "side";
+                  return (
+                    <Fragment key={a.slug || idx}>
+                      {idx > 0 && <span className="text-text-muted">,</span>}
+                      {a.slug && !isSide ? (
+                        <Link
+                          href={`/artists/${a.slug}`}
+                          className="text-blue-300 hover:underline"
+                        >
+                          {a.name}
+                        </Link>
+                      ) : (
+                        <span className="text-blue-300">{a.name}</span>
+                      )}
+                    </Fragment>
+                  );
+                })
+              ) : (
                 <>
-                  <Link
-                    href={`/artists/${remixerSlug}`}
-                    className="text-blue-300 hover:underline"
-                  >
-                    {releaseArtist}
-                  </Link>
-                  {artistSlug && primaryArtistName && (
+                  {releaseType === "remix" && remixerSlug ? (
                     <>
-                      <span className="text-text-muted">,</span>
                       <Link
-                        href={`/artists/${artistSlug}`}
+                        href={`/artists/${remixerSlug}`}
                         className="text-blue-300 hover:underline"
                       >
-                        {primaryArtistName}
+                        {releaseArtist}
                       </Link>
+                      {artistSlug && primaryArtistName && (
+                        <>
+                          <span className="text-text-muted">,</span>
+                          <Link
+                            href={`/artists/${artistSlug}`}
+                            className="text-blue-300 hover:underline"
+                          >
+                            {primaryArtistName}
+                          </Link>
+                        </>
+                      )}
                     </>
+                  ) : artistSlug ? (
+                    <Link
+                      href={`/artists/${artistSlug}`}
+                      className="text-blue-300 hover:underline"
+                    >
+                      {releaseArtist}
+                    </Link>
+                  ) : (
+                    <span className="text-blue-300">{releaseArtist}</span>
                   )}
+                  {additionalArtists?.map((a) => (
+                    <Fragment key={a.slug}>
+                      <span className="text-text-muted">,</span>
+                      <Link
+                        href={`/artists/${a.slug}`}
+                        className="text-blue-300 hover:underline"
+                      >
+                        {a.name}
+                      </Link>
+                    </Fragment>
+                  ))}
                 </>
-              ) : artistSlug ? (
-                <Link
-                  href={`/artists/${artistSlug}`}
-                  className="text-blue-300 hover:underline"
-                >
-                  {releaseArtist}
-                </Link>
-              ) : (
-                <span className="text-blue-300">{releaseArtist}</span>
               )}
-              {additionalArtists?.map((a) => (
-                <Fragment key={a.slug}>
-                  <span className="text-text-muted">,</span>
-                  <Link
-                    href={`/artists/${a.slug}`}
-                    className="text-blue-300 hover:underline"
-                  >
-                    {a.name}
-                  </Link>
-                </Fragment>
-              ))}
             </div>
 
             </div>
@@ -294,14 +333,18 @@ export default function ReleaseInteractive({
 
               {releaseDate && (
                 <p className="text-text-muted text-sm">
-                  Released{" "}
-                  {new Date(releaseDate).toLocaleDateString("en-US", {
+                  {isUpcoming ? "Releasing" : "Released"}{" "}
+                  {/* Append T12:00:00 so a date-only string ("2026-05-01") doesn't get
+                      interpreted as UTC midnight and shifted back a calendar day in PT/ET. */}
+                  {new Date(releaseDate + "T12:00:00").toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
                   })}
                 </p>
               )}
+
+              <DspRow links={links} />
             </div>
           </div>
         </div>
@@ -326,7 +369,7 @@ export default function ReleaseInteractive({
               </a>
             ) : (
               <p className="text-text-muted text-sm uppercase tracking-wider text-center sm:text-right">
-                Coming Soon
+                Soon
               </p>
             )}
             <LayloModal />
@@ -335,7 +378,7 @@ export default function ReleaseInteractive({
       ) : physical && !physicalPrice && !shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">
           <p className="text-label mb-1">Tracks</p>
-          <p className="text-text-muted text-sm uppercase tracking-wider">Coming Soon</p>
+          <p className="text-text-muted text-sm uppercase tracking-wider">Soon</p>
         </div>
       ) : physical && shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">

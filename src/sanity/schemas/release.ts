@@ -1,4 +1,11 @@
-import { defineField, defineType } from "sanity";
+import { defineField, defineType, type SanityDocumentLike } from "sanity";
+
+// Helper for the legacy artist fields' `hidden` callback — they auto-collapse
+// in Studio once the new `artists` array has at least one entry.
+function hasArtistsArray(document: SanityDocumentLike | undefined): boolean {
+  const artists = (document as { artists?: unknown[] } | undefined)?.artists;
+  return Array.isArray(artists) && artists.length > 0;
+}
 
 export const release = defineType({
   name: "release",
@@ -27,24 +34,45 @@ export const release = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: "artists",
+      title: "Artists",
+      type: "array",
+      of: [{ type: "reference", to: [{ type: "artist" }] }],
+      description:
+        "All credited artists, in display order. The first artist is the primary credit shown on cards / playlists. Each name renders as a separate clickable link. For remix releases, list the remixer first, then the original artist(s).",
+      validation: (rule) =>
+        rule.custom((value, ctx) => {
+          const doc = ctx.document as { artist?: { _ref?: string } } | undefined;
+          if (Array.isArray(value) && value.length > 0) return true;
+          if (doc?.artist?._ref) return true;
+          return "Add at least one artist";
+        }),
+    }),
+    // Legacy fields — hidden once `artists` is populated. Kept queryable for
+    // older releases that haven't been migrated yet. Don't add new releases
+    // here; use `artists` above.
+    defineField({
       name: "artist",
-      title: "Artist",
+      title: "Artist (legacy)",
       type: "reference",
       to: [{ type: "artist" }],
-      validation: (rule) => rule.required(),
+      hidden: ({ document }) => hasArtistsArray(document),
+      description: "Legacy single-artist field. Use the 'Artists' array above instead.",
     }),
     defineField({
       name: "displayArtist",
-      title: "Display Artist",
+      title: "Display Artist (legacy)",
       type: "string",
-      description: "Overrides the primary artist name for display (e.g. remixer name). Use Additional Artists for collabs instead.",
+      hidden: ({ document }) => hasArtistsArray(document),
+      description: "Legacy text override for the primary artist. Use the 'Artists' array above instead.",
     }),
     defineField({
       name: "additionalArtists",
-      title: "Additional Artists",
+      title: "Additional Artists (legacy)",
       type: "array",
       of: [{ type: "reference", to: [{ type: "artist" }] }],
-      description: "Other credited artists (collaborators, featured artists, etc.)",
+      hidden: ({ document }) => hasArtistsArray(document),
+      description: "Legacy collaborator array. Use the 'Artists' array above instead.",
     }),
     defineField({
       name: "coverArt",
@@ -106,9 +134,19 @@ export const release = defineType({
               validation: (rule) => rule.required(),
             }),
             defineField({
+              name: "trackArtists",
+              title: "Track Artists",
+              type: "array",
+              of: [{ type: "reference", to: [{ type: "artist" }] }],
+              description:
+                "Override the release artist on this specific track. Add one or more — each name renders as a separate clickable link. Use this for compilation tracks, features, or collabs. Leave empty to inherit from the release.",
+            }),
+            defineField({
               name: "trackArtist",
-              title: "Track Artist (if different from release)",
+              title: "Track Artist (text fallback)",
               type: "string",
+              description:
+                "Legacy plain-text credit. Use the 'Track Artists' field above when possible — it renders as clickable links. This string still displays if no Track Artists are set.",
             }),
             defineField({
               name: "duration",
@@ -142,10 +180,10 @@ export const release = defineType({
             }),
             defineField({
               name: "comingSoon",
-              title: "Coming Soon (lock streaming)",
+              title: "Soon (lock streaming)",
               type: "boolean",
               description:
-                "If true, this track can't be streamed on the site — shows a 'Coming Soon' pill instead of a play button. Releases with Status = Upcoming are locked automatically; use this for per-track control on partial EPs.",
+                "If true, this track can't be streamed on the site — shows a 'Soon' pill instead of a play button. Releases with Status = Upcoming are locked automatically; use this for per-track control on partial EPs.",
               initialValue: false,
             }),
           ],
@@ -208,6 +246,21 @@ export const release = defineType({
       name: "embedUrl",
       title: "Embed URL (Bandcamp/Soundcloud/Spotify)",
       type: "url",
+    }),
+    defineField({
+      name: "links",
+      title: "Streaming / DSP Links",
+      type: "object",
+      description:
+        "Public streaming links displayed as a chip row on the release page. Leave any fields blank to hide them.",
+      fields: [
+        { name: "spotify", title: "Spotify", type: "url" },
+        { name: "appleMusic", title: "Apple Music", type: "url" },
+        { name: "bandcamp", title: "Bandcamp", type: "url" },
+        { name: "soundcloud", title: "SoundCloud", type: "url" },
+        { name: "youtube", title: "YouTube", type: "url" },
+      ],
+      options: { collapsible: true, collapsed: true },
     }),
     defineField({
       name: "description",

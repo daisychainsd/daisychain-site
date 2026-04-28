@@ -70,6 +70,12 @@ export const event = defineType({
       title: "Description",
       type: "text",
     }),
+    defineField({
+      name: "recapUrl",
+      title: "Recap URL",
+      type: "url",
+      description: "Optional — link to a recap video, photo gallery, or press writeup. Shown on past events.",
+    }),
   ],
   orderings: [
     {

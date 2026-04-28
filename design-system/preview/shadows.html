@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Elevation + Shadow</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start}
+  .c{background:var(--color-bg-surface);border:1px solid var(--border);border-radius:var(--radius-organic-md);padding:18px 16px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
+  .lbl{font-family:var(--font-heading);font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--fg1)}
+  .tok{font-family:var(--font-mono);font-size:10px;color:var(--fg3);line-height:1.5}
+  .lift{box-shadow:0 4px 20px rgba(124,185,232,.08),0 8px 40px rgba(124,185,232,.04),0 0 0 1px rgba(124,185,232,.06);transform:translateY(-3px)}
+  .glow{box-shadow:0 0 24px rgba(124,185,232,.2)}
+</style></head>
+<body><div class="wrap">
+  <div class="c"><div class="lbl">Resting</div><div class="tok">1px border · 6% white<br>no shadow</div></div>
+  <div class="c lift"><div class="lbl">Hover-lift</div><div class="tok">–3px Y · blue-300 /8 @ 20<br>blue-300 /4 @ 40</div></div>
+  <div class="c glow" style="background:var(--color-blue-300);color:var(--color-bg-deep);border-color:transparent"><div class="lbl" style="color:var(--color-bg-deep)">Active glow</div><div class="tok" style="color:#0A0E14">blue-300 /20 @ 24<br>CTA hover state</div></div>
+</div></body></html>

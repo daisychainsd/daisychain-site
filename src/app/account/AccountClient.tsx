@@ -15,6 +15,7 @@ const FORMATS: { id: Format; label: string }[] = [
 interface Track {
   title: string;
   trackArtist?: string;
+  trackArtists?: { name: string; slug: string }[];
   trackNumber?: number;
   audioUrl?: string;
 }
@@ -62,7 +63,8 @@ export default function AccountClient({
   async function handleDownloadTrack(track: Track, artist: string) {
     if (!track.audioUrl) return;
 
-    const baseName = `${track.trackArtist || artist} - ${track.title}`;
+    const credit = track.trackArtists?.map((a) => a.name).join(", ") || track.trackArtist || artist;
+    const baseName = `${credit} - ${track.title}`;
     const trackKey = `${track.audioUrl}-${track.title}`;
 
     if (format === "wav") {
@@ -279,9 +281,11 @@ export default function AccountClient({
                                   <p className="text-text-primary text-sm truncate">
                                     {track.title}
                                   </p>
-                                  {track.trackArtist && (
+                                  {(track.trackArtists?.length || track.trackArtist) && (
                                     <p className="text-text-secondary text-xs truncate">
-                                      {track.trackArtist}
+                                      {track.trackArtists?.length
+                                        ? track.trackArtists.map((a) => a.name).join(", ")
+                                        : track.trackArtist}
                                     </p>
                                   )}
                                 </div>

@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Outfit, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import {
+  Outfit,
+  IBM_Plex_Sans,
+  IBM_Plex_Mono,
+  Space_Grotesk,
+  Archivo_Black,
+  Rubik_Mono_One,
+} from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -23,6 +30,31 @@ const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Archivo Black drives every display heading + label on the site.
+// Preload so the wordmark + section titles render in black weight
+// immediately, instead of swapping after Typekit's 2-step load finishes.
+const archivoBlack = Archivo_Black({
+  variable: "--font-archivo-black",
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+});
+
+const rubikMonoOne = Rubik_Mono_One({
+  variable: "--font-rubik-mono-one",
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Daisy Chain Records — San Diego",
   description:
@@ -37,7 +69,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
+      className={`${outfit.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} ${spaceGrotesk.variable} ${archivoBlack.variable} ${rubikMonoOne.variable} h-full antialiased`}
     >
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/ecz5lqw.css" />

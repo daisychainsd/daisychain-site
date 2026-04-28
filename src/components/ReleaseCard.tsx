@@ -27,6 +27,8 @@ export default function ReleaseCard({
             <img
               src={coverUrl}
               alt={`${title} by ${artist}`}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover image-hover-card-zoom"
             />
           ) : (
@@ -40,11 +42,9 @@ export default function ReleaseCard({
             </span>
           )}
           {isUpcoming && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-950/50">
-              <span className="rounded-full bg-blue-300/10 border border-blue-300/30 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none">
-                Coming Soon
-              </span>
-            </div>
+            <span className="absolute top-2 right-2 z-10 rounded-full bg-blue-300/20 border border-blue-300/30 backdrop-blur-sm px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-blue-300 select-none pointer-events-none">
+              Soon
+            </span>
           )}
         </div>
 

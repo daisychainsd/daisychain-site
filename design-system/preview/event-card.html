@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Event Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:18px;box-sizing:border-box;height:100%}
+  .card{border-radius:var(--radius-organic-lg);background:var(--color-bg-surface);border:1px solid var(--border);padding:12px;display:grid;grid-template-columns:220px 1fr;gap:20px}
+  .flyer{border-radius:var(--radius-organic-inv);aspect-ratio:4/5;overflow:hidden;background:var(--color-bg-raised)}
+  .flyer img{width:100%;height:100%;object-fit:cover}
+  .right{padding:10px 6px 6px;display:flex;flex-direction:column;gap:10px}
+  .top{display:flex;align-items:center;gap:10px}
+  .upc{padding:4px 14px;border-radius:24px 6px 6px 24px;font-family:var(--font-heading);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-blue-300);border:1px solid rgba(124,185,232,.2);background:rgba(124,185,232,.05)}
+  .dow{font-family:var(--font-heading);font-size:11px;color:var(--fg3);letter-spacing:.06em;text-transform:uppercase}
+  .date{font-family:var(--font-mono);color:var(--color-blue-300);font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1;margin-top:6px}
+  .yr{color:var(--fg3);font-family:var(--font-heading);font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+  .h{font-family:var(--font-heading);font-weight:900;font-size:clamp(20px,2.6vw,26px);text-transform:uppercase;letter-spacing:-.02em;line-height:1.05;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ven{color:var(--fg2);font-size:13px;margin-top:2px}
+  .btn{margin-top:auto;align-self:flex-start;background:var(--color-blue-300);color:#0A0E14;padding:.6rem 1.25rem;border-radius:6px 24px 24px 6px;font-family:var(--font-heading);font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:.5rem;border:none}
+</style></head>
+<body><div class="wrap">
+  <div class="card">
+    <div class="flyer"><img src="../assets/dc28-flyer.png" alt=""></div>
+    <div class="right">
+      <div class="top"><span class="upc">Upcoming</span><span class="dow">FRI</span></div>
+      <div class="date">MAY 8</div>
+      <div class="yr">2026</div>
+      <div class="h">Daisy Chain #28 w/ LYNY</div>
+      <div class="ven">Spin Nightclub · San Diego</div>
+      <button class="btn">Get Tickets <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10m0 0l-4-4m4 4l-4 4"/></svg></button>
+    </div>
+  </div>
+</div></body></html>

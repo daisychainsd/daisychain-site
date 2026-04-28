@@ -49,7 +49,8 @@ export default function DownloadPanel({
     for (const track of downloadableTracks) {
       const a = document.createElement("a");
       a.href = track.audioUrl + "?dl=";
-      a.download = `${track.trackArtist || releaseArtist} - ${track.title}.wav`;
+      const credit = track.trackArtists?.map((a) => a.name).join(", ") || track.trackArtist || releaseArtist;
+      a.download = `${credit} - ${track.title}.wav`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -83,7 +84,7 @@ export default function DownloadPanel({
           <a
             key={i}
             href={track.audioUrl + "?dl="}
-            download={`${track.trackArtist || releaseArtist} - ${track.title}.wav`}
+            download={`${track.trackArtists?.map((a) => a.name).join(", ") || track.trackArtist || releaseArtist} - ${track.title}.wav`}
             className="flex items-center gap-3 px-4 py-3 border-b border-blue-300/5 last:border-b-0 hover:bg-bg-elevated transition-colors"
           >
             <span className="text-text-muted text-sm w-6 text-center" data-label>
@@ -91,9 +92,11 @@ export default function DownloadPanel({
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-text-primary truncate">{track.title}</p>
-              {track.trackArtist && (
+              {(track.trackArtists?.length || track.trackArtist) && (
                 <p className="text-xs text-text-secondary truncate">
-                  {track.trackArtist}
+                  {track.trackArtists?.length
+                    ? track.trackArtists.map((a) => a.name).join(", ")
+                    : track.trackArtist}
                 </p>
               )}
             </div>

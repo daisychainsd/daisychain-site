@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Logomarks</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .cell{background:var(--color-bg-surface);border:1px solid var(--border);border-radius:var(--radius-organic-md);padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:150px;justify-content:center}
+  .cell.on-light{background:#E8ECF0}
+  .cell img{max-width:80px;max-height:80px}
+  .lbl{font-family:var(--font-mono);font-size:10px;color:var(--fg3);text-align:center}
+  .cell.on-light .lbl{color:#556677}
+</style></head>
+<body><div class="wrap">
+  <div class="cell"><img src="../assets/flower-white.png" alt=""><div class="lbl">flower-white · default</div></div>
+  <div class="cell on-light"><img src="../assets/flower-outlined.png" alt=""><div class="lbl">outlined · on light</div></div>
+  <div class="cell"><img src="../assets/flower-white.png" alt="" style="width:32px;height:32px"><div class="lbl">nav · 32px</div></div>
+  <div class="cell"><img src="../assets/flower-white.png" alt="" style="width:20px;height:20px;opacity:.5"><div class="lbl">footer · 20px @ 50%</div></div>
+</div></body></html>

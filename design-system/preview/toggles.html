@@ -1,0 +1,50 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Toggles</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body)}
+  .wrap{padding:22px 24px;display:grid;gap:20px;align-content:start}
+  .lbl{font-family:var(--font-heading);font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--fg3);margin-bottom:8px}
+  .note{font-family:var(--font-mono);font-size:10px;color:var(--fg4);margin-top:6px}
+
+  .tog{display:inline-flex;padding:3px;background:var(--color-bg-raised);border:1px solid rgba(255,255,255,.08);border-radius:24px;position:relative}
+  .opt{
+    font-family:var(--font-label);
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    font-size:12px;
+    color:var(--fg3);
+    padding:.45rem 1.15rem;
+    border:none;background:transparent;cursor:pointer;
+    border-radius:4px;
+    transition:color .2s, background-color .2s, border-color .2s;
+  }
+  .opt.on{color:var(--color-blue-300);background:var(--color-bg-shelf);border:1px solid rgba(255,255,255,.06)}
+  .opt.on.first{border-radius:24px 6px 6px 24px}
+  .opt.on.last{border-radius:6px 24px 24px 6px}
+
+  .opt.compact{font-size:10px;padding:.25rem .75rem;letter-spacing:.05em}
+</style></head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="lbl">— Format · 2-up</div>
+    <div class="tog"><button class="opt on first">Digital</button><button class="opt">Physical</button></div>
+    <div class="note">Archivo Black uppercase · 12px · tracking .05em</div>
+  </div>
+
+  <div>
+    <div class="lbl">— Catalog · 3-up</div>
+    <div class="tog"><button class="opt first">All</button><button class="opt on">Digital</button><button class="opt last">Physical</button></div>
+  </div>
+
+  <div>
+    <div class="lbl">— Compact · single-line</div>
+    <div class="tog" style="padding:2px"><button class="opt compact on first">WAV</button><button class="opt compact">FLAC</button><button class="opt compact">AIFF</button><button class="opt compact last">MP3</button></div>
+    <div class="note">file-format acronyms at 10px</div>
+  </div>
+
+</div>
+</body></html>

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Daisy Chain — Website</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--color-bg-deep); color: var(--fg1); font-family: var(--font-body); }
+  body { min-height: 100vh; }
+  * { box-sizing: border-box; }
+  main { padding-top: 64px; }
+  .page-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("../../assets/bg-dc28-landscape.webp");
+    background-size: cover; background-position: center;
+    opacity: 0.08;
+  }
+  .page-bg::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(10,14,20,0.4), rgba(10,14,20,0.85) 70%, var(--color-bg-deep));
+  }
+  #root { position: relative; z-index: 1; }
+  button:hover, a:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+
+<div class="page-bg"></div>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="Header.jsx"></script>
+<script type="text/babel" src="Footer.jsx"></script>
+<script type="text/babel" src="ReleaseCard.jsx"></script>
+<script type="text/babel" src="UpcomingEventCard.jsx"></script>
+<script type="text/babel" src="FormatToggle.jsx"></script>
+<script type="text/babel" src="TrackList.jsx"></script>
+<script type="text/babel" src="NewsletterSignup.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect } = React;
+
+function HeroStrip() {
+  return (
+    <section data-screen-label="hero" style={hero.root}>
+      <img src="../../assets/hero.png" alt="" style={hero.img} />
+      <div style={hero.overlay} />
+      <div style={hero.inner}>
+        <div style={hero.meta}>
+          <span style={hero.badge}>New Release</span>
+          <span style={hero.dot}>·</span>
+          <span style={hero.metaTxt}>DCR#19 · Player Dave</span>
+        </div>
+        <h1 style={hero.title}>HEARTBEAT</h1>
+        <p style={hero.sub}>Four-track EP. Out now, digital everywhere.</p>
+        <div style={hero.ctas}>
+          <a style={hero.primary}>Listen <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg></a>
+          <a style={hero.ghost}>Buy Download — $6.80</a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const hero = {
+  root: { position: "relative", height: "min(560px, 70vh)", overflow: "hidden",
+          borderRadius: "var(--radius-organic-lg)", margin: "0 24px", border: "1px solid var(--border)" },
+  img: { width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "grayscale(0.4)" },
+  overlay: { position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(10,14,20,0.95),rgba(10,14,20,0.3) 55%,rgba(10,14,20,0.5))" },
+  inner: { position: "absolute", left: 0, right: 0, bottom: 0, padding: "40px clamp(24px, 5vw, 56px)" },
+  meta: { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 },
+  badge: { padding: "4px 14px", borderRadius: "var(--radius-pill-left)", fontFamily: "var(--font-heading)", fontSize: 11,
+           letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-blue-300)",
+           border: "1px solid rgba(124,185,232,0.2)", background: "rgba(124,185,232,0.08)" },
+  dot: { color: "var(--fg3)" },
+  metaTxt: { color: "var(--fg2)", fontFamily: "var(--font-mono)", fontSize: 12 },
+  title: { fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "clamp(56px, 10vw, 128px)",
+           letterSpacing: "-0.03em", lineHeight: 0.9, margin: "0 0 10px", textTransform: "uppercase" },
+  sub: { color: "var(--fg2)", fontSize: 17, maxWidth: 520, margin: "0 0 24px", lineHeight: 1.5 },
+  ctas: { display: "flex", gap: 12, flexWrap: "wrap" },
+  primary: { display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 22px",
+             borderRadius: "var(--radius-pill-right)", background: "var(--color-blue-300)",
+             color: "var(--color-bg-deep)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 14, cursor: "pointer" },
+  ghost: { display: "inline-flex", alignItems: "center", padding: "12px 22px",
+           borderRadius: "var(--radius-pill-left)", border: "1px solid rgba(255,255,255,0.15)",
+           color: "var(--fg1)", fontSize: 14, cursor: "pointer", fontFamily: "var(--font-body)" },
+};
+
+function SectionHeader({ kicker, title, right }) {
+  return (
+    <div style={sh.row}>
+      <div>
+        {kicker && <div style={sh.kicker}>{kicker}</div>}
+        <h2 style={sh.title}>{title}</h2>
+      </div>
+      {right}
+    </div>
+  );
+}
+const sh = {
+  row: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, marginBottom: 28, flexWrap: "wrap" },
+  kicker: { fontFamily: "var(--font-heading)", fontSize: 11, color: "var(--color-blue-300)",
+            letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 },
+  title: { fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "clamp(32px, 4vw, 52px)",
+           letterSpacing: "-0.02em", textTransform: "uppercase", margin: 0, lineHeight: 1 },
+};
+
+// ------------ pages ------------
+function HomePage({ onSelectRelease, onGoEvent }) {
+  const { releases, event } = window.DC_DATA;
+  return (
+    <div data-screen-label="01 Home">
+      <div style={{ padding: "32px 0 0" }}>
+        <HeroStrip />
+      </div>
+
+      <section data-screen-label="catalog" style={pg.section}>
+        <SectionHeader kicker="— Catalog" title="Music"
+          right={<a style={pg.seeAll}>See all releases →</a>} />
+        <CatalogGrid releases={releases.slice(0, 8)} onSelect={onSelectRelease} />
+      </section>
+
+      <section data-screen-label="upcoming-event" style={pg.section}>
+        <SectionHeader kicker="— Next Show" title="Upcoming Event" />
+        <UpcomingEventCard event={event} onTickets={onGoEvent} />
+      </section>
+
+      <NewsletterSignup />
+    </div>
+  );
+}
+
+function ReleasePage({ release, onBack }) {
+  const [format, setFormat] = useState(release.format[0]);
+  const artistSlug = release.artist.toLowerCase().replace(/ & /g, "-").replace(/\s+/g, "-");
+  return (
+    <div data-screen-label="02 Release Detail" style={pg.section}>
+      <button onClick={onBack} style={pg.back}>← All Releases</button>
+
+      <div style={rd.top}>
+        <div style={rd.art}>
+          <div style={{ position: "absolute", inset: 0, background: release.cover, borderRadius: "inherit" }} />
+          <span style={rd.catalog}>{release.catalog}</span>
+        </div>
+        <div style={rd.meta}>
+          <div style={rd.kicker}>
+            <span style={rd.pillBlue}>{release.catalog}</span>
+            <a style={rd.artistLink}>{release.artist}</a>
+          </div>
+          <h1 style={rd.title}>{release.title}</h1>
+          <p style={rd.desc}>
+            Released on Daisy Chain Records. Four-to-the-floor, melodic club music for the
+            heart and the dancefloor.
+          </p>
+          <div style={rd.buyRow}>
+            <FormatToggle formats={release.format} active={format} onChange={setFormat} />
+            <button style={rd.buy}>
+              {format === "Digital" ? "Buy Download" : `Buy ${format}`} — ${release.price.toFixed(2)}
+            </button>
+          </div>
+          <div style={rd.dsps}>
+            {["Spotify", "Apple Music", "YouTube", "Bandcamp", "SoundCloud"].map((d) => (
+              <a key={d} style={rd.dsp}>{d}</a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {release.tracks && (
+        <div style={{ marginTop: 48 }}>
+          <h3 style={rd.trackHdr}>Tracklist</h3>
+          <TrackList tracks={release.tracks} releaseArtist={release.artist} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventPage({ onBack }) {
+  const { event } = window.DC_DATA;
+  return (
+    <div data-screen-label="03 Events" style={pg.section}>
+      <button onClick={onBack} style={pg.back}>← Home</button>
+      <SectionHeader kicker="— Live" title="Events" />
+      <UpcomingEventCard event={event} onTickets={() => {}} />
+      <div style={{ marginTop: 64, paddingTop: 40, borderTop: "1px solid var(--border)" }}>
+        <h3 style={{ ...sh.title, fontSize: 28, marginBottom: 24 }}>Past Events</h3>
+        <div style={ep.pastGrid}>
+          {[
+            { n: 27, d: "Feb 14, 2026", v: "Spin Nightclub" },
+            { n: 26, d: "Nov 22, 2025", v: "Music Box" },
+            { n: 25, d: "Aug 9, 2025", v: "Spin Nightclub" },
+          ].map((e) => (
+            <div key={e.n} style={ep.past}>
+              <div style={ep.pastCat}>#{e.n}</div>
+              <div style={ep.pastTitle}>Daisy Chain #{e.n}</div>
+              <div style={ep.pastMeta}>{e.d} · {e.v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const pg = {
+  section: { maxWidth: 1280, margin: "0 auto", padding: "64px 24px" },
+  seeAll: { color: "var(--color-blue-300)", fontSize: 14, cursor: "pointer", fontFamily: "var(--font-heading)", letterSpacing: "0.02em" },
+  back: { background: "transparent", border: "none", color: "var(--fg2)", fontSize: 13, fontFamily: "var(--font-mono)", cursor: "pointer", padding: 0, marginBottom: 32 },
+};
+const rd = {
+  top: { display: "grid", gridTemplateColumns: "minmax(280px, 1fr) 1.4fr", gap: 48 },
+  art: { position: "relative", borderRadius: "var(--radius-organic-inv-md)", aspectRatio: "1", overflow: "hidden", background: "var(--color-bg-raised)", border: "1px solid var(--border)" },
+  catalog: { position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", color: "rgba(255,255,255,0.85)", padding: "4px 12px", borderRadius: 999, fontFamily: "var(--font-mono)", fontSize: 12 },
+  meta: { paddingTop: 8 },
+  kicker: { display: "flex", alignItems: "center", gap: 12, marginBottom: 18 },
+  pillBlue: { padding: "4px 12px", borderRadius: "var(--radius-pill-left)", fontFamily: "var(--font-heading)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-blue-300)", border: "1px solid rgba(124,185,232,0.2)", background: "rgba(124,185,232,0.05)" },
+  artistLink: { color: "var(--fg2)", fontSize: 14, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 },
+  title: { fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "clamp(40px, 5.5vw, 72px)", letterSpacing: "-0.03em", textTransform: "uppercase", margin: "0 0 20px", lineHeight: 0.95 },
+  desc: { color: "var(--fg2)", fontSize: 16, lineHeight: 1.55, maxWidth: 520, margin: "0 0 32px" },
+  buyRow: { display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 32 },
+  buy: { padding: "12px 22px", borderRadius: "var(--radius-pill-right)", border: "none", background: "var(--color-blue-300)", color: "var(--color-bg-deep)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 14, cursor: "pointer" },
+  dsps: { display: "flex", gap: 10, flexWrap: "wrap" },
+  dsp: { padding: "8px 16px", borderRadius: 999, border: "1px solid rgba(255,255,255,0.1)", color: "var(--fg2)", fontSize: 13, cursor: "pointer" },
+  trackHdr: { fontFamily: "var(--font-heading)", fontSize: 20, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--fg3)", margin: "0 0 16px", fontWeight: 700 },
+};
+const ep = {
+  pastGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 },
+  past: { padding: 20, borderRadius: "var(--radius-organic-md)", background: "var(--color-bg-surface)", border: "1px solid var(--border)" },
+  pastCat: { fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-blue-300)" },
+  pastTitle: { fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: 22, textTransform: "uppercase", letterSpacing: "-0.01em", margin: "6px 0 8px" },
+  pastMeta: { color: "var(--fg2)", fontSize: 13 },
+};
+
+function App() {
+  const [page, setPage] = useState(() => localStorage.getItem("dc:page") || "home");
+  const [slug, setSlug] = useState(() => localStorage.getItem("dc:slug") || "heartbeat-ep");
+  useEffect(() => { localStorage.setItem("dc:page", page); }, [page]);
+  useEffect(() => { localStorage.setItem("dc:slug", slug); }, [slug]);
+
+  const release = window.DC_DATA.releases.find((r) => r.slug === slug) || window.DC_DATA.releases[3];
+
+  function go(p) { setPage(p); window.scrollTo({ top: 0, behavior: "auto" }); }
+  function selectRelease(r) { setSlug(r.slug); go("release"); }
+
+  const current = page === "event" ? "events" : "music";
+
+  return (
+    <>
+      <Header cartCount={2} current={current} onNav={(n) => go(n === "event" ? "event" : "home")} />
+      <main>
+        {page === "home"    && <HomePage onSelectRelease={selectRelease} onGoEvent={() => go("event")} />}
+        {page === "release" && <ReleasePage release={release} onBack={() => go("home")} />}
+        {page === "event"   && <EventPage onBack={() => go("home")} />}
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

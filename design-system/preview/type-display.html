@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Display Headline</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body)}
+  .wrap{padding:22px 24px;display:flex;flex-direction:column;gap:18px}
+  .lbl{font-family:var(--font-mono);font-size:10px;color:var(--fg3);letter-spacing:.06em;text-transform:uppercase}
+  .d1{font-family:var(--font-heading);font-weight:900;font-size:88px;line-height:.88;letter-spacing:-.035em;text-transform:uppercase;margin:6px 0 0}
+  .d1 em{font-style:normal;font-family:var(--font-experimental);font-weight:400;letter-spacing:-.02em;color:var(--color-red-300)}
+  .d2{font-family:var(--font-experimental);font-weight:400;font-size:48px;line-height:1;letter-spacing:-.02em;text-transform:uppercase;margin:6px 0 0;color:var(--color-offwhite)}
+  .d2 .blue{color:var(--color-blue-300)}
+  .accent{font-family:var(--font-accent);font-weight:400;font-size:18px;line-height:1.5;color:var(--fg2);max-width:560px;margin:6px 0 0}
+  .accent b{color:var(--color-offwhite);font-weight:600}
+  .row{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+  .chip{padding:4px 10px;font-family:var(--font-mono);font-size:10px;color:var(--fg3);border:1px solid var(--border);border-radius:999px;background:var(--color-bg-raised)}
+  hr{border:none;border-top:1px solid var(--border);margin:6px 0 0}
+</style></head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="lbl">— Primary · Azo Sans Black 900</div>
+    <div class="d1">HEART<em>beat</em></div>
+    <div class="row"><span class="chip">font-heading</span><span class="chip">+ font-experimental as italic inset</span></div>
+  </div>
+
+  <hr>
+
+  <div>
+    <div class="lbl">— Experimental · Rubik Mono One</div>
+    <div class="d2">DAISY CHAIN <span class="blue">#28</span></div>
+    <div class="row"><span class="chip">font-experimental</span><span class="chip">flyer / section headers</span><span class="chip">never body</span></div>
+  </div>
+
+  <hr>
+
+  <div>
+    <div class="lbl">— Accent sans · Space Grotesk</div>
+    <p class="accent"><b>Space Grotesk</b> is the humanist counterweight — readable at long lengths, used for intro paragraphs, artist bios, and anywhere Azo feels too industrial.</p>
+    <div class="row"><span class="chip">font-accent</span><span class="chip">300 / 400 / 500 / 600 / 700</span></div>
+  </div>
+
+</div>
+</body></html>

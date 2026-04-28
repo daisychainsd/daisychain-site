@@ -30,6 +30,15 @@
   --color-lavender-300: #A8A0D4;
   --color-lavender-400: #8B82B8;
 
+  /* Hot-signal red — alerts, live-now, limited runs (design system) */
+  --color-red-300: #F56E6E;
+  --color-red-400: #E04848;
+  --color-red-500: #B83030;
+
+  /* Warm paper off-white — quotes, tickets, liner notes (design system) */
+  --color-offwhite: #F0EADF;
+  --color-offwhite-dim: #D9D1C2;
+
   /* Asymmetric radius system */
   --radius-organic-lg: 24px 8px 24px 4px;
   --radius-organic-md: 16px 6px 16px 3px;
@@ -48,11 +57,31 @@
   --text-caption: 0.9375rem;
   --text-micro: 0.8125rem;
 
-  /* Typography */
-  --font-heading: "azo-sans-web", var(--font-outfit);
+  /* Typography
+     The Daisy Chain Typekit kit (ecz5lqw) only serves azo-sans-web at weights
+     400 + 700. Every heading requests font-weight: 900, so Archivo Black
+     (a genuinely-black display face from Google Fonts) must come FIRST for
+     headings + labels. Azo Sans Web stays in the chain as an aspirational
+     fallback — if a richer kit is ever published, it wins automatically. */
+  --font-heading: var(--font-archivo-black), "azo-sans-web", var(--font-outfit);
   --font-body: "azo-sans-web", var(--font-ibm-plex-sans);
-  --font-label: "azo-sans-web", var(--font-ibm-plex-sans);
+  --font-label: var(--font-archivo-black), "azo-sans-web", var(--font-ibm-plex-sans);
   --font-mono: var(--font-ibm-plex-mono);
+
+  /* Wordmark / big display type — Rubik Mono One.
+     RESERVED for: DAISY CHAIN homepage wordmark, NewsMarquee display text,
+     flyer-style set-pieces. Do NOT swap in --font-heading for these uses;
+     the chunky square-cornered Rubik letterforms are the brand signature
+     on the wordmark, not interchangeable with the Archivo Black heading face. */
+  --font-wordmark: var(--font-rubik-mono-one), var(--font-space-grotesk), var(--font-archivo-black), sans-serif;
+  /* Back-compat alias so pre-existing code using --font-experimental still works. */
+  --font-experimental: var(--font-wordmark);
+  /* Humanist sans counterpoint to Azo — softer, more readable at long lengths. */
+  --font-accent: var(--font-space-grotesk), "Inter", system-ui, sans-serif;
+
+  /* Body weight tokens (design system) */
+  --font-weight-body: 400;
+  --font-weight-body-bold: 700;
 
   /* Site-wide motion: longer ease-in-out */
   --default-transition-duration: 250ms;
@@ -65,6 +94,12 @@ body {
   background: var(--color-bg-deep);
   color: var(--color-text-primary);
   font-family: var(--font-body), system-ui, sans-serif;
+  /* Allow the browser to synthesize bolder weights + italics when the
+     served font (notably Typekit Azo at 400/700 only) lacks weight 900. */
+  font-synthesis: weight style;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -108,16 +143,21 @@ code, pre {
   border-radius: 3px;
 }
 
-/* Subtle noise texture overlay */
+/* Noise texture overlay — analog grain.
+   mix-blend-mode is intentionally omitted here (was ~double the paint cost on every scroll).
+   The still grain still reads as texture because of the 3-4% opacity. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 9999;
   pointer-events: none;
-  opacity: 0.03;
+  opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
+  /* Promote to its own compositor layer so it never triggers repaints of anything else. */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* ─── Container Primitives ─── */
@@ -322,6 +362,116 @@ body::before {
   color: var(--color-text-muted);
 }
 
+/* Body/caption/micro/mono presets — usable anywhere */
+.text-body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: 1.55;
+}
+
+.text-caption {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.text-micro {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: var(--text-micro);
+  color: var(--color-text-muted);
+}
+
+.text-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Chrome gradient — flyer-style distressed headline (pair with grain overlay) */
+.text-chrome {
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  color: #ECEFF3;
+  background: linear-gradient(180deg, #FFFFFF 0%, #B8BCC2 38%, #6B7078 55%, #C4C8CE 75%, #F4F6F9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 36px rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Button Primitives ─── */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--color-bg-deep);
+  background: var(--color-blue-300);
+  border-radius: var(--radius-pill-right);
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color var(--default-transition-duration) var(--default-transition-timing-function),
+    box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.btn-primary:hover {
+  background: var(--color-blue-200);
+  box-shadow: 0 0 24px rgba(124, 185, 232, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-pill-left);
+  cursor: pointer;
+  transition: background-color var(--default-transition-duration) var(--default-transition-timing-function),
+    border-color var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.btn-ghost:hover {
+  background: rgba(124, 185, 232, 0.05);
+  border-color: rgba(124, 185, 232, 0.3);
+}
+
+/* Opt-in grain surface for flyer/hero cards (stronger than body::before) */
+.grain {
+  position: relative;
+}
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
 /* ─── Keyframes ─── */
 
 @keyframes slow-spin {
@@ -353,10 +503,46 @@ body::before {
   animation: fade-in 0.75s var(--ease-daisy);
 }
 
+/* Marquee / ticker band — 33.333% because track is tripled */
+@keyframes dcMarquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-33.333%); }
+}
+
+/* Pulse — used on live-now dots */
+@keyframes dcPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* Placeholder waveform bar animation */
+@keyframes dcWave {
+  from { height: 4px; }
+  to   { height: 20px; }
+}
+
+/* Stepped grain jitter — makes the overlay feel analog/alive */
+@keyframes grainShift {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(-4px, 2px); }
+  20%  { transform: translate(3px, -3px); }
+  30%  { transform: translate(-2px, 4px); }
+  40%  { transform: translate(4px, 1px); }
+  50%  { transform: translate(-3px, -4px); }
+  60%  { transform: translate(2px, 3px); }
+  70%  { transform: translate(-4px, -2px); }
+  80%  { transform: translate(3px, -4px); }
+  90%  { transform: translate(-1px, 4px); }
+  100% { transform: translate(0, 0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-slow-spin,
   .animate-drift,
   .animate-fade-in {
+    animation: none;
+  }
+  body::before {
     animation: none;
   }
   .hover-lift {
@@ -368,5 +554,14 @@ body::before {
   .group:hover .image-hover-card-zoom,
   .group:hover .image-hover-artist-photo {
     transform: none;
+  }
+  /* Kill decorative infinite animations introduced by the design system */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

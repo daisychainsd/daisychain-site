@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Type — Body + Mono</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:22px 24px;display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+  h4{font-family:var(--font-heading);font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--fg3);margin:0 0 10px}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .item{display:flex;align-items:baseline;gap:14px;padding-bottom:10px;border-bottom:1px dashed var(--border)}
+  .item:last-child{border-bottom:none}
+  .tag{font-family:var(--font-mono);font-size:10px;color:var(--fg3);min-width:80px;letter-spacing:.04em;text-transform:uppercase;flex:none}
+  .t{font-family:var(--font-body);color:var(--fg1);line-height:1.4;margin:0}
+  .t.w400{font-weight:400}
+  .t.w500{font-weight:500}
+  .t.w700{font-weight:700}
+  .t.w900{font-weight:900;letter-spacing:-.01em}
+  .lead{font-size:22px}
+  .body{font-size:16px}
+  .small{font-size:13px;color:var(--fg2)}
+  .mono{font-family:var(--font-mono);font-size:14px;color:var(--fg2);line-height:1.7}
+  .mono .hi{color:var(--color-blue-300)}
+  .mono .mu{color:var(--fg3)}
+  .mono .hot{color:var(--color-red-300)}
+  .pull{background:var(--color-offwhite);color:#1A2230;padding:14px 16px;border-radius:var(--radius-organic-inv-md);font-family:var(--font-body);font-weight:700;font-size:16px;line-height:1.35;margin-top:6px}
+  .pull em{font-style:normal;font-family:var(--font-experimental);color:var(--color-red-500);font-weight:400}
+</style></head>
+<body>
+<div class="wrap">
+  <div>
+    <h4>— Body · Helvetica Neue</h4>
+    <div class="stack">
+      <div class="item"><span class="tag">Lead · 700</span><p class="t w700 lead">Stay up to date with events, music, and more.</p></div>
+      <div class="item"><span class="tag">Body · 500</span><p class="t w500 body">Independent electronic music label based in San Diego, California. Our catalog runs from ambient experiments to peak-time club weapons.</p></div>
+      <div class="item"><span class="tag">Body · 400</span><p class="t w400 body">Pre-saves open Friday. Vinyl drops limited to 300 copies worldwide.</p></div>
+      <div class="item"><span class="tag">Small · 500</span><p class="t w500 small">© 2026 Daisy Chain Records · San Diego, CA</p></div>
+      <div class="item"><span class="tag">Pull-quote</span><p class="pull">"Club music with a <em>heartbeat</em> — bold, physical, made for the room."</p></div>
+    </div>
+  </div>
+  <div>
+    <h4>— Mono · IBM Plex Mono</h4>
+    <div class="mono">
+      <span class="mu">DCR#</span><span class="hi">22</span> &nbsp; <span class="mu">—</span> &nbsp; Ballerina<br>
+      <span class="mu">DCR#</span><span class="hi">20</span> &nbsp; <span class="mu">—</span> &nbsp; Dream Disc<br>
+      <span class="mu">DCR#</span><span class="hi">19</span> &nbsp; <span class="mu">—</span> &nbsp; Heartbeat EP<br>
+      <span class="mu">DCR#</span><span class="hi">18.5</span> <span class="mu">—</span> &nbsp; Cocky (Coido Remix)<br><br>
+      <span class="mu">FRI · MAY 8 · 2026</span> &nbsp; <span class="hot">● LIVE</span><br>
+      <span class="mu">Spin Nightclub · San Diego</span>
+    </div>
+    <div style="margin-top:18px;font-family:var(--font-body);font-weight:700;font-size:13px;color:var(--fg3);letter-spacing:.06em;text-transform:uppercase">Weights in use</div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-family:var(--font-body);font-weight:400;padding:6px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px">Regular 400</span>
+      <span style="font-family:var(--font-body);font-weight:500;padding:6px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px">Medium 500</span>
+      <span style="font-family:var(--font-body);font-weight:700;padding:6px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--color-blue-300)">Bold 700</span>
+      <span style="font-family:var(--font-body);font-weight:900;padding:6px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--color-offwhite)">Black 900</span>
+    </div>
+  </div>
+</div>
+</body></html>

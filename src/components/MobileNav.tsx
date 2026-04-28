@@ -10,6 +10,7 @@ const links = [
   { href: "/artists", label: "Artists" },
   { href: "/shop", label: "Shop" },
   { href: "/events", label: "Events" },
+  { href: "/about", label: "About" },
 ];
 
 export default function MobileNav() {

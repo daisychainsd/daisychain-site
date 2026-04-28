@@ -34,6 +34,9 @@ export default function Header() {
           <Link href="/events" className={navLinkClass}>
             Events
           </Link>
+          <Link href="/about" className={navLinkClass}>
+            About
+          </Link>
           <AuthNavLink className={navLinkClass} />
           <CartButton />
         </div>

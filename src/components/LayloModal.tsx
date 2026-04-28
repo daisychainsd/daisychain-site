@@ -26,7 +26,7 @@ export default function LayloModal() {
         onClick={() => setOpen(true)}
         className="text-text-secondary hover:text-text-primary text-left transition-colors text-xs"
       >
-        i hate presaving things, just notify me when it's out →
+        i hate presaving, just notify me when it's out →
       </button>
 
       {open && (

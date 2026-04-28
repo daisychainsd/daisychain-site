@@ -1,0 +1,98 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Buttons + Pills</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body)}
+  .wrap{padding:22px 24px;display:grid;grid-template-columns:repeat(2,1fr);gap:18px;align-content:start}
+  .cell{display:flex;flex-direction:column;gap:8px}
+  .lbl{font-family:var(--font-heading);font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--fg3)}
+  .note{font-family:var(--font-mono);font-size:10px;color:var(--fg4);margin-top:2px}
+  button{cursor:pointer;border:none;font-family:var(--font-heading)}
+  .btn{display:inline-flex;align-items:center;gap:.55rem;padding:.75rem 1.25rem;font-weight:700;font-size:15px;border-radius:6px 24px 24px 6px;background:var(--color-blue-300);color:#0A0E14;width:max-content}
+  .btn.ghost{background:rgba(124,185,232,.05);border:1px solid rgba(124,185,232,.2);color:var(--color-blue-300)}
+  .btn.dim{background:rgba(124,185,232,.08);color:rgba(124,185,232,.6);border:1px solid rgba(124,185,232,.2)}
+  .btn.red{background:var(--color-red-300);color:#0A0E14}
+  .btn svg{flex:none;transition:transform .25s var(--ease-daisy)}
+  .btn:hover svg.arr{transform:translateX(3px)}
+  .btn:hover svg.nw{transform:translate(2px,-2px)}
+  .btn:hover svg.dn{transform:translateY(2px)}
+  .pre{background:rgba(0,0,0,.5);backdrop-filter:blur(4px);color:rgba(255,255,255,.8);padding:.25rem .6rem;border-radius:999px;font-family:var(--font-mono);font-size:10px;width:max-content}
+  .badge{background:rgba(124,185,232,.2);border:1px solid rgba(124,185,232,.3);color:var(--color-blue-300);padding:.25rem .6rem;border-radius:999px;font-family:var(--font-heading);font-size:10px;letter-spacing:.08em;text-transform:uppercase;width:max-content}
+  .badge.live{background:rgba(245,110,110,.15);border-color:rgba(245,110,110,.35);color:var(--color-red-300)}
+  .ink{display:inline-flex;align-items:center;gap:.35rem;color:var(--color-blue-300);font-family:var(--font-body);font-weight:700;font-size:14px;cursor:pointer;width:max-content}
+  .ink svg{transition:transform .25s var(--ease-daisy)}
+  .ink:hover svg{transform:translateX(3px)}
+</style></head>
+<body>
+<div class="wrap">
+
+  <div class="cell">
+    <div class="lbl">Primary CTA · stay on page</div>
+    <button class="btn">Listen <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg></button>
+    <div class="note">action icon (play) — no arrow, no navigation</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Primary → internal page</div>
+    <button class="btn">Get Tickets <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m0 0l-4-4m4 4l-4 4"/></svg></button>
+    <div class="note">right-arrow → takes user somewhere</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Ghost → internal page</div>
+    <button class="btn ghost">View All Events <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m0 0l-4-4m4 4l-4 4"/></svg></button>
+    <div class="note">same rule — arrow signals nav</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Ghost → external / DSP</div>
+    <button class="btn ghost">Open in Spotify <svg class="nw" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11L11 5M6 5h5v5"/></svg></button>
+    <div class="note">NE arrow = leaves daisychainsd.com</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Inline text link</div>
+    <a class="ink">See all releases <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m0 0l-4-4m4 4l-4 4"/></svg></a>
+    <div class="note">typographic variant · still earns the arrow</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Download action (not nav)</div>
+    <button class="btn ghost">Download — $6.80 <svg class="dn" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v9m0 0l-4-4m4 4l4-4M3 14h10"/></svg></button>
+    <div class="note">down-arrow = file action · not navigation</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Disabled · pre-save</div>
+    <button class="btn dim">Pre-save (soon)</button>
+    <div class="note">no arrow — nothing to go to yet</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Hot · limited run</div>
+    <button class="btn red">Buy Vinyl <svg class="arr" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10m0 0l-4-4m4 4l-4 4"/></svg></button>
+    <div class="note">red-300 · signal hot / limited</div>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Catalog pill · static</div>
+    <span class="pre">DCR#22</span>
+  </div>
+
+  <div class="cell">
+    <div class="lbl">Status badges</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge">Soon</span><span class="badge live">● Live</span></div>
+  </div>
+
+</div>
+
+<div style="padding:0 24px 22px">
+  <div class="lbl" style="margin-bottom:8px">— Rule</div>
+  <div style="font-family:var(--font-body);font-size:13px;color:var(--fg2);line-height:1.55;max-width:780px">
+    <b style="color:var(--color-offwhite)">Arrow-right (→)</b> whenever the button leads to another page on the site.
+    <b style="color:var(--color-offwhite)">Arrow-NE (↗)</b> when leaving for an external URL.
+    <b style="color:var(--color-offwhite)">Arrow-down (↓)</b> for downloads.
+    Action buttons that stay on the current page (play, add to cart, toggle) use an action icon — never an arrow. Arrows slide 3px on hover.
+  </div>
+</div>
+</body></html>

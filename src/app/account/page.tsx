@@ -14,6 +14,7 @@ interface DownloadRelease {
   tracks?: {
     title: string;
     trackArtist?: string;
+    trackArtists?: { name: string; slug: string }[];
     trackNumber?: number;
     audioUrl?: string;
   }[];

@@ -5,6 +5,8 @@ import { RELEASE_DETAIL } from "@/lib/queries";
 import type { Release } from "@/lib/types";
 import ReleaseInteractive from "@/components/ReleaseInteractive";
 
+export const revalidate = 60;
+
 export default async function ReleasePage({
   params,
 }: {
@@ -30,6 +32,7 @@ export default async function ReleasePage({
         releaseSlug={release.slug}
         artistSlug={release.artistSlug}
         primaryArtistName={release.primaryArtistName}
+        artists={release.artists}
         additionalArtists={release.additionalArtists}
         remixerSlug={release.remixerSlug}
         catalogNumber={release.catalogNumber}
@@ -40,6 +43,7 @@ export default async function ReleasePage({
         status={release.status}
         presaveUrl={release.presaveUrl}
         embedUrl={release.embedUrl}
+        links={release.links}
       />
     </div>
   );

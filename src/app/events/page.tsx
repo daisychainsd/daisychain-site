@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { sanityFetch } from "@/sanity/client";
+
+export const revalidate = 60;
+
 import { urlFor } from "@/sanity/image";
 import { EVENTS_LIST } from "@/lib/queries";
 import type { Event } from "@/lib/types";
 import EventsToggle from "@/components/EventsToggle";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
+import SectionHeader from "@/components/SectionHeader";
 
 export default async function EventsPage() {
   const events = await sanityFetch<Event>(EVENTS_LIST);
@@ -14,14 +18,9 @@ export default async function EventsPage() {
   const past = events.filter((e) => e.date < now);
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 relative overflow-hidden">
-      <div className="blob w-[400px] h-[400px] bg-lavender-300 top-[-100px] right-[-150px] animate-drift" />
-
-      <div className="flex items-end justify-between mb-10 gap-4 flex-wrap">
-        <div>
-          <p className="text-label mb-2">Live</p>
-          <h1 className="text-headline text-text-primary">Events</h1>
-        </div>
+    <div className="max-w-[1440px] mx-auto relative" style={{ padding: "clamp(40px, 5vw, 56px) clamp(24px, 4vw, 48px)" }}>
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
+        <SectionHeader kicker="Live" title="Events" size="xl" as="h1" />
         {upcoming.length > 0 && past.length > 0 && (
           <EventsToggle upcomingCount={upcoming.length} pastCount={past.length} />
         )}
@@ -37,7 +36,7 @@ export default async function EventsPage() {
       )}
 
       {upcoming.length > 0 && (
-        <section id="upcoming" className="mb-16 scroll-mt-28">
+        <section id="upcoming" className="mb-20 scroll-mt-28">
           <div className="space-y-8">
             {upcoming.map((event) => (
               <UpcomingEventCard
@@ -55,49 +54,101 @@ export default async function EventsPage() {
 
       {past.length > 0 && (
         <section id="past" className="scroll-mt-28">
-          <div className="divider-glow mb-8" />
-          <p className="text-label mb-6">Past Events</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {past.map((event) => (
-              <PastCard key={event.slug} event={event} />
-            ))}
-          </div>
+          <SectionHeader kicker="Archive" title="Past Shows" />
+          <PastShowsList events={past} />
         </section>
       )}
     </div>
   );
 }
 
-function PastCard({ event }: { event: Event }) {
-  const date = new Date(event.date);
-
+function PastShowsList({ events }: { events: Event[] }) {
+  // Event numbers: newest past show = highest number. Use the EVENTS_LIST order (desc by date).
+  // The DC event title typically already contains "Daisy Chain #N"; if not, fall back to position.
   return (
-    <div className="container-organic overflow-hidden group hover-lift">
-      <div className="relative aspect-[4/5]">
-        {event.flyer ? (
-          <img
-            src={urlFor(event.flyer).width(600).url()}
-            alt={event.title}
-            className="w-full h-full object-cover opacity-70 image-hover-past-flyer"
-          />
-        ) : (
-          <div className="w-full h-full bg-bg-raised flex items-center justify-center">
-            <span className="text-text-muted text-2xl">{event.title}</span>
+    <div className="flex flex-col" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      {events.map((event, i) => {
+        const date = new Date(event.date);
+        const dateStr = date
+          .toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+          .toUpperCase();
+
+        // Pull "#NN" out of the title if present, else use position
+        const numMatch = event.title.match(/#\s*(\d+)/);
+        const num = numMatch ? numMatch[1].padStart(2, "0") : String(events.length - i).padStart(2, "0");
+        const displayTitle = event.title.replace(/\s*Daisy Chain\s*/i, "").trim() || event.title;
+        const headliner = event.lineup?.[0]?.name;
+
+        return (
+          <div
+            key={event.slug}
+            className="grid items-center gap-4 transition-colors"
+            style={{
+              gridTemplateColumns: "minmax(48px, 60px) minmax(120px, 160px) minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) auto",
+              padding: "22px 8px",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <span
+              className="text-blue-300"
+              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13 }}
+            >
+              #{num}
+            </span>
+            <span
+              className="text-text-muted"
+              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, letterSpacing: "0.04em" }}
+            >
+              {dateStr}
+            </span>
+            <span
+              className="uppercase text-text-primary truncate"
+              style={{
+                fontFamily: "var(--font-heading), system-ui, sans-serif",
+                fontWeight: 900,
+                fontSize: 20,
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {displayTitle}
+            </span>
+            <span className="text-text-secondary text-sm truncate">
+              {headliner ? `w/ ${headliner}` : ""}
+            </span>
+            <span
+              className="text-text-muted truncate"
+              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13 }}
+            >
+              {event.venue || ""}
+            </span>
+            <div className="flex justify-end">
+              {event.recapUrl ? (
+                <a
+                  href={event.recapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="uppercase text-blue-300 hover:text-blue-200 transition-colors whitespace-nowrap"
+                  style={{
+                    fontFamily: "var(--font-heading), system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  View recap →
+                </a>
+              ) : (
+                <span className="text-text-faint text-xs select-none whitespace-nowrap">—</span>
+              )}
+            </div>
           </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-bg-deep/90 via-bg-deep/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <p className="text-text-secondary text-sm mb-1" data-label>
-            {date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-          </p>
-          <h3 className="text-title text-text-primary">{event.title}</h3>
-          {event.lineup && (
-            <p className="text-text-secondary text-sm mt-1">
-              {event.lineup.map((a) => a.name).join(" / ")}
-            </p>
-          )}
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }

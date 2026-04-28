@@ -2,6 +2,8 @@
 
 # Daisy Chain SD — Website Project
 
+> **⚠ Before you touch UI or visuals, read the "Design System — Brand Rules (NON-NEGOTIABLE)" section below. The [`design-system/`](design-system/) folder at the repo root is the canonical brand — every color, font, radius, and interaction on this site is defined there. The site is an IMPLEMENTATION of the system, not a place to redefine it.**
+
 ## Branching & Deployment Workflow
 
 **All pushes go to `dev`. Never touch `main` directly. Only merge to `main` when explicitly asked to go live.**
@@ -56,8 +58,8 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **Public queries** (`src/lib/queries.ts`): filter with `hidden != true` (and equivalent for nested references where needed) so hidden content never appears on the site.
 
 ### Schemas
-- **release** — title, slug, artist (ref), displayArtist (string override), additionalArtists (array of artist refs for collabs), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true)
-- **artist** — name, slug, photo, bio, links (website, instagram, bandcamp, soundcloud)
+- **release** — title, slug, **`artists`** (array of artist refs in display order — primary credit is `artists[0]`, all rendered as comma-separated clickable links), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl, **`trackArtists`** array of artist refs for per-track linkable credits, plus a legacy `trackArtist` text fallback), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true). The legacy fields `artist` (single ref), `displayArtist` (string), `additionalArtists` (refs) auto-hide in Studio once `artists[]` has at least one entry; they remain in older docs as fallback so unmigrated releases keep rendering. GROQ pattern: `coalesce(artists[0]->name, displayArtist, artist->name)`. Per-track multi-artist credits render as comma-separated `<Link>`s in `TrackList` (Spotify/Apple-style); fallback order is `trackArtists[]` → `trackArtist` string → release primary artist.
+- **artist** — name, slug, photo, bio, role, hometown, **rosterTier** (`"main"` default / `"side"`), links (website, instagram, spotify, soundcloud). `rosterTier: "side"` hides the artist from the `/artists` roster grid (filtered by `ARTISTS_LIST` GROQ) but the doc still exists, the `/artists/[slug]` profile page still works, and any release credit (primary `artist`, `additionalArtists`, or per-track `trackArtist`) still renders. Use Side for featured artists / collaborators / one-track contributors who shouldn't take up a roster slot.
 - **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description, **hidden** (exclude from site when true)
 
 ### Audio streaming architecture
@@ -104,7 +106,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 ## Components
 
-- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to Shopify product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy/pre-save button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout. When `status === "upcoming"`, cover has **opaque overlay + “Coming Soon” pill** (same as cards); **Pre-save** + **LayloModal** sit in the tracklist header row (not on the cover).
+- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to Shopify product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy/pre-save button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout. When `status === "upcoming"`, cover stays fully visible with a **top-right "Soon" pill** (`bg-blue-300/20 border-blue-300/30 backdrop-blur-sm`) — no opaque overlay. **Pre-save** + **LayloModal** sit in the tracklist header row (not on the cover).
 - **TrackList** (`src/components/TrackList.tsx`) — wavesurfer.js waveform player with real audio waveforms from MP3 previews. Active track shows title/artist at normal size on the left with waveform inline to the right. Pre-loads wavesurfer module on mount for instant playback. Properly cleans up media elements on track switch.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
 - **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + catalog number badge (bottom-left) + "Soon" badge (top-right, when status is upcoming). Title strips "EP"/"Album" suffix. The **outer** `container-organic-md` wrapper uses **`overflow-hidden`** so scale-on-hover does not clip rounded corners (avoid only patching inner layers).
@@ -204,13 +206,94 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 ### Artists without photos
 - Allegra Miles, Belay, Coido, Elohim, Monotrope, Peter Sheppard, sumthin sumthin
 
-## Design References & UI Agent
+## Design System — Brand Rules (NON-NEGOTIABLE)
 
-### UI Design Agent
-When making **any UI or visual design decision** — layout, spacing, component shape, color usage, interaction patterns, accessibility — **always consult `ui-designer.md`** in the project root. Follow its execution flow and design principles.
+**The `design-system/` folder at the project root is the canonical Daisy Chain Design System. It is the single source of truth for every visual decision on the site, on Shotgun flyers, in decks, on social, and in any agent-produced output. Do not override it. Do not "improve" it without permission. The site is an IMPLEMENTATION of the system, not a place to redefine it.**
 
-### Design System References
-The `design-md/` folder in the project root contains `DESIGN.md` files from 58 real-world design systems (Spotify, Stripe, Apple, Linear, Notion, Vercel, Supabase, Sanity, etc.), sourced from [awesome-design-md](https://github.com/VoltAgent/awesome-design-md).
+### Before making any UI or visual change, you MUST:
+
+1. **Read `design-system/README.md`** — full brand voice, visual foundations, iconography, content fundamentals, typography DNA.
+2. **Read `design-system/SKILL.md`** — skill manifest that tells agents how to assemble designs the Daisy Chain way.
+3. **Reference `design-system/colors_and_type.css`** — the canonical token file. Every color, radius, type scale, and motion curve on the site is mirrored from this file into `src/app/globals.css` `@theme`. If a token exists there, USE IT. Never invent new colors/radii/fonts without updating both files.
+4. **Reference `design-system/ui_kits/website/`** — JSX components that recreate daisychainsd.com. If you need a component pattern, check here first before writing from scratch. `index.html` is the click-thru prototype.
+5. **Reference `design-system/preview/`** — HTML cards showing registered assets (buttons, colors, icons, logomarks, radii, shadows, spacing, toggles, type scale). Quick visual lookup.
+6. **Reference `design-system/assets/`** — canonical logomarks, hero imagery, flyer reference, fixed background watermarks. Use these, do not upload alternates.
+
+### The non-negotiable brand rules (from `design-system/README.md`)
+
+- **Dark, midnight-club aesthetic.** Warm-dark, grainy, geometric-bold, asymmetric. Not minimalist techno, not pastel indie.
+- **Colors**: 7-stop dark ladder from `#060910` → `#253244`. Never pure black. Never pure white. Always 4–6% blue cast in dark surfaces. Text ladder is warm white, not pure.
+- **Single accent** = blue-300 `#7CB9E8` (the flower-mark blue). One accent. Everything else is secondary.
+- **Type**: Azo Sans Web (Adobe Typekit) for brand headings; Rubik Mono One for display wordmarks + marquees; Archivo Black as the reliable fallback; IBM Plex Mono for catalog numbers, dates, data. Headings are ALWAYS uppercase, -0.02em to -0.04em tracking, line-height 0.9–1.1.
+
+### Font roles — MEMORIZE THIS
+
+Every font usage on the site MUST resolve to one of these four roles. The CSS variable is the address; the face is the expected rendering. Do not invent new font families. Do not repurpose a role for a different element type.
+
+| Variable | Face | Use it on |
+|---|---|---|
+| `--font-wordmark` | **Rubik Mono One** | The **DAISY CHAIN** homepage wordmark and the **NewsMarquee** big display tracks. Reserved for flyer/chrome-style display type. **Never** substitute `--font-heading` here — the chunky square letterforms are the brand signature on the wordmark. |
+| `--font-heading` | Archivo Black (Azo Sans Web fallback) | All section titles, h1-h6 inside editorial content, pill labels, UI chrome. Uppercase, tight tracking. |
+| `--font-body` | Azo Sans Web → IBM Plex Sans | Paragraphs, descriptions, form text. |
+| `--font-mono` | IBM Plex Mono | Dates (`MAY 8`), catalog numbers (`DCR#22`), metadata, data. |
+| `--font-label` | Archivo Black | Apply via `data-label` attribute or `.text-label` class — uppercase, letter-spaced 0.06em metadata labels. |
+
+`--font-accent` (Space Grotesk) and `--font-experimental` (alias for `--font-wordmark`) exist for secondary use cases; prefer the four roles above first.
+- **Asymmetric organic radii** are the signature. `24px 8px 24px 4px` (lg). Cards look hand-torn, not machine-milled. Media wells use inverse radius to "sink" into their parent.
+- **Borders** always `rgba(255,255,255,0.06)` — 6% white. Strong borders go to 12%. No exceptions.
+- **Shadows** are blue-tinted, low-opacity. `hover-lift` casts `rgba(124,185,232,0.08)` at 20px + `0.04` at 40px. Never drop-shadow black.
+- **Grain**: subtle noise overlay (~3-5% opacity) on the whole document. Non-negotiable — this is what makes the UI feel analog.
+- **Fixed ambient background**: `bg-dc28-landscape.webp` / `bg-dc28-portrait.webp` at 10% opacity behind every page. The label's ambient watermark.
+- **No emoji.** Ever. Icons are hand-drawn SVG, stroke-based, 2px, 16–18px. If you catch yourself adding one, stop and use a pill badge.
+- **The daisy logomark** is the only brand "emoji." `flower-white.png` at 32×32 in header, 20×20 at 50% opacity in footer. On hover, subtle blue glow (`drop-shadow(0 0 8px rgba(124,185,232,0.5))`).
+- **No gradients except**: the chrome-liquid flyer treatment (`.text-chrome` class), the `container-glow` bloom on hero-adjacent cards, and the hero vignette.
+- **Casing**: Section headings UPPERCASE black weight. Metadata labels uppercase with `data-label`. Release + track titles are **Title Case As Delivered** — never auto-capitalized (e.g. "and then i started floating EP" stays lowercase).
+- **Motion**: ease `cubic-bezier(0.42, 0, 0.58, 1)`, default 250ms. Never `transition-all`. Always scope properties. `prefers-reduced-motion` kills all decorative animation.
+- **Hover states only on real hover pointers**: everything goes behind `@media (hover: hover)`. Touch devices never get sticky hover.
+
+### The "don't do it" list
+
+- ❌ No emoji
+- ❌ No purple gradients
+- ❌ No Inter / Roboto / Roboto Mono
+- ❌ No rounded-corner-with-colored-left-border cards
+- ❌ No stock iconography (no Lucide import from CDN, no FontAwesome, no Heroicons)
+- ❌ No pure black (`#000`) or pure white (`#FFF`)
+- ❌ No hype language: "don't miss out", "🔥", "our customers"
+- ❌ No `transition-all`
+- ❌ No arbitrary/one-off radii — always a token from `--radius-*`
+- ❌ No arbitrary colors — always a token from `--color-*`
+- ❌ No inventing new fonts — the stack is fixed
+
+### The "always do it" list
+
+- ✅ ALL CAPS section headings
+- ✅ Asymmetric organic radii
+- ✅ Single blue accent for CTAs, active states, focus rings
+- ✅ Organic blob decorations behind grids (`animate-drift`)
+- ✅ The flower mark
+- ✅ Distressed chrome lettering on flyers (`.text-chrome`)
+- ✅ Monospace for dates + catalog numbers (`--font-mono`)
+- ✅ Hairline dividers at 6% white
+- ✅ Focus on the dance floor
+
+### Keeping the site ↔ design-system in sync
+
+The CSS in `src/app/globals.css` `@theme` block is the LIVING implementation of `design-system/colors_and_type.css`. These files MUST stay in sync:
+
+- If a new token is added to `design-system/colors_and_type.css`, mirror it into `globals.css`.
+- If `globals.css` needs a new token, add it to `design-system/colors_and_type.css` first.
+- **Never add a design token in only one place.** Both files or neither.
+
+The `--font-wordmark` semantic token at the top of `globals.css` `@theme` is the Session 2 contribution: a dedicated alias for the Rubik Mono One stack used on the DAISY/CHAIN homepage wordmark and the NewsMarquee display tracks. Reserved for those two use cases — see the Font roles table above. `--font-experimental` is kept as a back-compat alias and resolves to `--font-wordmark`.
+
+### UI Design Agent (secondary reference)
+
+When making **any UI or visual design decision** — layout, spacing, component shape, color usage, interaction patterns, accessibility — also consult `ui-designer.md` in the project root. Follow its execution flow. It complements the design system but does not override it.
+
+### Cross-industry design references (tertiary)
+
+The `design-md/` folder contains `DESIGN.md` files from 58 real-world design systems (Spotify, Stripe, Apple, Linear, Notion, Vercel, Supabase, Sanity, etc.), sourced from [awesome-design-md](https://github.com/VoltAgent/awesome-design-md). Use ONLY to cross-reference patterns — never to override Daisy Chain's own system.
 
 **When making design decisions, consult relevant files:**
 - **Music/streaming UI**: `design-md/spotify/DESIGN.md`
@@ -223,7 +306,7 @@ The `design-md/` folder in the project root contains `DESIGN.md` files from 58 r
 - **Events / tickets**: `design-md/airbnb/DESIGN.md`
 - **Brand/luxury**: `design-md/apple/DESIGN.md`, `design-md/ferrari/DESIGN.md`
 
-Do not blindly copy a single design system — instead cross-reference the most relevant ones and apply patterns that fit the Daisy Chain brand (dark, electronic music label aesthetic).
+Do not blindly copy a single design system — the Daisy Chain design system wins. Cross-reference to fill specific gaps (e.g. how to structure a filter pill row, how to lay out a checkout), never to redefine the brand.
 
 ## Recent session work & design decisions (carry forward)
 
@@ -241,12 +324,12 @@ Use this section when changing UI so choices stay consistent across pages (homep
 
 ### Principles for future design work
 
-- **Parity across surfaces**: Upcoming releases use the same **opaque overlay + “Coming Soon” pill** on cover art on **grid**, **homepage Upcoming**, and **release detail**; **Pre-save** lives in actions beside/below the hero, not on the cover. **LayloModal** remains on homepage card + release detail upcoming row.
+- **Parity across surfaces**: Upcoming releases use the same **top-right "Soon" pill** on cover art across **grid**, **homepage Upcoming**, and **release detail** — no full-cover opaque overlay, cover art stays fully visible. Pill styling: `bg-blue-300/20 border-blue-300/30 backdrop-blur-sm` with uppercase tracked 10px label. **Pre-save** lives in actions beside/below the hero, not on the cover. **LayloModal** remains on homepage card + release detail upcoming row. The label is always **"Soon"** (short form) — never "Coming Soon", "coming soon", "TBA", etc.
 - **Touch vs hover**: **`.hover-lift`**, image zoom (`image-hover-card-zoom`, `image-hover-artist-photo`), past-event flyer opacity, and header logo glow apply only inside **`@media (hover: hover)`** so touch doesn’t get sticky hover.
 - **Lead gen / newsletter**: Build from **`@theme` tokens** and shared container patterns (`container-organic`, spacing scale); avoid one-off gradients, arbitrary radii, and inconsistent label typography — should feel as intentional as shop/checkout, not “vibe coded.”
 - **Section titles**: Homepage **“Upcoming”** (and similar) should use **label vs display** hierarchy intentionally (see `--font-label` / `data-label` vs Azo Black headings) — refine if the section head feels weak or mismatched next to hero.
 - **Deploy**: After schema or prop changes, run **`npm run build`** before pushing **`dev`**; fix TypeScript/prop mismatches (e.g. removing obsolete props from pages when component APIs change) so Vercel preview stays green.
-- **Locking streaming**: Upcoming releases (`status === "upcoming"`) auto-lock every track — no stream URL is delivered to the client. Per-track `comingSoon` boolean on `release.tracks[]` covers partial EPs (e.g. one single released, rest upcoming). Locked tracks render a lock icon + **Coming Soon** pill in `TrackList`.
+- **Locking streaming**: Upcoming releases (`status === "upcoming"`) auto-lock every track — no stream URL is delivered to the client. Per-track `comingSoon` boolean on `release.tracks[]` covers partial EPs (e.g. one single released, rest upcoming). Locked tracks render a lock icon + **"Soon"** pill in `TrackList`.
 
 ## Typography & Design System
 
@@ -313,9 +396,77 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - Homepage ISR: `export const revalidate = 60` so Studio edits propagate without redeploying
 - Stable preview alias: **`dev.daisychainsd.com`** aliased to `dev` branch in Vercel; DNS CNAME set at Squarespace
 
+### Session 1 (2026-04-22) — Daisy Chain Design System install + Homepage V2 port
+
+- **`design-system/` folder** at the project root — canonical brand reference (README, SKILL, colors_and_type.css, assets, preview, ui_kits/website JSX). 5.8 MB committed-in-repo source of truth.
+- **Brand rules** elevated to non-negotiable in `CLAUDE.md` + `AGENTS.md` so every agent session reads them on start.
+- **CSS tokens** added to `globals.css` `@theme`: red family (`--color-red-300/400/500`), warm off-white (`--color-offwhite`, `--color-offwhite-dim`), font weight defaults, button primitives (`.btn-primary`, `.btn-ghost`), text-chrome utility, animated grain via `grainShift` keyframe.
+- **Fonts wired** via `next/font`: Space Grotesk, Archivo Black, Rubik Mono One — exposed as CSS variables, used in `--font-experimental` and (later) `--font-wordmark`.
+- **Homepage V2 components**: `<WordmarkHero>`, `<LeadGen>`, `<NewsMarquee>`, `<ReleaseSpotlight>`, `<ShopStrip>`, `<SectionHeader>`. Homepage rewrote to use them.
+- **Phase 3-8 page work**: `/music` filter pills + sort, `/releases/[slug]` DSP row + `release.links` schema, `/events` past-shows row list + `event.recapUrl` schema, `/artists` roster grid + `artist.role`/`hometown` schema, `/shop` page redesign, new `/about` page.
+- **Phase 9 cleanup**: deleted `<HeroSlideshow>` + old hero PNGs.
+- **End-of-Session-1 audit**: `AUDIT.md` at project root (now superseded by `AUDIT-session-2.md`).
+
+### Session 2 (2026-04-23 → 2026-04-25) — Brand polish + audit cleanup
+
+- **`--font-wordmark` semantic token** in `@theme` — Rubik Mono One stack, reserved for the homepage wordmark and NewsMarquee. Replaces the generic `--font-experimental` reference (which is kept as a back-compat alias). Added Font roles table to brand rules.
+- **DAISY/CHAIN wordmark in Rubik Mono One** via `--font-wordmark`. Same for both `<NewsMarquee>` tracks.
+- **Hero photos behind WordmarkHero** — `public/hero-landscape.png` (≥768px) and `public/hero-portrait.png` (<768px) responsive `<picture>`, with radial vignette overlay for type legibility.
+- **"Soon" pill pattern** unified: top-right of cover, `bg-blue-300/20 border-blue-300/30 backdrop-blur-sm`, label always reads `Soon` (short form). Applied across homepage release card, `/music` ReleaseCard, release detail ReleaseInteractive, TrackList per-track lock badge, and Sanity Studio schema label. Replaces the previous full-cover blue overlay + "Coming Soon" pattern.
+- **Release-detail card shell** adopted on homepage Upcoming cards — padded outer (`p-3 sm:p-4`), `container-inset` cover well, `grid md:grid-cols-2 gap-8` internal layout, `aspect-square` cover. Both `<UpcomingEventCard>` and the inline release card in `page.tsx` use this shell, matching `/releases/[slug]` top card.
+- **`@portabletext/react` install** to render `release.description` blockContent properly in `<ReleaseSpotlight>`.
+- **Bug fixes from Session 1 audit**: PortableText description rendering, `aria-hidden` moved to `<img>` (not `<picture>`), `any` types replaced with structural types (`SanityImageRef`, `PortableTextBlock[]`).
+- **End-of-Session-2 audit**: `AUDIT-session-2.md` at project root (current source of truth — supersedes Session 1 audit).
+
 ## Layout & Styling Rules
 
 These conventions must be followed when adding any new page or component.
+
+### Homepage card pattern (NON-NEGOTIABLE)
+
+Every content card on the homepage — Upcoming event, Upcoming release, Latest Release, and any future spotlight — uses the exact same shell. Do not invent a new layout per section. This is the contract:
+
+**Shell (outer → inner):**
+
+```
+container-organic overflow-hidden p-3 sm:p-4   ← outer card
+  └─ grid md:grid-cols-2 gap-8 h-full          ← inner row
+       ├─ container-inset aspect-square         ← cover (image col)
+       └─ flex flex-col justify-between         ← info col
+              p-4 sm:p-6 md:p-0 min-w-0
+```
+
+Mobile (<768px): cover stacks above info. Desktop (≥768px inside the card): cover-left, info-right at exactly 50/50.
+
+**Two-zone rhythm inside the info column:**
+
+- **Top zone** (`flex flex-col gap-3`):
+  - Pill row — uppercase label like `Upcoming` / `New Music` / `Latest Release`, optional secondary label (e.g. day-of-week or catalog #)
+  - Display anchor — big date for events (`clamp(2.5rem, 6vw, 4.5rem)` mono blue), or just the title for releases
+  - Title — `text-2xl md:text-xl` for cards in an equal-row, `text-3xl md:text-4xl` for hero/spotlight cards
+  - Subtitle (artist / venue) — secondary color, `text-sm` to `text-lg`
+  - Optional rich content (e.g. playable `<TrackList>` inside Latest Release)
+- **Hairline divider** — `border-t border-blue-300/10 pt-5 mt-5`
+- **Bottom zone** — single full-width primary CTA, `container-pill-r flex w-full items-center justify-center gap-2 px-6 py-3 text-sm font-semibold bg-blue-300 text-bg-deep`. Optional secondary text link (centered or left-aligned to button) above or below.
+
+The CTA pins to the bottom of the column via `justify-between`, so when sibling cards have different content heights the buttons still bottom-align across the row.
+
+**Equal-card row contract:**
+
+When two cards share a row (Upcoming section), the parent uses `grid grid-cols-1 min-[1280px]:grid-cols-2 gap-6`. **Do NOT use `flex flex-1 min-w-0`** — it does not enforce equal widths despite the spec, content from one card can leak and force the other to shrink. CSS grid's `minmax(0, 1fr)` is the proven contract.
+
+When a card stretches alone across a section (Latest Release), no grid parent is needed — the card spans the section's `max-w-[1440px]` width directly.
+
+**Cover overlays:**
+
+- **Soon pill** — top-right of cover, only when `status === "upcoming"`. `absolute top-3 right-3 z-10 rounded-full bg-blue-300/20 border border-blue-300/30 backdrop-blur-sm px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-blue-300`. Short label `Soon`, never `Coming Soon`.
+- **Catalog badge** — bottom-left of cover, frosted. `absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/55 backdrop-blur-sm text-white/90 font-mono text-xs`. Used on Latest Release card (and `/music` ReleaseCard).
+
+**Section padding:**
+
+Big homepage sections all use `padding: "clamp(40px, 5vw, 56px) clamp(24px, 4vw, 48px)"` on their `<section>` wrapper. Don't drift from this — the unified rhythm is what keeps the page feeling cohesive.
+
+When dropping a new homepage section, copy the shell from any existing card (UpcomingEventCard, the inline release card in `page.tsx`, or ReleaseSpotlight) and only swap the inner content.
 
 ### Page wrapper pattern
 Every new page gets a single outer wrapper — pick the right max-width for the content type:
@@ -352,7 +503,8 @@ Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). An
 
 ## Environment
 
-- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_ADMIN_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`
+- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_ADMIN_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`
+- **`CRON_SECRET`** authenticates the daily release-day cron route ([`/api/cron/release-day`](src/app/api/cron/release-day/route.ts)). Generate with `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`. Must be added to Vercel env vars (Production + Preview) for the cron to actually fire on the live site — Vercel Cron sends `Authorization: Bearer ${CRON_SECRET}` automatically when the env var is set.
 - Sanity API token is an Editor-level token (needed for mutations/uploads)
 - Supabase keys are from the Supabase dashboard (project settings → API)
 - Google Workspace metadata accessible via `gws` CLI (see gdrive skill)
@@ -364,6 +516,14 @@ Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). An
 - `scripts/generate-previews.mjs` — **run this when adding new releases** — converts WAV → 128k MP3, uploads to Sanity as `previewFile` on each track. Skips tracks that already have a preview.
 - `scripts/upload-artist-photos.mjs` — bulk upload artist photos
 - `scripts/upload-event-data.mjs` — upload event flyers and create event documents
+
+Streaming / DSP links (Spotify, Apple Music, YouTube, SoundCloud, Bandcamp) are populated manually in Sanity Studio under each release's "Streaming / DSP Links" collapsible. Auto-populate scripts were tried (iTunes Search → Odesli expansion) but only reliably surfaced Apple Music for indie releases, which wasn't worth maintaining.
+
+## Cron Jobs (Vercel)
+
+Defined in [`vercel.json`](vercel.json):
+
+- **`/api/cron/release-day`** — daily at `0 5 * * *` UTC. Finds releases with `status: "upcoming"` whose `releaseDate` has arrived, flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Streaming links are NOT auto-populated — fill those in Studio when adding the release. Vercel Cron is UTC-only, so this fires at midnight ET in winter (EST) and 1am ET during DST (EDT) — accept the 1-hour drift. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://daisychainsd.com/api/cron/release-day`. Idempotent — running twice on the same day re-promotes nothing because the GROQ filter excludes anything already `status: live`.
 
 <!-- VERCEL BEST PRACTICES START -->
 ## Best practices for developing on Vercel

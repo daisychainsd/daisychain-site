@@ -1,0 +1,285 @@
+/* =========================================================
+   Daisy Chain — Colors & Type
+   Source: daisychainsd/daisychain-site src/app/globals.css
+   ========================================================= */
+
+/* Typekit (Azo Sans Web) — in production, include this link:
+   <link rel="stylesheet" href="https://use.typekit.net/ecz5lqw.css">
+   The Typekit kit belongs to Daisy Chain and is the canonical heading face.
+   Google-Font fallbacks below exist so these tokens work standalone in
+   prototypes + decks where Typekit is not authenticated. */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&family=Rubik+Mono+One&display=swap');
+
+:root {
+  /* ── Blue accent — derived from the daisy logo ── */
+  --color-blue-100: #D4EAFF;
+  --color-blue-200: #B0D4F1;
+  --color-blue-300: #7CB9E8;   /* PRIMARY ACCENT */
+  --color-blue-400: #5AA3DC;
+  --color-blue-500: #3A8CCF;
+  --color-blue-600: #2670A8;
+
+  /* ── 7-level dark background scale (bottom → top of elevation) ── */
+  --color-bg-abyss:    #060910;
+  --color-bg-deep:     #0A0E14;  /* page bg */
+  --color-bg-surface:  #111820;  /* container-organic */
+  --color-bg-raised:   #151D28;  /* container-inset */
+  --color-bg-elevated: #1A2230;  /* hover rows */
+  --color-bg-shelf:    #1F2A3A;  /* active toggle */
+  --color-bg-float:    #253244;  /* topmost floats */
+
+  /* ── Warm white text ladder ── */
+  --color-text-primary:   #E8ECF0;
+  --color-text-secondary: #8899AA;
+  --color-text-muted:     #556677;
+  --color-text-faint:     #3A4A5A;
+
+  /* ── Secondary accents (used sparingly) ── */
+  --color-red-300:     #F56E6E;  /* hot-signal red — alerts, live-now, limited runs */
+  --color-red-400:     #E04848;
+  --color-red-500:     #B83030;
+  --color-offwhite:    #F0EADF;  /* warm paper off-white — quotes, tickets, liner notes */
+  --color-offwhite-dim:#D9D1C2;
+
+  /* ── Asymmetric "organic" radius system — brand signature ── */
+  --radius-organic-lg:     24px 8px 24px 4px;
+  --radius-organic-md:     16px 6px 16px 3px;
+  --radius-organic-sm:     12px 4px 12px 2px;
+  --radius-organic-inv:    4px 24px 4px 24px;
+  --radius-organic-inv-md: 3px 16px 3px 16px;
+  --radius-pill-left:      24px 6px 6px 24px;
+  --radius-pill-right:     6px 24px 24px 6px;
+  --radius-scoop:          4px 4px 20px 20px;
+
+  /* ── Fluid typography scale ── */
+  --text-display:  clamp(3.5rem, 8vw, 7rem);      /* hero */
+  --text-headline: clamp(2rem, 4vw, 3.5rem);      /* h1 */
+  --text-title:    clamp(1.25rem, 2vw, 1.75rem);  /* h2/h3 */
+  --text-body:     1rem;
+  --text-caption:  0.9375rem;
+  --text-micro:    0.8125rem;
+
+  /* ── Typography stacks ──
+     In production the Adobe Typekit "azo-sans-web" is loaded via
+     https://use.typekit.net/ecz5lqw.css. Fallbacks are Google Fonts so the
+     tokens still look correct when the Typekit is absent (prototypes/decks). */
+  --font-heading: "azo-sans-web", "Archivo Black", "Helvetica Neue", Helvetica, "Archivo", system-ui, sans-serif;
+  /* Body defaults to Helvetica (Neue) at weight 500/700 for a bold industrial
+     read. Azo stays as the brand anchor when Typekit is authenticated. */
+  --font-body:    "Helvetica Neue", Helvetica, "Inter", "Archivo", system-ui, sans-serif;
+  --font-weight-body: 500;
+  --font-weight-body-bold: 700;
+  /* Labels, toggles, chips — Archivo Black uppercase, industrial UI chrome. */
+  --font-label:   "azo-sans-web", "Archivo Black", "Helvetica Neue", Helvetica, system-ui, sans-serif;
+  --font-mono:    "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* Experimental display accent — geometric, tech-forward. Use for big blocky
+     set-pieces, flyer text, section dividers. NOT for body. */
+  --font-experimental: "Rubik Mono One", "Space Grotesk", "Archivo Black", sans-serif;
+  /* Humanist sans used as the body/accent counterpoint to Azo's industrial
+     feel — softer, more readable at long paragraph lengths. */
+  --font-accent: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  /* ── Motion ── */
+  --default-transition-duration: 250ms;
+  --default-transition-timing-function: cubic-bezier(0.42, 0, 0.58, 1);
+  --ease-daisy: cubic-bezier(0.42, 0, 0.58, 1);
+  --duration-hero: 1200ms;
+
+  /* ── Semantic tokens ── */
+  --bg: var(--color-bg-deep);
+  --fg: var(--color-text-primary);
+  --fg1: var(--color-text-primary);
+  --fg2: var(--color-text-secondary);
+  --fg3: var(--color-text-muted);
+  --fg4: var(--color-text-faint);
+  --accent: var(--color-blue-300);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-blue: rgba(124, 185, 232, 0.2);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Base styles
+   ───────────────────────────────────────────────────────── */
+body {
+  background: var(--bg);
+  color: var(--fg1);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+p, li, dd, dt { font-weight: var(--font-weight-body); }
+strong, b     { font-weight: var(--font-weight-body-bold); }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--fg1);
+}
+
+h1 { font-size: var(--text-headline); line-height: 1.05; letter-spacing: -0.03em; }
+h2 { font-size: var(--text-title); }
+h3 { font-size: 1.25rem; letter-spacing: -0.01em; }
+h4 { font-size: 1rem;   letter-spacing: 0; }
+
+p  { font-size: var(--text-body); line-height: 1.5; color: var(--fg1); }
+
+code, pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+[data-label], .text-label {
+  font-family: var(--font-label);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg3);
+}
+
+::selection {
+  background: var(--color-blue-300);
+  color: var(--color-bg-deep);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Typography presets (usable in HTML + decks)
+   ───────────────────────────────────────────────────────── */
+.text-display  { font-family: var(--font-heading); font-size: var(--text-display);  font-weight: 900; line-height: 0.9;  letter-spacing: -0.03em; text-transform: uppercase; }
+.text-headline { font-family: var(--font-heading); font-size: var(--text-headline); font-weight: 900; line-height: 1.1;  letter-spacing: -0.02em; text-transform: uppercase; }
+.text-title    { font-family: var(--font-heading); font-size: var(--text-title);    font-weight: 900; line-height: 1.2; }
+.text-mono     { font-family: var(--font-mono);    font-size: 0.875rem; color: var(--fg3); letter-spacing: 0.02em; }
+.text-body     { font-family: var(--font-body);    font-size: var(--text-body);     line-height: 1.55; }
+.text-caption  { font-family: var(--font-body);    font-size: var(--text-caption);  color: var(--fg2); }
+.text-micro    { font-family: var(--font-body);    font-size: var(--text-micro);    color: var(--fg3); }
+
+/* Flyer/display: the DC28-style chrome, distressed headline. Pair with a
+   radial glow + grain overlay for that "shot on a DSLR in the club" look. */
+.text-chrome {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  color: #ECEFF3;
+  background: linear-gradient(180deg, #FFFFFF 0%, #B8BCC2 38%, #6B7078 55%, #C4C8CE 75%, #F4F6F9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 36px rgba(255,255,255,0.08);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Noise / grain overlay — include on hero or flyer surfaces
+   ───────────────────────────────────────────────────────── */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Container primitives (copy from globals.css)
+   ───────────────────────────────────────────────────────── */
+.container-organic     { border-radius: var(--radius-organic-lg); background: var(--color-bg-surface); border: 1px solid var(--border); }
+.container-organic-md  { border-radius: var(--radius-organic-md); background: var(--color-bg-surface); border: 1px solid var(--border); }
+.container-inset       { border-radius: var(--radius-organic-inv); background: var(--color-bg-raised); border: 1px solid rgba(255,255,255,0.04); overflow: hidden; }
+.container-inset-md    { border-radius: var(--radius-organic-inv-md); background: var(--color-bg-raised); border: 1px solid rgba(255,255,255,0.04); overflow: hidden; }
+.container-scoop       { border-radius: var(--radius-scoop); background: var(--color-bg-surface); border: 1px solid var(--border); overflow: hidden; }
+.container-pill-l      { border-radius: var(--radius-pill-left); }
+.container-pill-r      { border-radius: var(--radius-pill-right); }
+
+.divider-glow {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(124,185,232,0.3) 50%, transparent 100%);
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.04;
+}
+
+.hover-lift {
+  transition: transform 250ms var(--ease-daisy), box-shadow 250ms var(--ease-daisy);
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 4px 20px rgba(124, 185, 232, 0.08),
+    0 8px 40px rgba(124, 185, 232, 0.04),
+    0 0 0 1px rgba(124, 185, 232, 0.06);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Button + pill primitives
+   ───────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-bg-deep);
+  background: var(--color-blue-300);
+  border-radius: var(--radius-pill-right);
+  transition: background-color 250ms var(--ease-daisy), box-shadow 250ms var(--ease-daisy);
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background: var(--color-blue-200);
+  box-shadow: 0 0 24px rgba(124,185,232,0.2);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-blue-300);
+  background: rgba(124,185,232,0.05);
+  border: 1px solid rgba(124,185,232,0.2);
+  border-radius: var(--radius-pill-right);
+  transition: background-color 250ms var(--ease-daisy);
+  cursor: pointer;
+}
+.btn-ghost:hover { background: rgba(124,185,232,0.1); }
+
+/* ─────────────────────────────────────────────────────────
+   Keyframes
+   ───────────────────────────────────────────────────────── */
+@keyframes slow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-slow-spin { animation: slow-spin 120s linear infinite; }
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(15px, -10px); }
+  50%      { transform: translate(-10px, 15px); }
+  75%      { transform: translate(10px, 10px); }
+}
+.animate-drift { animation: drift 28s var(--ease-daisy) infinite; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.animate-fade-in { animation: fade-in 0.75s var(--ease-daisy); }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slow-spin, .animate-drift, .animate-fade-in { animation: none; }
+}

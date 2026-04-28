@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Secondary Accents</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body)}
+  .wrap{padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  .col h4{margin:0 0 10px;font-family:var(--font-heading);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);font-weight:700}
+  .sw{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .chip{border-radius:var(--radius-organic-md);overflow:hidden;border:1px solid var(--border);background:var(--color-bg-surface)}
+  .swatch{height:72px}
+  .lbl{padding:8px 10px;display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+  .name{font-family:var(--font-mono);font-size:10px;color:var(--fg2)}
+  .hex{font-family:var(--font-mono);font-size:10px;color:var(--fg3)}
+  .notes{margin-top:12px;font-size:12px;color:var(--fg2);line-height:1.5}
+  .ex{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .pill{padding:4px 12px;border-radius:24px 6px 6px 24px;font-family:var(--font-heading);font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+  .pill.red{color:var(--color-red-300);background:rgba(245,110,110,.08);border:1px solid rgba(245,110,110,.25)}
+  .pill.off{color:var(--color-offwhite);background:rgba(240,234,223,.06);border:1px solid rgba(240,234,223,.18)}
+  .card{padding:12px 14px;border-radius:var(--radius-organic-sm);border:1px solid var(--border);background:var(--color-bg-surface);font-size:12px}
+  .card .k{color:var(--color-red-300);font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="col">
+    <h4>— Red · Hot Signal</h4>
+    <div class="sw">
+      <div class="chip"><div class="swatch" style="background:#F56E6E"></div><div class="lbl"><span class="name">red-300</span><span class="hex">F56E6E</span></div></div>
+      <div class="chip"><div class="swatch" style="background:#E04848"></div><div class="lbl"><span class="name">red-400</span><span class="hex">E04848</span></div></div>
+      <div class="chip"><div class="swatch" style="background:#B83030"></div><div class="lbl"><span class="name">red-500</span><span class="hex">B83030</span></div></div>
+    </div>
+    <div class="notes">Alerts, live-now indicators, limited vinyl runs, sold-out states. Never for body copy or long-form backgrounds.</div>
+    <div class="ex">
+      <span class="pill red">● Live Now</span>
+      <span class="pill red">Last 12 Copies</span>
+    </div>
+  </div>
+  <div class="col">
+    <h4>— Off-White · Paper</h4>
+    <div class="sw">
+      <div class="chip"><div class="swatch" style="background:#F0EADF"></div><div class="lbl"><span class="name">offwhite</span><span class="hex">F0EADF</span></div></div>
+      <div class="chip"><div class="swatch" style="background:#D9D1C2"></div><div class="lbl"><span class="name">offwhite-dim</span><span class="hex">D9D1C2</span></div></div>
+      <div class="chip"><div class="swatch" style="background:linear-gradient(180deg,#F0EADF,#D9D1C2)"></div><div class="lbl"><span class="name">paper</span><span class="hex">gradient</span></div></div>
+    </div>
+    <div class="notes">Warm paper tone — quotes, liner-note callouts, printed tickets, zine moments. Soft counterweight to the cold blue/dark scheme.</div>
+    <div class="ex"><span class="pill off">Liner Notes</span><span class="pill off">Ticket</span></div>
+  </div>
+</div>
+</body></html>

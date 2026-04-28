@@ -1,6 +1,7 @@
 export interface Track {
   title: string;
   trackArtist?: string;
+  trackArtists?: { name: string; slug: string; rosterTier?: string }[];
   duration?: string;
   trackNumber?: number;
   audioUrl?: string;
@@ -16,6 +17,7 @@ export interface Release {
   displayArtist?: string;
   artistSlug?: string;
   primaryArtistName?: string;
+  artists?: { name: string; slug: string; rosterTier?: string }[];
   additionalArtists?: { name: string; slug: string }[];
   remixerSlug?: string;
   coverArt?: any;
@@ -30,6 +32,13 @@ export interface Release {
   status?: string;
   presaveUrl?: string;
   embedUrl?: string;
+  links?: {
+    spotify?: string;
+    appleMusic?: string;
+    bandcamp?: string;
+    soundcloud?: string;
+    youtube?: string;
+  };
   description?: any;
   tracks?: Track[];
 }
@@ -50,14 +59,17 @@ export interface Artist {
   slug: string;
   photo?: any;
   bio?: string;
+  role?: string;
+  hometown?: string;
   links?: {
     website?: string;
     instagram?: string;
-    bandcamp?: string;
+    spotify?: string;
     soundcloud?: string;
   };
   releases?: ReleaseCard[];
   releaseCount?: number;
+  recentReleases?: { title: string; slug: string; catalogNumber?: string }[];
 }
 
 export interface EventLineup {
@@ -72,6 +84,7 @@ export interface Event {
   venue?: string;
   flyer?: any;
   ticketUrl?: string;
+  recapUrl?: string;
   description?: any;
   lineup?: EventLineup[];
 }

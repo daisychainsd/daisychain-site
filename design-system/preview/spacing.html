@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Spacing + Layout</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:var(--color-bg-deep);color:var(--fg1);font-family:var(--font-body);height:100%}
+  .wrap{padding:22px;display:grid;gap:10px}
+  .row{display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
+  .name{font-family:var(--font-heading);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  .bar{background:var(--color-blue-300);height:10px;border-radius:2px;opacity:.8}
+  .tok{font-family:var(--font-mono);font-size:10.5px;color:var(--fg3);width:90px;text-align:right}
+</style></head>
+<body><div class="wrap">
+  <div class="row"><div class="name">XS</div><div><div class="bar" style="width:6px"></div></div><div class="tok">6px · gap-1.5</div></div>
+  <div class="row"><div class="name">S</div><div><div class="bar" style="width:12px"></div></div><div class="tok">12px · gap-3</div></div>
+  <div class="row"><div class="name">M</div><div><div class="bar" style="width:24px"></div></div><div class="tok">24px · gap-6</div></div>
+  <div class="row"><div class="name">L</div><div><div class="bar" style="width:48px"></div></div><div class="tok">48px · py-12</div></div>
+  <div class="row"><div class="name">XL</div><div><div class="bar" style="width:96px"></div></div><div class="tok">96px · py-20 sect</div></div>
+  <div class="row"><div class="name">Page</div><div><div class="bar" style="width:100%;opacity:.3"></div></div><div class="tok">max-w-7xl · px-6</div></div>
+</div></body></html>
