@@ -111,6 +111,16 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
 }
 
+/* Text-entry fields handle their own focus indicator via the wrapper's
+   :focus-within (rounded glow that matches the pill shape). The global
+   rectangular outline above looks glitchy on rounded-pill inputs, so we
+   suppress it at the input level. Buttons/links keep the global ring. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
 code, pre {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
