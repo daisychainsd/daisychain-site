@@ -79,8 +79,10 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Negative top margin cancels the layout's pt-24 so the wordmark hero fills the viewport */}
-      <div className="-mt-24 pt-24">
+      {/* Negative margin cancels the layout's pt-24 so the wordmark hero photo
+          extends up behind the fixed header (no visible gap at the top edge).
+          WordmarkHero's inner content has its own top padding to clear the header. */}
+      <div className="-mt-24">
         <WordmarkHero />
       </div>
 

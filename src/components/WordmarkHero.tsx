@@ -86,11 +86,13 @@ export default function WordmarkHero() {
       />
 
       {/* Everything below stacks above the photo. Inner wrapper constrains the
-          actual content to the 1440 grid; the photo behind already fills viewport. */}
+          actual content to the 1440 grid; the photo behind already fills viewport.
+          Top padding includes header clearance (96px) since the section now
+          extends up behind the fixed header for a flush hero photo. */}
       <div
         className="relative z-10 mx-auto"
         style={{
-          padding: "clamp(16px, 3vw, 32px) clamp(24px, 4vw, 48px) 48px",
+          padding: "calc(96px + clamp(16px, 3vw, 32px)) clamp(24px, 4vw, 48px) 48px",
           maxWidth: 1440,
         }}
       >
