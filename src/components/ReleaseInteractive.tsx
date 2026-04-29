@@ -119,7 +119,18 @@ export default function ReleaseInteractive({
 
   async function handleBuy() {
     if (!isLoggedIn) {
-      router.push(`/login?redirect=/releases/${releaseSlug}`);
+      // Pass buy context to /login so it can render a contextual value-prop
+      // banner ("you're about to buy X for $Y") and offer a guest checkout
+      // option alongside the standard sign-in flow.
+      const buyContext = new URLSearchParams({
+        redirect: `/releases/${releaseSlug ?? ""}`,
+        slug: releaseSlug ?? "",
+        title: releaseTitle,
+        artist: releaseArtist,
+        releaseId: releaseId ?? "",
+        price: String(activePrice ?? ""),
+      });
+      router.push(`/login?${buyContext.toString()}`);
       return;
     }
 

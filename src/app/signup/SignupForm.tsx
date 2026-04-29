@@ -10,11 +10,36 @@ export default function SignupForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/account";
 
+  // Buy-flow context (mirrored from /login). When `slug` is present, the user
+  // came from a "Buy Digital" click — we render the value-prop banner and
+  // preserve all params on the "Sign in" / guest link back to /login.
+  const buySlug = searchParams.get("slug");
+  const buyTitle = searchParams.get("title");
+  const buyArtist = searchParams.get("artist");
+  const buyReleaseId = searchParams.get("releaseId");
+  const buyPriceRaw = searchParams.get("price");
+  const buyPrice = buyPriceRaw ? Number(buyPriceRaw) : null;
+  const isBuyFlow = Boolean(buySlug);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Pass buy context through to /login so guest checkout + the same banner
+  // render there too.
+  const loginHref = (() => {
+    const qp = new URLSearchParams();
+    if (redirect !== "/account") qp.set("redirect", redirect);
+    if (buySlug) qp.set("slug", buySlug);
+    if (buyTitle) qp.set("title", buyTitle);
+    if (buyArtist) qp.set("artist", buyArtist);
+    if (buyReleaseId) qp.set("releaseId", buyReleaseId);
+    if (buyPriceRaw) qp.set("price", buyPriceRaw);
+    const q = qp.toString();
+    return `/login${q ? `?${q}` : ""}`;
+  })();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,9 +87,13 @@ export default function SignupForm() {
     <section className="min-h-[60vh] flex items-center justify-center py-20">
       <div className="w-full max-w-md px-6">
         <div className="container-organic p-8 sm:p-10">
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-headline">Create Account</h1>
           </div>
+
+          {isBuyFlow && (
+            <ValueProp title={buyTitle} price={buyPrice} />
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -141,17 +170,59 @@ export default function SignupForm() {
             </button>
           </form>
 
+          {isBuyFlow && (
+            <p className="mt-5 pt-5 border-t border-blue-300/10 text-center text-xs text-text-muted">
+              <Link href={loginHref} className="text-text-secondary hover:text-blue-300 transition-colors">
+                or, just buy as guest →
+              </Link>
+              <br />
+              <span className="text-[11px]">One-time download. No account needed.</span>
+            </p>
+          )}
+
           <p className="mt-6 text-center text-sm text-text-secondary">
             Already have an account?{" "}
-            <Link
-              href={`/login${redirect !== "/account" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
-              className="text-blue-300 hover:underline"
-            >
+            <Link href={loginHref} className="text-blue-300 hover:underline">
               Sign in
             </Link>
           </p>
         </div>
       </div>
     </section>
+  );
+}
+
+function ValueProp({ title, price }: { title: string | null; price: number | null }) {
+  const priceLabel = price && price > 0 ? `$${price.toFixed(2)}` : null;
+  return (
+    <div
+      className="mb-6 p-4 rounded-lg"
+      style={{
+        background: "rgba(124,185,232,0.05)",
+        border: "1px solid rgba(124,185,232,0.18)",
+      }}
+    >
+      <div
+        className="uppercase mb-2"
+        style={{
+          fontFamily: "var(--font-heading), system-ui, sans-serif",
+          fontWeight: 900,
+          fontSize: 10,
+          letterSpacing: "0.14em",
+          color: "var(--color-blue-300)",
+        }}
+      >
+        Buying {title || "a release"}
+        {priceLabel ? ` · ${priceLabel}` : ""}
+      </div>
+      <p className="text-text-primary text-sm font-medium mb-2">
+        An account is free and keeps it all in one place.
+      </p>
+      <ul className="text-text-secondary text-xs leading-relaxed space-y-1 list-none p-0 m-0">
+        <li>· Re-download anything you&apos;ve bought, anytime</li>
+        <li>· Keep track of every release you own</li>
+        <li>· Option to grab the unlimited pass — every past + future drop, one price</li>
+      </ul>
+    </div>
   );
 }

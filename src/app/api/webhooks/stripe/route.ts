@@ -80,6 +80,15 @@ async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
 
 async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
+  const isGuest = session.metadata?.isGuest === "true";
+
+  // Guest purchases aren't tied to a Supabase account, so there's nothing to
+  // record in our `purchases` table. Stripe is the source of truth and
+  // /api/verify-purchase re-validates the session before serving downloads.
+  if (isGuest) {
+    return;
+  }
+
   if (!userId) {
     console.error("No userId in session metadata");
     return;

@@ -94,9 +94,9 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/login` | Email+password login |
 | `/signup` | Email+password signup |
 | `/account` | User downloads dashboard — purchased releases, format selector, unlimited pass |
-| `/download/[slug]?session_id=` | Post-purchase download page (legacy, may be removed) |
+| `/download/[slug]?session_id=` | Post-purchase download page for **guest** digital purchases (no account). Validates Stripe session via `/api/verify-purchase` and serves the release's WAV/format files. |
 | `/studio` | Embedded Sanity Studio |
-| `/api/checkout` | Creates Stripe checkout session (requires auth) |
+| `/api/checkout` | Creates Stripe checkout session for digital downloads. Accepts EITHER an authenticated Supabase user OR a `guestEmail` field for guest checkout. Logged-in flow returns `success_url=/account?purchased=<slug>`; guest flow returns `success_url=/download/<slug>?session_id=<id>`. |
 | `/api/checkout-pass` | Creates Stripe session for $100 unlimited pass |
 | `/api/verify-purchase` | Verifies Stripe session before allowing downloads |
 | `/api/checkout-physical` | Creates Stripe Embedded Checkout session for physical products with shipping |
@@ -137,7 +137,9 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 ## Stripe Integration
 
 - Test mode key in `.env.local` as `STRIPE_SECRET_KEY`
-- **Digital checkout**: Buy button → `/api/checkout` (requires Supabase auth) → Stripe hosted checkout → `/account?purchased={slug}` → downloads visible in dashboard
+- **Digital checkout**: Buy button → `/api/checkout` → Stripe hosted checkout. Two paths:
+  - **Authenticated**: existing flow. Logged-in users land on `/account?purchased={slug}` with the new download in their dashboard. Webhook records the purchase in Supabase `purchases` table.
+  - **Guest**: when a logged-out user clicks Buy Digital, `ReleaseInteractive` bounces them to `/login?slug=<slug>&title=...&price=...&...` which renders a value-prop banner ("free, re-download anything you've bought, unlimited pass option") plus a smaller "or, just buy as guest →" link below the Sign In button. Guest flow POSTs to `/api/checkout` with a `guestEmail` field instead of authenticating; Stripe success URL goes to `/download/<slug>?session_id=...` which validates via `/api/verify-purchase` and shows the file downloads. Guest purchases are NOT recorded in Supabase — Stripe is the source of truth, the webhook returns early when `metadata.isGuest === "true"`. Future work: when a guest later creates an account with the same email, reconcile previous purchases (would need a Supabase migration to attach by email).
 - **Physical checkout**: Cart → `/shop/checkout` → Stripe Embedded Checkout (inline on page, collects shipping address) → `/shop/checkout/success`
 - **Unlimited pass**: $100 one-time purchase for all current + future downloads → `/api/checkout-pass`
 - **Webhook** (`/api/webhooks/stripe`): handles `checkout.session.completed` — records digital purchases to Supabase, creates Shopify draft orders for physical purchases
