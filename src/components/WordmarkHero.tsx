@@ -96,69 +96,64 @@ export default function WordmarkHero() {
           maxWidth: 1440,
         }}
       >
-        {/* Mobile: keep the first screen to kicker + wordmark over the hero
-            photo; LeadGen sits below (same section / background) so the fold
-            is less text-heavy. md+: unchanged single column — kicker, wordmark,
-            LeadGen stacked with natural spacing. */}
-        <div className="max-md:min-h-[min(88svh,900px)] md:min-h-0">
-          {/* Top kicker row */}
-          <div className="flex justify-between items-start flex-wrap gap-5 mb-6">
-            <div className="flex items-center gap-2.5">
-              <span
-                className="inline-block"
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: "var(--color-blue-300)",
-                  boxShadow: "0 0 12px var(--color-blue-300)",
-                }}
-              />
-              <span
-                style={{
-                  color: "var(--color-text-muted)",
-                  fontFamily: "var(--font-mono), monospace",
-                  fontSize: 12,
-                  letterSpacing: "0.02em",
-                }}
-              >
-                Independent electronic music · San Diego · Est. 2021
-              </span>
-            </div>
-          </div>
 
-          {/* DAISY / CHAIN wordmark — Rubik Mono One via --font-wordmark.
-              Rubik Mono One is a single-weight display face (weight 400) with the
-              bold geometric letterforms baked into the glyphs, so we skip the
-              font-weight declaration. --font-wordmark is a semantic token reserved
-              specifically for this + the NewsMarquee big display type; do NOT
-              swap it for --font-heading. */}
-          {/* Each line is its own block so they wrap independently. The font scales
-              with viewport width via clamp; the upper bounds are tuned so neither
-              DAISY nor CHAIN clips against the section padding (Rubik Mono One's
-              H/N/A glyphs are wide). max-width:100% + word-break belt-and-braces
-              for narrow viewports. */}
-          <h1
-            ref={wordmarkRef}
-            className="uppercase text-text-primary text-left"
+      {/* Top kicker row */}
+      <div className="flex justify-between items-start flex-wrap gap-5 mb-6">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="inline-block"
             style={{
-              fontFamily: "var(--font-wordmark), sans-serif",
-              fontSize: "clamp(3.5rem, 16vw, 17rem)",
-              lineHeight: 0.82,
-              margin: "4vw 0",
-              letterSpacing: "-0.04em",
-              maxWidth: "100%",
-              wordBreak: "break-word",
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: "var(--color-blue-300)",
+              boxShadow: "0 0 12px var(--color-blue-300)",
+            }}
+          />
+          <span
+            style={{
+              color: "var(--color-text-muted)",
+              fontFamily: "var(--font-mono), monospace",
+              fontSize: 12,
+              letterSpacing: "0.02em",
             }}
           >
-            <span className="block">DAISY</span>
-            <span className="block">CHAIN</span>
-          </h1>
+            Independent electronic music · San Diego · Est. 2021
+          </span>
         </div>
+      </div>
 
-        <div className="max-md:mt-8 md:mt-0">
-          <LeadGen />
-        </div>
+      {/* DAISY / CHAIN wordmark — Rubik Mono One via --font-wordmark.
+          Rubik Mono One is a single-weight display face (weight 400) with the
+          bold geometric letterforms baked into the glyphs, so we skip the
+          font-weight declaration. --font-wordmark is a semantic token reserved
+          specifically for this + the NewsMarquee big display type; do NOT
+          swap it for --font-heading. */}
+      {/* Each line is its own block so they wrap independently. The font scales
+          with viewport width via clamp; the upper bounds are tuned so neither
+          DAISY nor CHAIN clips against the section padding (Rubik Mono One's
+          H/N/A glyphs are wide). max-width:100% + word-break belt-and-braces
+          for narrow viewports. */}
+      <h1
+        ref={wordmarkRef}
+        className="uppercase text-text-primary text-left"
+        style={{
+          fontFamily: "var(--font-wordmark), sans-serif",
+          fontSize: "clamp(3.5rem, 16vw, 17rem)",
+          lineHeight: 0.82,
+          margin: "4vw 0",
+          letterSpacing: "-0.04em",
+          maxWidth: "100%",
+          wordBreak: "break-word",
+        }}
+      >
+        <span className="block">DAISY</span>
+        <span className="block">CHAIN</span>
+      </h1>
+
+      {/* Inline LeadGen card */}
+      <LeadGen />
+
       </div>
     </section>
   );
