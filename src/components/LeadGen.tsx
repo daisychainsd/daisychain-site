@@ -250,7 +250,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                   required
                   autoComplete="tel"
                   inputMode="tel"
-                  placeholder="1 555 123 4567"
+                  placeholder="(555) 123 4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 focus:outline-none focus-visible:outline-none"

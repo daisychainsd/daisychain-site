@@ -26,10 +26,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "phoneNumber or email required" }, { status: 400 });
   }
 
-  // Loose E.164 sanity check on phone (e.g. +14155551234). Laylo will do its
-  // own validation; this just blocks obvious garbage from leaving our server.
-  if (phoneNumber && !/^\+?[1-9]\d{6,14}$/.test(phoneNumber.replace(/[^\d+]/g, ""))) {
-    return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+  // Normalize phone to E.164 (Laylo requires + and country code).
+  // - "9499391823" (10 digits)        → "+19499391823"   (assume US)
+  // - "19499391823" (11 digits, US)   → "+19499391823"
+  // - "+19499391823"                  → unchanged
+  // - "+44 7700 900 123"              → "+447700900123"  (any non-digit stripped)
+  if (phoneNumber) {
+    const digits = phoneNumber.replace(/[^\d+]/g, "");
+    if (digits.startsWith("+")) {
+      phoneNumber = "+" + digits.slice(1).replace(/\D/g, "");
+    } else {
+      const justDigits = digits.replace(/\D/g, "");
+      if (justDigits.length === 10) {
+        phoneNumber = "+1" + justDigits;
+      } else if (justDigits.length === 11 && justDigits.startsWith("1")) {
+        phoneNumber = "+" + justDigits;
+      } else {
+        return NextResponse.json(
+          { error: "Phone number must include country code (e.g. +1 for US)" },
+          { status: 400 },
+        );
+      }
+    }
+    // Final sanity: + then 8-15 digits.
+    if (!/^\+[1-9]\d{7,14}$/.test(phoneNumber)) {
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+    }
   }
 
   const apiKey = process.env.LAYLO_API_KEY;
@@ -60,8 +82,15 @@ export async function POST(req: NextRequest) {
     const hasErrors = Array.isArray(data?.errors) && data.errors.length > 0;
 
     if (!res.ok || hasErrors) {
-      console.error("Laylo subscribe error:", res.status, data);
-      return NextResponse.json({ error: "Failed to subscribe to Laylo" }, { status: 500 });
+      console.error("Laylo subscribe error:", res.status, JSON.stringify(data));
+      const detail =
+        data?.errors?.[0]?.message ||
+        data?.error ||
+        `HTTP ${res.status}`;
+      return NextResponse.json(
+        { error: `Failed to subscribe (${detail})` },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ ok: true });
