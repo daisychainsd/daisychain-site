@@ -88,7 +88,10 @@ export default function RootLayout({
             backgroundSize: "cover",
             backgroundPosition: "center center",
             backgroundRepeat: "no-repeat",
-            opacity: 0.10,
+            // Lower opacity + brightness/contrast filter so the silk texture
+            // reads as a subtle ambient hint rather than competing with content.
+            opacity: 0.05,
+            filter: "brightness(0.55) contrast(0.85)",
           }}
         />
         <CartProvider>
