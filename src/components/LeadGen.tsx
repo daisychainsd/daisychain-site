@@ -37,7 +37,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
   return (
     <form
       onSubmit={handleSubmit}
-      className="relative overflow-hidden grid grid-cols-1 md:grid-cols-[1.2fr_1fr] items-center gap-7 p-7 sm:p-8"
+      className="relative overflow-hidden grid grid-cols-1 md:grid-cols-[1.2fr_1fr] items-center gap-4 sm:gap-7 p-4 sm:p-8"
       style={{
         borderRadius: "var(--radius-organic-lg)",
         background:
@@ -73,11 +73,11 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
           <span>CHAIN MAIL · INSIDER LIST</span>
         </div>
         <h3
-          className="uppercase text-text-primary m-0 mt-3 mb-3.5"
+          className="uppercase text-text-primary m-0 mt-2 mb-3"
           style={{
             fontFamily: "var(--font-heading), system-ui, sans-serif",
             fontWeight: 900,
-            fontSize: "clamp(1.75rem, 2.4vw, 2.5rem)",
+            fontSize: "clamp(1.4rem, 4.5vw, 2.5rem)",
             lineHeight: 0.96,
             letterSpacing: "-0.03em",
           }}
@@ -118,7 +118,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
 
       {/* Right column — form or success */}
       <div
-        className="min-w-0 flex flex-col gap-2.5 p-4 sm:p-5"
+        className="min-w-0 flex flex-col gap-2 sm:gap-2.5 p-3 sm:p-5"
         style={{
           borderRadius: "var(--radius-organic-inv-md)",
           background: "var(--color-bg-raised)",
@@ -206,16 +206,14 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
             <button
               type="submit"
               disabled={status === "loading"}
-              className="w-full flex items-center justify-center gap-2.5 uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2.5 uppercase disabled:opacity-50 disabled:cursor-not-allowed py-2.5 px-4 sm:py-3.5 sm:px-5 text-[13px] sm:text-[14px]"
               style={{
-                padding: "14px 22px",
                 border: "none",
                 cursor: "pointer",
                 background: "var(--color-blue-300)",
                 color: "var(--color-bg-deep)",
                 fontFamily: "var(--font-heading), system-ui, sans-serif",
                 fontWeight: 900,
-                fontSize: 14,
                 letterSpacing: "0.06em",
                 borderRadius: 999,
                 transition: "background-color 250ms var(--ease-daisy), box-shadow 250ms var(--ease-daisy)",
