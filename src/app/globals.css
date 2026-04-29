@@ -306,6 +306,16 @@ body::before {
     transform var(--default-transition-duration) var(--default-transition-timing-function);
 }
 
+/* On touch / no-hover devices the grayscale-to-color hover effect can never
+   trigger, so photos would be permanently locked in black-and-white. Show
+   them in full color instead — overrides the Tailwind `grayscale` utility
+   when the viewer's primary input has no hover. */
+@media (hover: none) {
+  .image-hover-artist-photo {
+    filter: none !important;
+  }
+}
+
 .image-hover-past-flyer {
   transition: opacity var(--default-transition-duration) var(--default-transition-timing-function);
 }
