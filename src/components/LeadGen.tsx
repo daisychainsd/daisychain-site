@@ -5,10 +5,29 @@ import { ArrowIcon } from "@/components/icons";
 
 type Mode = "email" | "text";
 
+// Common country dial codes — US first since DCR's audience is mostly here.
+// Add more as needed; the route's E.164 normalization handles whatever is sent.
+const COUNTRY_CODES: { code: string; label: string }[] = [
+  { code: "+1", label: "US / CA" },
+  { code: "+52", label: "MX" },
+  { code: "+44", label: "UK" },
+  { code: "+61", label: "AU" },
+  { code: "+33", label: "FR" },
+  { code: "+49", label: "DE" },
+  { code: "+34", label: "ES" },
+  { code: "+39", label: "IT" },
+  { code: "+31", label: "NL" },
+  { code: "+81", label: "JP" },
+  { code: "+82", label: "KR" },
+  { code: "+55", label: "BR" },
+  { code: "+91", label: "IN" },
+];
+
 export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCount?: string }) {
   const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("+1");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -31,7 +50,14 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
 
     try {
       const endpoint = mode === "email" ? "/api/newsletter" : "/api/laylo-subscribe";
-      const body = mode === "email" ? { email: value } : { phoneNumber: value };
+      // For phone: prepend the selected country code so the route receives a
+      // full E.164-friendly string (e.g. "+19499391823") regardless of how the
+      // user typed the digits. The route still normalizes either way.
+      const phoneDigits = phone.replace(/\D/g, "");
+      const body =
+        mode === "email"
+          ? { email: value }
+          : { phoneNumber: `${countryCode}${phoneDigits}` };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -213,52 +239,76 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
             {/* Focus indicator follows the rounded pill via focus-within instead
                 of a rectangular outline on the input itself. */}
             <div
-              className="flex items-center gap-2.5 px-4 border border-white/10 focus-within:border-blue-300/50 focus-within:shadow-[0_0_0_3px_rgba(124,185,232,0.18)] transition-[border-color,box-shadow]"
+              className="flex items-center gap-2.5 border border-white/10 focus-within:border-blue-300/50 focus-within:shadow-[0_0_0_3px_rgba(124,185,232,0.18)] transition-[border-color,box-shadow]"
               style={{
                 background: "var(--color-bg-deep)",
                 borderRadius: 999,
               }}
             >
-              <span
-                style={{
-                  color: "var(--color-text-muted)",
-                  fontFamily: "var(--font-mono), monospace",
-                  fontSize: 13,
-                }}
-              >
-                {mode === "email" ? "@" : "+"}
-              </span>
               {mode === "email" ? (
-                <input
-                  key="email-input"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="you@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 focus:outline-none focus-visible:outline-none"
-                  style={{
-                    fontFamily: "var(--font-body), system-ui, sans-serif",
-                    fontWeight: 500,
-                  }}
-                />
+                <>
+                  <span
+                    className="pl-4"
+                    style={{
+                      color: "var(--color-text-muted)",
+                      fontFamily: "var(--font-mono), monospace",
+                      fontSize: 13,
+                    }}
+                  >
+                    @
+                  </span>
+                  <input
+                    key="email-input"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="you@domain.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 pr-4 focus:outline-none focus-visible:outline-none"
+                    style={{
+                      fontFamily: "var(--font-body), system-ui, sans-serif",
+                      fontWeight: 500,
+                    }}
+                  />
+                </>
               ) : (
-                <input
-                  key="phone-input"
-                  type="tel"
-                  required
-                  autoComplete="tel"
-                  inputMode="tel"
-                  placeholder="(555) 123 4567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 focus:outline-none focus-visible:outline-none"
-                  style={{
-                    fontFamily: "var(--font-body), system-ui, sans-serif",
-                    fontWeight: 500,
-                  }}
-                />
+                <>
+                  {/* Country code select. The select itself shows just the dial
+                      code (e.g. "+1"); the dropdown menu shows the full label. */}
+                  <select
+                    aria-label="Country code"
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="bg-transparent border-none text-text-primary py-3.5 pl-4 pr-2 cursor-pointer focus:outline-none focus-visible:outline-none"
+                    style={{
+                      fontFamily: "var(--font-mono), monospace",
+                      fontSize: 14,
+                      borderRight: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.code} value={c.code} style={{ background: "var(--color-bg-deep)" }}>
+                        {c.code} · {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    key="phone-input"
+                    type="tel"
+                    required
+                    autoComplete="tel"
+                    inputMode="tel"
+                    placeholder="(555) 123 4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 pr-4 focus:outline-none focus-visible:outline-none"
+                    style={{
+                      fontFamily: "var(--font-body), system-ui, sans-serif",
+                      fontWeight: 500,
+                    }}
+                  />
+                </>
               )}
             </div>
             <button
