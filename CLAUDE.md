@@ -418,7 +418,75 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - **Release-detail card shell** adopted on homepage Upcoming cards — padded outer (`p-3 sm:p-4`), `container-inset` cover well, `grid md:grid-cols-2 gap-8` internal layout, `aspect-square` cover. Both `<UpcomingEventCard>` and the inline release card in `page.tsx` use this shell, matching `/releases/[slug]` top card.
 - **`@portabletext/react` install** to render `release.description` blockContent properly in `<ReleaseSpotlight>`.
 - **Bug fixes from Session 1 audit**: PortableText description rendering, `aria-hidden` moved to `<img>` (not `<picture>`), `any` types replaced with structural types (`SanityImageRef`, `PortableTextBlock[]`).
-- **End-of-Session-2 audit**: `AUDIT-session-2.md` at project root (current source of truth — supersedes Session 1 audit).
+- **End-of-Session-2 audit**: `AUDIT-session-2.md` at project root.
+
+### Session 3 (2026-04-26 → 2026-04-28) — Production polish, schema unification, channel split, automation
+
+A long session covering schema cleanup, an audience-channels rebuild, the release-day cron, and the final pre-launch UX polish. All shipped to `dev` and verified on `dev.daisychainsd.com` across multiple commits. Headline outcomes:
+
+**Schema unification (releases + artists + tracks):**
+
+- **`release.artists[]`** — new array of artist refs is the single source of truth for credits, in display order. First artist is the primary credit on cards (`coalesce(artists[0]->name, displayArtist, artist->name)`). All names render as separate clickable links on detail pages. Legacy `artist` (single ref), `displayArtist` (string), `additionalArtists[]` fields remain in the schema but auto-hide in Studio once `artists[]` has any entries — they're queried as a fallback so unmigrated releases keep rendering. Migrate releases one-by-one in Studio when convenient; the deployed site won't break either way.
+- **`track.trackArtists[]`** — array of artist refs for per-track credits with individual links (Spotify/Apple-style). Falls back through `trackArtist` text string → release's primary artist. Used by `<TrackList>` to render comma-separated `<Link>`s.
+- **`artist.rosterTier`** — `"main"` (default) or `"side"` radio. Side artists are filtered from the `/artists` roster grid via the `ARTISTS_LIST` GROQ (`rosterTier != "side"`), but their `/artists/[slug]` profile page still works AND release credits still link to them. Use Side for one-off features, remixers, compilation contributors. They're still credited everywhere — just don't take up a slot on the main roster.
+- **Side-tier link suppression** — when an artist with `rosterTier: "side"` appears in a release's `artists[]` or a track's `trackArtists[]`, their NAME renders in blue text but is NOT a `<Link>`. So you can showcase a featured artist without bouncing visitors to a profile page that has nothing on it.
+- **Various Artists doc** — created `artist-various-artists` and reassigned Dream Disc's `artist` ref to it (away from Player Dave, where it incorrectly showed Dream Disc on his profile). `Various Artists.rosterTier = "side"` so it doesn't clutter the roster.
+- **`artist.links.bandcamp` → `links.spotify`** — bandcamp dropped from artist link chips, Spotify added in its place. Renders on `/artists/[slug]` profiles.
+
+**Audience channels split (beehiiv ⊥ Laylo):**
+
+- **`/api/newsletter`** — beehiiv-only (Daisy Chain Mail). Push email, get newsletter.
+- **`/api/laylo-subscribe`** — server-side route that pushes phone (and optional email) to Laylo's `subscribeToUser` GraphQL mutation. `LAYLO_API_KEY` stays server-only.
+- **`<LeadGen>` Email/Text toggle** — a two-tab pill at the top-left lets visitors pick which channel they're signing up for. Email tab → kicker reads `CHAIN MAIL · INSIDER LIST`, input is email, submit hits beehiiv, success says "You're on Chain Mail." Text tab → kicker reads `TEXT UPDATES`, input is phone, submit hits Laylo, success says "You're on the text list." Headline + bullets + footer copy stay the same — the value prop is identical for both channels.
+- **`/signup` phone field** — optional phone input on account creation. If filled, after Supabase signup succeeds, phone is pushed to `/api/laylo-subscribe`. Account holders → SMS list as a side effect of creating an account.
+- **Two non-overlapping audiences** — beehiiv only sees emails, Laylo only sees phones (plus account holders' email + phone together). Fans pick which channel they want by which form they fill in. To send the same announcement to both, dispatch from beehiiv to email subscribers AND from Laylo to SMS subscribers separately.
+- **Laylo API key** — generated at laylo.com → Settings → Integrations → API Keyring. Stored as `LAYLO_API_KEY` in `.env.local` AND Vercel env vars (Production + Preview + Development).
+
+**Release-day cron (automation):**
+
+- **`vercel.json` cron** at `0 5 * * *` UTC (= midnight EST winter, 1am EDT summer; 1-hour DST drift accepted since Vercel Cron is UTC-only).
+- **`/api/cron/release-day`** — auth-protected GET handler. Finds releases where `status == "upcoming"` AND `releaseDate <= today`, flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the homepage Latest Release swaps within seconds. No streaming-link auto-population (those experiments produced inconsistent results for indie catalogs; manual fill in Studio is the ongoing pattern).
+- **`CRON_SECRET`** auth via `Authorization: Bearer …` header. Vercel Cron sends it automatically when the env var is set in the Vercel dashboard.
+- **Auto-prune from homepage Upcoming** — once a release flips to live (via cron or manual Studio edit), the homepage filters it out of the curated `homepageSettings.upcoming` array at render time. So Ballerina seamlessly slides from Upcoming → Latest Release at midnight on release day, no manual touch.
+- **Idempotent re-runs** — the GROQ filter `status == "upcoming"` excludes already-live releases, so running the cron multiple times in a day re-promotes nothing.
+
+**ISR / cache invalidation:**
+
+- `export const revalidate = 60` added to `/artists`, `/music`, `/events`, `/releases/[slug]`, `/artists/[slug]`. Studio edits (rosterTier flips, content changes, etc.) propagate to the deployed site within 60 seconds without a redeploy. Homepage and `/about` already had this from prior sessions.
+
+**Date timezone correctness:**
+
+- **`src/lib/dates.ts`** — `fmtEventDate`, `fmtEventYear`, `DC_TIMEZONE` helpers. Always pass `timeZone: "America/Los_Angeles"` so event datetimes (which Sanity stores with explicit offsets like `2026-05-08T21:00:00-07:00`) render the SAME day on Vercel (UTC) servers as on a viewer's local machine. Otherwise the moment is interpreted in the server's TZ and the rendered day can shift.
+- **Adopted in** `<UpcomingEventCard>`, `/events` PastShowsList, `<EventTicketCard>`. Going forward: any new event-date display MUST use `fmtEventDate` from `@/lib/dates`. Direct `new Date(event.date).toLocaleDateString(...)` is the bug pattern.
+- **Release date `T12:00:00` trick** — date-only Sanity fields (`release.releaseDate` is a `date` type, no time) get `T12:00:00` appended before parsing so the local-TZ interpretation lands on the same calendar day regardless of viewer.
+- **`Releasing` vs `Released` copy** — release detail page flips between "Releasing May 1, 2026" (when `status === "upcoming"`) and "Released May 1, 2026" (when live). Cron flips status → `revalidatePath` → text updates immediately on release day.
+- **Time-of-day removed** from `<EventTicketCard>` — date only.
+
+**Visual polish (homepage + global):**
+
+- **Hero photo flush with header** — WordmarkHero is full-width and extends behind the fixed header. The wrapper's `-mt-24` cancels the layout's `pt-24` so there's no silk-bg gap above the hero. Inner content wrapper adds `calc(96px + clamp(16px,3vw,32px))` top padding to clear the header.
+- **Hero photo edge-to-edge** — section is full-width (`maxWidth: 1440` removed on the section), inner content wrapper holds the 1440 max-width + responsive padding. 120px linear-gradient bottom fade blends the hero photo into NewsMarquee's `--color-bg-abyss` so the handoff is one continuous dark surface.
+- **Wordmark sizing** — `clamp(3.5rem, 16vw, 17rem)` (was `clamp(4rem, 20vw, 22rem)`). Rubik Mono One's H/N/A glyphs are wide enough that the previous clamp clipped DAISY/CHAIN against the section padding on certain viewport widths. `max-width: 100%` + `word-break: break-word` as belt-and-braces.
+- **Site-bg silk muted** — fixed bg image dropped from `opacity: 0.10` to `0.05` plus `filter: brightness(0.55) contrast(0.85)`. The texture reads as ambient depth rather than competing with cards/typography.
+- **NewsMarquee animates everywhere** — removed `content-visibility: auto` (was pausing CSS animations on the skipped tree, freezing the marquee in production prerender). Added `transform: translateZ(0)` + `backfaceVisibility: hidden` on each track to force GPU compositing for reliable animation on mobile.
+- **iOS Reduce Motion** — when iOS users have Settings → Accessibility → Motion → Reduce Motion enabled, the system suppresses CSS animations across the browser. Marquee won't move for them. Not a site-side bug; site-side fix is to design around it (the marquee's content reads fine even when frozen).
+- **LeadGen mobile** — outer padding `p-7 → p-4`, inter-section gap `gap-7 → gap-4`, headline floor `28px → 22px`, inner panel `p-4 → p-3`, button padding `14×22 → 10×16`. Two checkmark bullets hidden under `<768px`. Desktop unchanged.
+- **Section padding unified** — every big homepage section uses `padding: "clamp(40px, 5vw, 56px) clamp(24px, 4vw, 48px)"`. Tightened from the prior `72px` top/bottom; document this when adding new sections.
+- **Two pill CTAs in Upcoming section** — `All Shows →` (to `/events`) and `All Music →` (to `/music`) replace the single quiet text-link. Outlined `container-pill-r` style matching site chip patterns.
+- **`focus-visible` outline scoped** — `input/textarea/select:focus-visible { outline: none }` at the global level, with focus indication moved to wrapper `:focus-within` for any input that has a styled wrapper (e.g. LeadGen pill). The previous global rectangular outline didn't follow rounded-pill borders and looked like a glitch.
+- **Sanity Studio overlay fix** — `/src/app/studio/[[...tool]]/layout.tsx` wrapper is `position: fixed; inset: 0; zIndex: 9999`. Without this the Studio inherits the global Header + `pt-24` and Studio document lists clipped at the bottom. Studio now fills the viewport edge-to-edge regardless of parent layout.
+
+**Streaming/DSP links:**
+
+- One-time scrape of the legacy Squarespace `daisychainsd.com` populated `release.links.{spotify, appleMusic, youtube, soundcloud, bandcamp}` for the existing 14 live releases. Scripts are **deleted** since the legacy site is being replaced by this build — going forward, populate streaming links manually in Studio when adding new releases.
+- `<DspRow>` on `/releases/[slug]` renders chips for each populated platform. Empty fields are silently omitted.
+
+**Repo hygiene:**
+
+- `vercel.json` added (cron schedule).
+- `streaming-links-preview.json` + `scraped-streaming-links-preview.json` removed (artifacts of one-off scripts that no longer exist).
+- `.env.local` gained `CRON_SECRET` and `LAYLO_API_KEY` — both also set in Vercel env vars across Production + Preview + Development. `.env*` is gitignored so neither leaks.
+- All work pushed to `dev` in many small focused commits. `main` is unchanged — merge-to-main happens when explicitly going live.
 
 ## Layout & Styling Rules
 
