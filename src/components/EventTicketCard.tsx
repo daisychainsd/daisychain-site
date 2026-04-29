@@ -11,18 +11,8 @@ function formatTicketDate(d: Date) {
   });
 }
 
-function formatTicketTime(d: Date) {
-  return d
-    .toLocaleTimeString("en-US", {
-      timeZone: DC_TIMEZONE,
-      hour: "numeric",
-      minute: "2-digit",
-    })
-    .toUpperCase();
-}
-
 function formatTicketDateTimeLine(d: Date) {
-  return `${formatTicketDate(d).toUpperCase()} · ${formatTicketTime(d)}`;
+  return formatTicketDate(d).toUpperCase();
 }
 
 export default function EventTicketCard({ event }: { event: Event }) {
