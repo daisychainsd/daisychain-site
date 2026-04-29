@@ -75,6 +75,10 @@ export default function NewsMarquee({ items = DEFAULT_ITEMS }: NewsMarqueeProps)
           style={{
             gap: "0.3em",
             animation: "dcMarquee 42s linear infinite",
+            // Force GPU compositing on mobile Safari/Chrome — without this,
+            // the animation can stutter or appear frozen at first paint.
+            transform: "translateZ(0)",
+            backfaceVisibility: "hidden",
           }}
         >
           {tripled.map((t, i) => (
@@ -121,6 +125,8 @@ export default function NewsMarquee({ items = DEFAULT_ITEMS }: NewsMarqueeProps)
           style={{
             gap: "0.3em",
             animation: "dcMarquee 55s linear infinite reverse",
+            transform: "translateZ(0)",
+            backfaceVisibility: "hidden",
           }}
         >
           {tripled.map((t, i) => (
