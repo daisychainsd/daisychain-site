@@ -210,11 +210,12 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                 {subscriberCount}
               </span>
             </div>
+            {/* Focus indicator follows the rounded pill via focus-within instead
+                of a rectangular outline on the input itself. */}
             <div
-              className="flex items-center gap-2.5 px-4"
+              className="flex items-center gap-2.5 px-4 border border-white/10 focus-within:border-blue-300/50 focus-within:shadow-[0_0_0_3px_rgba(124,185,232,0.18)] transition-[border-color,box-shadow]"
               style={{
                 background: "var(--color-bg-deep)",
-                border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: 999,
               }}
             >
@@ -236,7 +237,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                   placeholder="you@domain.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent border-none outline-none text-text-primary text-[15px] py-3.5"
+                  className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 focus:outline-none focus-visible:outline-none"
                   style={{
                     fontFamily: "var(--font-body), system-ui, sans-serif",
                     fontWeight: 500,
@@ -252,7 +253,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                   placeholder="1 555 123 4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent border-none outline-none text-text-primary text-[15px] py-3.5"
+                  className="flex-1 min-w-0 bg-transparent border-none text-text-primary text-[15px] py-3.5 focus:outline-none focus-visible:outline-none"
                   style={{
                     fontFamily: "var(--font-body), system-ui, sans-serif",
                     fontWeight: 500,
