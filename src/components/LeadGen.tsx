@@ -95,7 +95,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
             algorithm
           </em>
         </h3>
-        <ul className="list-none p-0 m-0 grid gap-2">
+        <ul className="hidden md:grid list-none p-0 m-0 gap-2">
           <li className="flex items-start gap-2.5 text-sm text-text-primary leading-snug">
             <Tick hot />
             <span>
