@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { urlFor } from "@/sanity/image";
 import type { Event } from "@/lib/types";
+import { DC_TIMEZONE } from "@/lib/dates";
 
 function formatTicketDate(d: Date) {
   return d.toLocaleDateString("en-US", {
+    timeZone: DC_TIMEZONE,
     month: "short",
     day: "numeric",
   });
@@ -12,6 +14,7 @@ function formatTicketDate(d: Date) {
 function formatTicketTime(d: Date) {
   return d
     .toLocaleTimeString("en-US", {
+      timeZone: DC_TIMEZONE,
       hour: "numeric",
       minute: "2-digit",
     })

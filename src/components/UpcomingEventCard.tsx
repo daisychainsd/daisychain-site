@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowIcon } from "./icons";
+import { fmtEventDate, fmtEventYear } from "@/lib/dates";
 
 export interface UpcomingEventCardProps {
   title: string;
@@ -16,8 +17,6 @@ export default function UpcomingEventCard({
   flyerUrl,
   ticketUrl,
 }: UpcomingEventCardProps) {
-  const d = new Date(date);
-
   return (
     <div className="h-full container-organic overflow-hidden p-3 sm:p-4">
       <div className={flyerUrl ? "grid md:grid-cols-2 gap-8 h-full" : "h-full"}>
@@ -44,7 +43,7 @@ export default function UpcomingEventCard({
                 Upcoming
               </span>
               <span className="text-text-muted text-xs" data-label>
-                {d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
+                {fmtEventDate(date, { weekday: "short" }).toUpperCase()}
               </span>
             </div>
 
@@ -52,11 +51,11 @@ export default function UpcomingEventCard({
               className="text-blue-300 font-mono font-bold tracking-tight leading-none"
               style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)" }}
             >
-              {d.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}
+              {fmtEventDate(date, { month: "short", day: "numeric" }).toUpperCase()}
             </p>
             {/* year visible on mobile stacked only — md+ trims for compactness */}
             <p className="text-text-muted text-xs md:hidden" data-label>
-              {d.getFullYear()}
+              {fmtEventYear(date)}
             </p>
 
             <h3 className="font-black leading-tight text-text-primary mt-1 text-2xl md:text-xl">

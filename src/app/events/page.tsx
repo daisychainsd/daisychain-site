@@ -6,6 +6,7 @@ export const revalidate = 60;
 import { urlFor } from "@/sanity/image";
 import { EVENTS_LIST } from "@/lib/queries";
 import type { Event } from "@/lib/types";
+import { fmtEventDate } from "@/lib/dates";
 import EventsToggle from "@/components/EventsToggle";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
 import SectionHeader from "@/components/SectionHeader";
@@ -68,15 +69,12 @@ function PastShowsList({ events }: { events: Event[] }) {
   return (
     <div className="flex flex-col" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
       {events.map((event, i) => {
-        const date = new Date(event.date);
-        const dateStr = date
-          .toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-          .toUpperCase();
+        const dateStr = fmtEventDate(event.date, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }).toUpperCase();
 
         // Pull "#NN" out of the title if present, else use position
         const numMatch = event.title.match(/#\s*(\d+)/);
