@@ -72,7 +72,11 @@ export default function LoginForm() {
   // Stripe success_url goes to /download/<slug>?session_id=... so the buyer
   // gets their files without ever seeing a login screen.
   async function handleGuestCheckout() {
-    if (!email.trim() || !buySlug) return;
+    if (!buySlug) return;
+    if (!email.trim()) {
+      setError("Enter the email address for your receipt, then try again.");
+      return;
+    }
     setError(null);
     setGuestLoading(true);
     try {
@@ -80,6 +84,7 @@ export default function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          guestCheckout: true,
           guestEmail: email.trim(),
           releaseId: buyReleaseId || undefined,
           title: buyTitle || "Digital Download",
@@ -167,19 +172,20 @@ export default function LoginForm() {
           </form>
 
           {isBuyFlow && (
-            <div className="mt-5 pt-5 border-t border-blue-300/10 text-center">
+            <div className="mt-6 pt-6 border-t border-blue-300/20 space-y-3">
+              <p className="text-center text-sm font-medium text-text-primary">
+                Prefer not to sign in?
+              </p>
               <button
                 type="button"
                 onClick={handleGuestCheckout}
-                disabled={guestLoading || loading || !email.trim()}
-                className="text-text-secondary hover:text-blue-300 text-xs underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline transition-colors"
+                disabled={guestLoading || loading}
+                className="w-full container-pill-r py-3 border-2 border-blue-300/50 bg-blue-300/10 text-blue-200 font-semibold text-sm hover:bg-blue-300/20 hover:border-blue-300/70 hover:shadow-[0_0_24px_rgba(124,185,232,0.12)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
               >
-                {guestLoading
-                  ? "Starting checkout…"
-                  : "or, just buy as guest →"}
+                {guestLoading ? "Redirecting to secure checkout…" : "Buy as guest — same price"}
               </button>
-              <p className="text-text-muted text-[11px] mt-1.5">
-                One-time download. No account needed. Uses the email above.
+              <p className="text-center text-xs text-text-secondary leading-snug">
+                One-time download link to this email. No account required.
               </p>
             </div>
           )}
