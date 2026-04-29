@@ -96,8 +96,24 @@ export default async function HomePage() {
           <SectionHeader
             kicker="Next Up"
             title="Upcoming"
-            seeAllHref="/events"
-            seeAllLabel="All shows"
+            right={
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link
+                  href="/events"
+                  className="container-pill-r inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-blue-300 border border-blue-300/30 bg-blue-300/5 hover:bg-blue-300/10 hover:border-blue-300/60 transition-colors"
+                >
+                  All Shows
+                  <ArrowIcon />
+                </Link>
+                <Link
+                  href="/music"
+                  className="container-pill-r inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-blue-300 border border-blue-300/30 bg-blue-300/5 hover:bg-blue-300/10 hover:border-blue-300/60 transition-colors"
+                >
+                  All Music
+                  <ArrowIcon />
+                </Link>
+              </div>
+            }
           />
           <div className="grid grid-cols-1 min-[1280px]:grid-cols-2 gap-6">
             {upcomingItems.map((item, i) => {
