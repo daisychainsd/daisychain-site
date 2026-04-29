@@ -2,10 +2,19 @@
 
 import { useState, useEffect } from "react";
 
+// Drop ID for the Laylo "Upcoming Label Releases" campaign — fans who sign up
+// here get auto-notified by Laylo when we ship new music. Read from a public
+// env var so swapping drops doesn't require a code change. Fallback below is
+// the original dropId from initial setup; replace via `NEXT_PUBLIC_LAYLO_DROP_ID`
+// in Vercel + .env.local when the active drop changes.
+const DROP_ID =
+  process.env.NEXT_PUBLIC_LAYLO_DROP_ID || "feb0139b-a3c8-48cb-9aea-97055521f1b6";
+
 export default function LayloModal() {
   const [open, setOpen] = useState(false);
 
-  // Load the Laylo SDK script once
+  // Load the Laylo SDK script once. Some embed features (analytics, postMessage
+  // resize hooks) come from this SDK; the iframe still renders without it.
   useEffect(() => {
     if (document.querySelector('script[src="https://embed.laylo.com/laylo-sdk.js"]')) return;
     const script = document.createElement("script");
@@ -17,7 +26,9 @@ export default function LayloModal() {
   // Lock body scroll when open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   return (
@@ -26,7 +37,7 @@ export default function LayloModal() {
         onClick={() => setOpen(true)}
         className="text-text-secondary hover:text-text-primary text-left transition-colors text-xs"
       >
-        i hate presaving, just notify me when it's out →
+        i hate presaving, just notify me when it&apos;s out →
       </button>
 
       {open && (
@@ -54,13 +65,14 @@ export default function LayloModal() {
             </button>
 
             <iframe
-              id="laylo-drop-feb0139b-a3c8-48cb-9aea-97055521f1b6"
+              id={`laylo-drop-${DROP_ID}`}
+              title="Subscribe for Daisy Chain release notifications"
               frameBorder="0"
               scrolling="no"
               allow="web-share"
               allowTransparency
-              style={{ width: "1px", minWidth: "100%", maxWidth: "1000px", height: "480px", display: "block" }}
-              src="https://embed.laylo.com?dropId=feb0139b-a3c8-48cb-9aea-97055521f1b6&color=C8D1DF&minimal=false&theme=dark"
+              style={{ width: "1px", minWidth: "100%", maxWidth: "1000px", height: "560px", display: "block" }}
+              src={`https://embed.laylo.com?dropId=${DROP_ID}&color=C8D1DF&minimal=false&theme=dark`}
             />
           </div>
         </div>
