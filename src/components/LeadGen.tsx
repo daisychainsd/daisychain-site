@@ -8,7 +8,7 @@ type Mode = "email" | "text";
 // Common country dial codes — US first since DCR's audience is mostly here.
 // Add more as needed; the route's E.164 normalization handles whatever is sent.
 const COUNTRY_CODES: { code: string; label: string }[] = [
-  { code: "+1", label: "US / CA" },
+  { code: "+1", label: "US" },
   { code: "+52", label: "MX" },
   { code: "+44", label: "UK" },
   { code: "+61", label: "AU" },
