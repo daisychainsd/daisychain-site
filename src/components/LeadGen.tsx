@@ -3,25 +3,41 @@
 import { useState } from "react";
 import { ArrowIcon } from "@/components/icons";
 
+type Mode = "email" | "text";
+
 export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCount?: string }) {
+  const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Reset status + error when switching modes so a stale "success" from one
+  // channel doesn't bleed into the other.
+  function switchMode(next: Mode) {
+    if (next === mode) return;
+    setMode(next);
+    setStatus("idle");
+    setErrorMsg("");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    const value = mode === "email" ? email.trim() : phone.trim();
+    if (!value) return;
 
     setStatus("loading");
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/newsletter", {
+      const endpoint = mode === "email" ? "/api/newsletter" : "/api/laylo-subscribe";
+      const body = mode === "email" ? { email: value } : { phoneNumber: value };
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(body),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setStatus("error");
         setErrorMsg(data.error || "Something went wrong");
@@ -49,6 +65,25 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
     >
       {/* Left column — copy + ticks */}
       <div className="min-w-0">
+        {/* Mode toggle (Email | Text) + dynamic kicker label.
+            The toggle is two compact pills that share a track. The kicker line
+            below it updates to reflect what the user is signing up for so
+            they always know which channel they're on. */}
+        <div className="flex items-center gap-2.5 mb-2.5 flex-wrap">
+          <div
+            role="tablist"
+            aria-label="Choose subscription channel"
+            className="inline-flex p-0.5 gap-0.5"
+            style={{
+              borderRadius: 999,
+              background: "var(--color-bg-deep)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <ModeTab active={mode === "email"} label="Email" onClick={() => switchMode("email")} />
+            <ModeTab active={mode === "text"} label="Text" onClick={() => switchMode("text")} />
+          </div>
+        </div>
         <div
           className="flex items-center gap-2 uppercase"
           style={{
@@ -70,7 +105,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
               animation: "dcPulse 2s ease-in-out infinite",
             }}
           />
-          <span>CHAIN MAIL · INSIDER LIST</span>
+          <span>{mode === "email" ? "CHAIN MAIL · INSIDER LIST" : "TEXT UPDATES"}</span>
         </div>
         <h3
           className="uppercase text-text-primary m-0 mt-2 mb-3"
@@ -143,9 +178,11 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                 letterSpacing: "0.04em",
               }}
             >
-              You&apos;re on Chain Mail.
+              {mode === "email" ? "You're on Chain Mail." : "You're on the text list."}
             </div>
-            <div className="text-text-secondary text-sm mt-1">We&apos;ll keep you posted.</div>
+            <div className="text-text-secondary text-sm mt-1">
+              {mode === "email" ? "We'll keep you posted." : "We'll text when something drops."}
+            </div>
           </div>
         ) : (
           <>
@@ -159,7 +196,7 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                 letterSpacing: "0.08em",
               }}
             >
-              <span>Your email</span>
+              <span>{mode === "email" ? "Your email" : "Your phone"}</span>
               <span
                 className="normal-case"
                 style={{
@@ -188,20 +225,40 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                   fontSize: 13,
                 }}
               >
-                @
+                {mode === "email" ? "@" : "+"}
               </span>
-              <input
-                type="email"
-                required
-                placeholder="you@domain.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 min-w-0 bg-transparent border-none outline-none text-text-primary text-[15px] py-3.5"
-                style={{
-                  fontFamily: "var(--font-body), system-ui, sans-serif",
-                  fontWeight: 500,
-                }}
-              />
+              {mode === "email" ? (
+                <input
+                  key="email-input"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 min-w-0 bg-transparent border-none outline-none text-text-primary text-[15px] py-3.5"
+                  style={{
+                    fontFamily: "var(--font-body), system-ui, sans-serif",
+                    fontWeight: 500,
+                  }}
+                />
+              ) : (
+                <input
+                  key="phone-input"
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="1 555 123 4567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="flex-1 min-w-0 bg-transparent border-none outline-none text-text-primary text-[15px] py-3.5"
+                  style={{
+                    fontFamily: "var(--font-body), system-ui, sans-serif",
+                    fontWeight: 500,
+                  }}
+                />
+              )}
             </div>
             <button
               type="submit"
@@ -227,7 +284,11 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
                 e.currentTarget.style.boxShadow = "none";
               }}
             >
-              {status === "loading" ? "Joining…" : "Join Chain Mail"}
+              {status === "loading"
+                ? "Joining…"
+                : mode === "email"
+                  ? "Join Chain Mail"
+                  : "Get Text Updates"}
               <ArrowIcon size={16} />
             </button>
             {status === "error" && (
@@ -251,6 +312,40 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
         </div>
       </div>
     </form>
+  );
+}
+
+function ModeTab({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className="uppercase transition-colors"
+      style={{
+        padding: "5px 12px",
+        borderRadius: 999,
+        fontFamily: "var(--font-heading), system-ui, sans-serif",
+        fontWeight: 900,
+        fontSize: 10,
+        letterSpacing: "0.1em",
+        cursor: "pointer",
+        border: "none",
+        background: active ? "var(--color-blue-300)" : "transparent",
+        color: active ? "var(--color-bg-deep)" : "var(--color-text-muted)",
+      }}
+    >
+      {label}
+    </button>
   );
 }
 
