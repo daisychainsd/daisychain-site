@@ -12,6 +12,7 @@ export default function SignupForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +37,21 @@ export default function SignupForm() {
       setError(error.message);
       setLoading(false);
       return;
+    }
+
+    // If they gave us a phone number, push it to Laylo (drop CRM / SMS list).
+    // Failure here is non-blocking — they're already signed up to the site,
+    // we just log and move on. They can be added manually in Laylo if needed.
+    if (phone.trim()) {
+      try {
+        await fetch("/api/laylo-subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber: phone.trim(), email }),
+        });
+      } catch (e) {
+        console.error("Laylo subscribe failed (non-blocking):", e);
+      }
     }
 
     router.push(redirect);
@@ -88,6 +104,28 @@ export default function SignupForm() {
                 className="w-full px-4 py-3 bg-bg-raised border border-blue-300/10 rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-300/30 focus:ring-1 focus:ring-blue-300/20 transition-colors"
                 placeholder="At least 6 characters"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="phone"
+                className="block text-sm text-text-secondary mb-1.5"
+              >
+                Phone <span className="text-text-muted">(optional — for text drops)</span>
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+                inputMode="tel"
+                className="w-full px-4 py-3 bg-bg-raised border border-blue-300/10 rounded-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-300/30 focus:ring-1 focus:ring-blue-300/20 transition-colors"
+                placeholder="+1 555 123 4567"
+              />
+              <p className="text-xs text-text-muted mt-1.5">
+                Get notified the moment new music or shows drop. Standard rates apply. Unsubscribe anytime.
+              </p>
             </div>
 
             {error && (

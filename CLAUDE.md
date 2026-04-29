@@ -152,15 +152,15 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **Shipping tiers**: Standard ($5.99, 5-7 days), Priority ($9.99, 2-3 days), International ($15.99, 7-14 days) — defined in `/api/checkout-physical`
 - Physical checkout does NOT require Supabase auth (guest checkout)
 
-## Newsletter (beehiiv + Laylo)
+## Audience channels — beehiiv + Laylo (intentionally separate lists)
 
-- **Publication (beehiiv)**: "Daisy Chain Mail" (`pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed`)
-- **Laylo account**: laylo.com/daisychain — Daisy Chain's drop-CRM for SMS + email blasts on releases/shows
-- **API route**: `/api/newsletter` — server-only. Pushes the email to BOTH beehiiv (primary newsletter list) AND Laylo (drop CRM) in parallel via `Promise.allSettled`. Beehiiv failure = the route fails; Laylo failure is logged but never user-visible (best-effort secondary push). If `LAYLO_API_KEY` is unset, Laylo push is silently skipped — useful for local dev without a Laylo key.
-- **Laylo endpoint**: `https://laylo.com/api/graphql` — GraphQL `subscribeToUser(email, phoneNumber)` mutation, Bearer-token auth. Generate keys at laylo.com → Settings → Integrations → API Keyring.
-- **UTM tracking (beehiiv only)**: `utm_source: "daisychainsd.com"`, `utm_medium: "website"`, `utm_campaign: "homepage_signup"`
-- **Frontend**: `LeadGen` component on homepage (inside the hero). Currently sends only `{ email }`; the route already accepts an optional `phoneNumber` field — wire a phone input into LeadGen when ready and it'll flow through to Laylo automatically.
-- No Supabase involvement — emails go directly to beehiiv + Laylo via their APIs.
+Two non-overlapping subscriber pools:
+
+- **Email / Chain Mail (beehiiv)** — homepage `LeadGen` form → `/api/newsletter` → beehiiv publication "Daisy Chain Mail" (`pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed`). UTM-tagged `daisychainsd.com / website / homepage_signup`. Email-only.
+- **SMS drops (Laylo)** — account-signup form (`/signup`) collects an optional phone number → `/api/laylo-subscribe` → Laylo's `subscribeToUser(email, phoneNumber)` GraphQL mutation. Account holders are encouraged but not required to provide a phone; if blank, Laylo push is skipped. Email is also sent through to Laylo when present so contacts there have both channels.
+- **Why split**: beehiiv list = newsletter readers; Laylo list = SMS drop notifications. The two audiences don't auto-cross-subscribe — fans pick which channel they want by which form they fill in. Future: a phone field on `LeadGen` that pushes to Laylo too is easy if we ever want both at once (the `/api/newsletter` route would just need to call `/api/laylo-subscribe` after the beehiiv push).
+- **Endpoints**: beehiiv `https://api.beehiiv.com/v2/...` (Bearer `BEEHIIV_API_KEY`), Laylo `https://laylo.com/api/graphql` (Bearer `LAYLO_API_KEY`). Generate Laylo keys at laylo.com → Settings → Integrations → API Keyring.
+- **No Supabase mirror yet** — phone is pushed straight to Laylo on signup. If we ever want to re-message account holders directly from our own DB, add a `phone` column to `profiles` and persist on signup completion.
 
 ## Supabase Auth
 
