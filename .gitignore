@@ -42,3 +42,6 @@ next-env.d.ts
 
 # design references (awesome-design-md — local only, not committed)
 design-md/
+
+# track-artists migration script artifact
+track-artists-migration-preview.json
