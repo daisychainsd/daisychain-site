@@ -1,3 +1,11 @@
+import {
+  siInstagram,
+  siYoutube,
+  siBandcamp,
+  siSoundcloud,
+} from "simple-icons";
+import { IconSocialLink } from "@/components/BrandIcon";
+
 export default function Footer() {
   return (
     <footer className="zone-abyss mt-20">
@@ -14,39 +22,27 @@ export default function Footer() {
                 Independent electronic music label based in San Diego, California.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm">
-              <a
+            <div className="flex flex-wrap gap-2 items-center justify-end">
+              <IconSocialLink
                 href="https://instagram.com/daisychainsd"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
-              >
-                Instagram
-              </a>
-              <a
+                label="Instagram"
+                icon={siInstagram}
+              />
+              <IconSocialLink
                 href="https://www.youtube.com/@DaisyChain-sd"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
-              >
-                YouTube
-              </a>
-              <a
+                label="YouTube"
+                icon={siYoutube}
+              />
+              <IconSocialLink
                 href="https://daisychainsd.bandcamp.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
-              >
-                Bandcamp
-              </a>
-              <a
+                label="Bandcamp"
+                icon={siBandcamp}
+              />
+              <IconSocialLink
                 href="https://soundcloud.com/daisychainsd"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="container-pill-l px-4 py-2.5 text-text-secondary hover:text-blue-300 hover:bg-blue-300/5 transition-colors"
-              >
-                SoundCloud
-              </a>
+                label="SoundCloud"
+                icon={siSoundcloud}
+              />
             </div>
           </div>
           <div className="divider-glow mt-8 mb-6" />

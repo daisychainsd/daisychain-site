@@ -170,6 +170,7 @@ export const LATEST_RELEASE = `
       trackNumber,
       duration,
       comingSoon,
+      youtubeUrl,
       "audioUrl": select(
         ^.status == "upcoming" || comingSoon == true => null,
         audioFile.asset->url

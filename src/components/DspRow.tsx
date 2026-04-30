@@ -1,3 +1,12 @@
+import type { SimpleIcon } from "simple-icons";
+import {
+  siSpotify,
+  siApple,
+  siSoundcloud,
+  siYoutube,
+} from "simple-icons";
+import { IconSocialLink } from "@/components/BrandIcon";
+
 interface DspLinks {
   spotify?: string;
   appleMusic?: string;
@@ -10,46 +19,28 @@ interface DspRowProps {
   links?: DspLinks;
 }
 
-const LABELS: { key: keyof DspLinks; label: string }[] = [
-  { key: "spotify", label: "Spotify" },
-  { key: "appleMusic", label: "Apple Music" },
-  { key: "bandcamp", label: "Bandcamp" },
-  { key: "soundcloud", label: "SoundCloud" },
-  { key: "youtube", label: "YouTube" },
+const DSP_ORDER: { key: keyof DspLinks; icon: SimpleIcon; label: string }[] = [
+  { key: "spotify", icon: siSpotify, label: "Spotify" },
+  { key: "appleMusic", icon: siApple, label: "Apple Music" },
+  { key: "soundcloud", icon: siSoundcloud, label: "SoundCloud" },
+  { key: "youtube", icon: siYoutube, label: "YouTube" },
 ];
 
 export default function DspRow({ links }: DspRowProps) {
   if (!links) return null;
-  const entries = LABELS.filter(({ key }) => !!links[key]);
+  const entries = DSP_ORDER.filter(({ key }) => !!links[key]);
   if (entries.length === 0) return null;
 
   return (
-    <div className="flex gap-2 flex-wrap mt-4">
-      {entries.map(({ key, label }) => (
-        <a
+    <div className="flex gap-2 flex-wrap mt-4 items-center">
+      {entries.map(({ key, icon, label }) => (
+        <IconSocialLink
           key={key}
           href={links[key]!}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="transition-colors hover:text-blue-300"
-          style={{
-            padding: "8px 16px",
-            borderRadius: 999,
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "var(--color-text-secondary)",
-            fontSize: 13,
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.borderColor = "rgba(124,185,232,0.3)";
-            e.currentTarget.style.background = "rgba(124,185,232,0.05)";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-            e.currentTarget.style.background = "transparent";
-          }}
-        >
-          {label}
-        </a>
+          label={label}
+          icon={icon}
+          className="inline-flex items-center justify-center w-10 h-10 shrink-0 rounded-full border border-white/10 text-text-secondary hover:text-blue-300 hover:border-blue-300/40 hover:bg-blue-300/5 transition-colors"
+        />
       ))}
     </div>
   );

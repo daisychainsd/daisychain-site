@@ -42,11 +42,14 @@ export default function ReleaseSpotlight({ release }: ReleaseSpotlightProps) {
       />
 
       <div className="container-organic overflow-hidden p-3 sm:p-4">
-        <div className="grid md:grid-cols-2 gap-8 h-full">
+        {/* Mobile: same full-width square as upcoming cards. md+: cap cover width
+            (~380px) so the art reads closer to upcoming-card scale instead of half
+            of the full 1440px row (which dominated the viewport). */}
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(240px,380px)_minmax(0,1fr)] gap-8 h-full">
           {/* Cover */}
           <Link
             href={`/releases/${release.slug}`}
-            className="container-inset aspect-square relative overflow-hidden block group"
+            className="container-inset aspect-square relative overflow-hidden block group w-full"
           >
             {coverUrl ? (
               <img

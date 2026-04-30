@@ -4,6 +4,13 @@ import { notFound } from "next/navigation";
 import { ARTIST_DETAIL } from "@/lib/queries";
 import type { Artist } from "@/lib/types";
 import ReleaseCard from "@/components/ReleaseCard";
+import {
+  siInstagram,
+  siSpotify,
+  siYoutube,
+  siSoundcloud,
+} from "simple-icons";
+import { IconSocialLink } from "@/components/BrandIcon";
 
 export const revalidate = 60;
 
@@ -18,6 +25,9 @@ export default async function ArtistPage({
     : null;
 
   if (!artist) notFound();
+
+  const artistIconLinkClass =
+    "inline-flex items-center justify-center w-10 h-10 shrink-0 rounded-full border border-blue-300/20 text-blue-300 hover:bg-blue-300/10 hover:border-blue-300/50 transition-colors";
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
@@ -39,36 +49,38 @@ export default async function ArtistPage({
               <p className="text-text-secondary max-w-lg mb-4">{artist.bio}</p>
             )}
             {artist.links && (
-              <div className="flex gap-2 text-sm">
+              <div className="flex flex-wrap gap-2 items-center">
                 {artist.links.instagram && (
-                  <a
+                  <IconSocialLink
                     href={artist.links.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
-                  >
-                    Instagram
-                  </a>
+                    label="Instagram"
+                    icon={siInstagram}
+                    className={artistIconLinkClass}
+                  />
                 )}
                 {artist.links.spotify && (
-                  <a
+                  <IconSocialLink
                     href={artist.links.spotify}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
-                  >
-                    Spotify
-                  </a>
+                    label="Spotify"
+                    icon={siSpotify}
+                    className={artistIconLinkClass}
+                  />
+                )}
+                {artist.links.youtube && (
+                  <IconSocialLink
+                    href={artist.links.youtube}
+                    label="YouTube"
+                    icon={siYoutube}
+                    className={artistIconLinkClass}
+                  />
                 )}
                 {artist.links.soundcloud && (
-                  <a
+                  <IconSocialLink
                     href={artist.links.soundcloud}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="container-pill-l px-4 py-1.5 text-blue-300 border border-blue-300/20 hover:bg-blue-300/5 transition-colors"
-                  >
-                    SoundCloud
-                  </a>
+                    label="SoundCloud"
+                    icon={siSoundcloud}
+                    className={artistIconLinkClass}
+                  />
                 )}
               </div>
             )}

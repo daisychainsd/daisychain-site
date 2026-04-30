@@ -65,6 +65,7 @@ export interface Artist {
     website?: string;
     instagram?: string;
     spotify?: string;
+    youtube?: string;
     soundcloud?: string;
   };
   releases?: ReleaseCard[];
