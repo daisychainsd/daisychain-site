@@ -102,6 +102,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/api/checkout-physical` | Creates Stripe Embedded Checkout session for physical products with shipping |
 | `/api/convert` | Server-side audio format conversion (WAV → MP3/FLAC/AIFF via ffmpeg) |
 | `/api/shopify-product` | GET endpoint returning Shopify product data by handle (used by ReleaseInteractive for physical format display) |
+| `/api/webhooks/stripe` | Stripe webhook — handles `checkout.session.completed`. Records purchase in Supabase for logged-in users; sends download email via Resend for guests. Requires `STRIPE_WEBHOOK_SECRET`. |
 | `/api/newsletter` | POST endpoint — subscribes email to beehiiv newsletter (Daisy Chain Mail) with UTM tracking |
 
 ## Components
@@ -123,6 +124,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **HeroSlideshow** (`src/components/HeroSlideshow.tsx`) — kept in codebase but no longer used on homepage.
 - **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and Upcoming section on homepage inside **`container-organic`**: **`text-label`** “Newsletter”, **`text-title`** headline **“skip the algorithm”**, supporting line, rounded-lg field + button (not full-width pill row). Headline copy stays direct.
 - **LayloModal** (`src/components/LayloModal.tsx`) — client component that opens a modal popup embedding the Laylo drop iframe (`dropId: feb0139b-a3c8-48cb-9aea-97055521f1b6`). Triggered by "i hate presaving things, just notify me when it's out →" text. Shown on all upcoming release views (homepage card + release detail page). Loads `laylo-sdk.js` dynamically and locks body scroll while open.
+- **DownloadPanel** (`src/components/DownloadPanel.tsx`) — guest post-purchase download UI. Verifies Stripe session via `/api/verify-purchase`, then shows format picker (WAV/FLAC/AIFF/MP3), per-track download buttons with conversion status, and download-all. Non-WAV formats use `/api/convert` for server-side ffmpeg transcoding.
 - **Header/Footer** — site-wide layout; Footer includes YouTube channel link, Header includes cart icon
 
 ## Events
@@ -186,8 +188,8 @@ Two non-overlapping subscriber pools:
 
 ## Catalogue Data
 
-- **14 live releases + 1 upcoming** (DCR#01–DCR#22, with singles collapsed into their parent EPs, plus 2 remixes as `.5` entries)
-- **DCR#22 "Ballerina" by Player Dave** — status: `upcoming`, WAV + MP3 preview uploaded, cover art uploaded. Add `presaveUrl` in Studio when ready.
+- **15 live releases** (DCR#01–DCR#22, with singles collapsed into their parent EPs, plus 2 remixes as `.5` entries)
+- **DCR#22 "Ballerina" by Player Dave** — status: `live` (released 2026-05-01). WAV + MP3 preview uploaded, cover art uploaded.
 - **Canonical reference**: `CATALOG.md` in project root — the single source of truth for all artist and release data
 - Source data: WAV files from `~/Dropbox/DCR/RELEASES/`, metadata from Google Sheets (`NEW DCR METADATA`, ID: `1puynz8uXInwJOVGNpmNzWJDwVBL6Nt3JeAmtFGnORyA`)
 - Artist photos sourced from `~/Dropbox/DCR/RELEASES/DCR#20 Dream Disc/Assets/ART/Dream Disc artist Assets/` (13 of 20 artists have photos)
@@ -353,9 +355,7 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - YouTube URLs on individual tracks (field exists in schema, needs data entry in Sanity Studio)
 - Missing cover art for 3 releases (DCR#02, DCR#10, DCR#20)
 - Missing artist photos for 7 artists
-- DCR#22 pre-save URL (add in Sanity Studio when link is ready)
-- Auto-switch Pre-save → Buy button on `releaseDate` (compare today's date to releaseDate in ReleaseInteractive)
-- Streaming platform links on release pages (Spotify, Apple Music, YouTube, SoundCloud, Bandcamp) — add `links[]` array to release schema
+- Resend domain verification (daisychainsd.com DNS records) + `RESEND_API_KEY` env var — until set, guest download emails silently skip
 - Laylo phone-number capture in LeadGen form (Laylo's `subscribeToUser` GraphQL mutation already accepts an optional `phoneNumber` variable, and `/api/newsletter` already forwards `body.phoneNumber` through to Laylo when present). Just needs a phone-input UI on the LeadGen card and a `phone` column migration on Supabase if we want to also persist it locally.
 - Parcel Sound API integration (future, low priority)
 
@@ -446,7 +446,7 @@ A long session covering schema cleanup, an audience-channels rebuild, the releas
 
 **Release-day cron (automation):**
 
-- **`vercel.json` cron** at `0 5 * * *` UTC (= midnight EST winter, 1am EDT summer; 1-hour DST drift accepted since Vercel Cron is UTC-only).
+- **`vercel.json` cron** at `0 4 * * *` UTC (= midnight EDT summer). In EST winter this fires at 11 PM the night before — adjust to `0 5 * * *` at DST boundaries if needed. Vercel Cron is UTC-only.
 - **`/api/cron/release-day`** — auth-protected GET handler. Finds releases where `status == "upcoming"` AND `releaseDate <= today`, flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the homepage Latest Release swaps within seconds. No streaming-link auto-population (those experiments produced inconsistent results for indie catalogs; manual fill in Studio is the ongoing pattern).
 - **`CRON_SECRET`** auth via `Authorization: Bearer …` header. Vercel Cron sends it automatically when the env var is set in the Vercel dashboard.
 - **Auto-prune from homepage Upcoming** — once a release flips to live (via cron or manual Studio edit), the homepage filters it out of the curated `homepageSettings.upcoming` array at render time. So Ballerina seamlessly slides from Upcoming → Latest Release at midnight on release day, no manual touch.
@@ -489,6 +489,35 @@ A long session covering schema cleanup, an audience-channels rebuild, the releas
 - `streaming-links-preview.json` + `scraped-streaming-links-preview.json` removed (artifacts of one-off scripts that no longer exist).
 - `.env.local` gained `CRON_SECRET` and `LAYLO_API_KEY` — both also set in Vercel env vars across Production + Preview + Development. `.env*` is gitignored so neither leaks.
 - All work pushed to `dev` in many small focused commits. `main` is unchanged — merge-to-main happens when explicitly going live.
+
+### Session 4 (2026-04-30 → 2026-05-01) — Release day fixes, purchase flow, email delivery
+
+**Release-day cron fix:**
+
+- Cron schedule changed from `0 5 * * *` to `0 4 * * *` UTC so it fires at midnight EDT (summer). Adjust back to `0 5` when clocks fall back to EST in November.
+- Manual cron trigger: must use `www.daisychainsd.com` (not bare domain) — bare domain returns a 307 redirect that strips the `Authorization` header.
+- DCR#22 "Ballerina" promoted to `status: "live"` via manual cron trigger on release night.
+
+**Homepage promo window:**
+
+- `isInLatestReleasePromoWindow()` in `page.tsx` — for 7 days after a release's `releaseDate`, `<ReleaseSpotlight>` renders **above** the Upcoming section. After 7 days it drops below. Automatic, no manual touch needed.
+- Uses `T00:00:00Z` normalization (not `T12:00:00`) so the window starts at midnight UTC on release day. The `T12:00:00` trick used elsewhere for display date-shift safety would delay the promo window by 12 hours.
+- `prioritizeLatestRelease` boolean drives conditional rendering: `{prioritizeLatestRelease && <ReleaseSpotlight />}` above Upcoming, `{!prioritizeLatestRelease && <ReleaseSpotlight />}` below.
+
+**Purchase flow (fully wired):**
+
+- **Stripe webhook** (`/api/webhooks/stripe`) — `STRIPE_WEBHOOK_SECRET` configured in Vercel env vars (production + preview). Webhook endpoint ID: `we_1TS9rnLSuqhEd0bb9AW3F5vo`. Listens for `checkout.session.completed`. Records purchases to Supabase `purchases` table for logged-in users; sends download email for guests.
+- **Guest checkout** — enter email on `/login` buy-flow page → Stripe Checkout → redirect to `/download/[slug]?session_id=...`. No account needed. Session verified via `/api/verify-purchase` before downloads are served.
+- **Guest download email** — Resend integration (`src/lib/email.ts`). After guest checkout completes, webhook sends a branded email with download link. Gracefully skips if `RESEND_API_KEY` is not set. Needs Resend domain verification (daisychainsd.com) to go live.
+- **Format picker on guest downloads** — `DownloadPanel` upgraded with WAV/FLAC/AIFF/MP3 toggle matching the account page, using `/api/convert` for server-side ffmpeg transcoding.
+- **Account page** (`/account`) — logged-in users see all purchased releases with format picker, per-track downloads, and download-all button. Unlimited Pass holders see the entire catalog.
+- **Checkout metadata** — `title` and `artist` now included in Stripe session metadata for email personalization.
+
+**Event flyer improvements:**
+
+- `flyerVerticalAlign` field + `FlyerVerticalAlignInput` Studio component — visual slider to control Y-axis crop position for square flyer thumbnails.
+- `eventFlyerUrl` helper (`src/lib/eventFlyerUrl.ts`) for consistent flyer image URLs across components.
+- `PastFlyerGrid` component for events page past-shows section.
 
 ## Layout & Styling Rules
 
@@ -575,8 +604,10 @@ Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). An
 
 ## Environment
 
-- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_ADMIN_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`, `LAYLO_API_KEY`
+- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_ADMIN_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`, `LAYLO_API_KEY`, `RESEND_API_KEY`
 - **`LAYLO_API_KEY`** (optional) — generated at laylo.com → Settings → Integrations → API Keyring. When set, every newsletter signup is pushed to the Daisy Chain Laylo drop CRM in parallel with beehiiv. When missing, Laylo push is silently skipped. Add to Vercel env vars (Production + Preview) when ready to go live.
+- **`STRIPE_WEBHOOK_SECRET`** — signing secret for the Stripe webhook endpoint (`we_1TS9rnLSuqhEd0bb9AW3F5vo`). Required for `/api/webhooks/stripe` to verify incoming events. Set in Vercel env vars (Production + Preview).
+- **`RESEND_API_KEY`** (optional) — Resend API key for sending guest download emails. When missing, email delivery silently skips — guests still get downloads via the Stripe success redirect. Requires domain verification at resend.com before emails can send from `noreply@daisychainsd.com`.
 - **`CRON_SECRET`** authenticates the daily release-day cron route ([`/api/cron/release-day`](src/app/api/cron/release-day/route.ts)). Generate with `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`. Must be added to Vercel env vars (Production + Preview) for the cron to actually fire on the live site — Vercel Cron sends `Authorization: Bearer ${CRON_SECRET}` automatically when the env var is set.
 - Sanity API token is an Editor-level token (needed for mutations/uploads)
 - Supabase keys are from the Supabase dashboard (project settings → API)
@@ -596,7 +627,7 @@ Streaming / DSP links (Spotify, Apple Music, YouTube, SoundCloud, Bandcamp) are 
 
 Defined in [`vercel.json`](vercel.json):
 
-- **`/api/cron/release-day`** — daily at `0 5 * * *` UTC. Finds releases with `status: "upcoming"` whose `releaseDate` has arrived, flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Streaming links are NOT auto-populated — fill those in Studio when adding the release. Vercel Cron is UTC-only, so this fires at midnight ET in winter (EST) and 1am ET during DST (EDT) — accept the 1-hour drift. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://daisychainsd.com/api/cron/release-day`. Idempotent — running twice on the same day re-promotes nothing because the GROQ filter excludes anything already `status: live`.
+- **`/api/cron/release-day`** — daily at `0 4 * * *` UTC (midnight EDT). Finds releases with `status: "upcoming"` whose `releaseDate` has arrived, flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Streaming links are NOT auto-populated — fill those in Studio when adding the release. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://www.daisychainsd.com/api/cron/release-day`. Idempotent — running twice on the same day re-promotes nothing because the GROQ filter excludes anything already `status: live`. **Important:** hit `www.daisychainsd.com` (not bare domain) to avoid a 307 redirect that strips the auth header.
 
 <!-- VERCEL BEST PRACTICES START -->
 ## Best practices for developing on Vercel

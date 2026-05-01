@@ -28,7 +28,7 @@ export async function sendDownloadEmail({
 }) {
   const resend = getResend();
   if (!resend) {
-    console.warn("RESEND_API_KEY not set — skipping download email to", to);
+    console.warn("RESEND_API_KEY not set — skipping download email");
     return;
   }
 

@@ -13,10 +13,12 @@ const FORMATS: { id: Format; label: string }[] = [
 
 export default function DownloadPanel({
   sessionId,
+  slug,
   tracks,
   releaseArtist,
 }: {
   sessionId: string;
+  slug?: string;
   tracks: Track[];
   releaseArtist: string;
 }) {
@@ -30,7 +32,7 @@ export default function DownloadPanel({
       const res = await fetch("/api/verify-purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ sessionId, slug }),
       });
       const data = await res.json();
       setVerified(data.valid);

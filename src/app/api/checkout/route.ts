@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
+import { client as sanityClient } from "@/sanity/client";
 
 /**
  * Create a Stripe Checkout session for a digital release purchase.
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   const body = await req.json();
-  const { releaseId, title, artist, slug } = body;
+  const { releaseId, slug } = body;
   const guestEmail =
     typeof body.guestEmail === "string" ? body.guestEmail.trim().toLowerCase() : undefined;
 
@@ -48,15 +49,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 });
   }
 
-  const priceUsd =
-    typeof body.price === "number" ? body.price : Number(body.price);
-  if (!Number.isFinite(priceUsd) || priceUsd <= 0) {
-    return NextResponse.json({ error: "No price set" }, { status: 400 });
+  const slugStr = typeof slug === "string" ? slug.trim() : "";
+  if (!slugStr) {
+    return NextResponse.json({ error: "Missing release" }, { status: 400 });
   }
 
-  const slugStr = typeof slug === "string" ? slug.trim() : "";
-  if (isGuestCheckout && !slugStr) {
-    return NextResponse.json({ error: "Missing release" }, { status: 400 });
+  // Server-side price lookup — never trust client-supplied price.
+  const release = sanityClient
+    ? await sanityClient.fetch<{ title: string; artist: string; price: number | null } | null>(
+        `*[_type == "release" && slug.current == $slug][0] {
+          title,
+          "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+          price
+        }`,
+        { slug: slugStr },
+      )
+    : null;
+
+  if (!release) {
+    return NextResponse.json({ error: "Release not found" }, { status: 404 });
+  }
+  if (!release.price || release.price <= 0) {
+    return NextResponse.json({ error: "No price set for this release" }, { status: 400 });
   }
 
   const customerEmail = isGuestCheckout ? guestEmail! : user!.email!;
@@ -72,10 +86,10 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: title,
-              description: `${artist} — Digital Download (WAV)`,
+              name: release.title,
+              description: `${release.artist} — Digital Download (WAV)`,
             },
-            unit_amount: Math.round(priceUsd * 100),
+            unit_amount: Math.round(release.price * 100),
           },
           quantity: 1,
         },
@@ -90,8 +104,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         releaseId,
         slug: slugStr,
-        title: title || "",
-        artist: artist || "",
+        title: release.title,
+        artist: release.artist,
         ...(isGuestCheckout ? { isGuest: "true" } : { userId: user!.id }),
       },
     });

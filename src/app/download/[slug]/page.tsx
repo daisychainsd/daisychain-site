@@ -43,6 +43,7 @@ export default async function DownloadPage({
 
         <DownloadPanel
           sessionId={session_id}
+          slug={slug}
           tracks={release.tracks || []}
           releaseArtist={release.artist}
         />
