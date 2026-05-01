@@ -1,6 +1,7 @@
 import type { PortableTextBlock } from "@portabletext/react";
 import { client } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
+import { eventFlyerUrl } from "@/lib/eventFlyerUrl";
 import { HOMEPAGE_SETTINGS, LATEST_RELEASE } from "@/lib/queries";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
 import WordmarkHero from "@/components/WordmarkHero";
@@ -22,6 +23,7 @@ interface UpcomingShow {
   date: string;
   venue?: string;
   flyer?: SanityImageRef;
+  flyerVerticalAlign?: number;
   ticketUrl?: string;
   lineup?: { name: string; artistSlug?: string }[];
 }
@@ -60,6 +62,21 @@ interface LatestReleaseData {
   tracks?: { title: string; trackArtist?: string; trackArtists?: { name: string; slug: string }[]; trackNumber?: number; duration?: string }[];
 }
 
+const LATEST_RELEASE_PROMO_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** First 7 days after `releaseDate` — Latest Release sits above Upcoming for visibility. */
+function isInLatestReleasePromoWindow(releaseDate: string): boolean {
+  // Use T00:00:00Z so the promo window starts at midnight UTC on release day
+  // (the T12:00:00 trick used elsewhere is for display date-shift safety, but
+  // here it would delay the promo window start by 12 hours).
+  const normalized = releaseDate.includes("T") ? releaseDate : `${releaseDate}T00:00:00Z`;
+  const startMs = Date.parse(normalized);
+  if (Number.isNaN(startMs)) return false;
+  const now = Date.now();
+  if (now < startMs) return false;
+  return now - startMs < LATEST_RELEASE_PROMO_MS;
+}
+
 export default async function HomePage() {
   const [settings, latest] = await Promise.all([
     client?.fetch<HomepageSettings | null>(HOMEPAGE_SETTINGS) ?? Promise.resolve(null),
@@ -77,6 +94,10 @@ export default async function HomePage() {
     return true;
   });
 
+  const prioritizeLatestRelease = Boolean(
+    latest?.releaseDate && isInLatestReleasePromoWindow(latest.releaseDate),
+  );
+
   return (
     <>
       {/* Negative margin cancels the layout's pt-24 so the wordmark hero photo
@@ -87,6 +108,8 @@ export default async function HomePage() {
       </div>
 
       <NewsMarquee />
+
+      {prioritizeLatestRelease && <ReleaseSpotlight release={latest} />}
 
       {upcomingItems.length > 0 && (
         <section
@@ -125,7 +148,8 @@ export default async function HomePage() {
                       title={show.title}
                       date={show.date}
                       venue={show.venue}
-                      flyerUrl={show.flyer ? urlFor(show.flyer).width(800).url() : undefined}
+                      flyerUrl={show.flyer ? eventFlyerUrl(show.flyer, 1600) : undefined}
+                      flyerVerticalAlign={show.flyerVerticalAlign}
                       ticketUrl={show.ticketUrl}
                     />
                   </div>
@@ -222,7 +246,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      <ReleaseSpotlight release={latest} />
+      {!prioritizeLatestRelease && <ReleaseSpotlight release={latest} />}
 
       <ShopStrip />
     </>

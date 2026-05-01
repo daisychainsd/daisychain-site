@@ -69,8 +69,6 @@ export interface Artist {
     soundcloud?: string;
   };
   releases?: ReleaseCard[];
-  releaseCount?: number;
-  recentReleases?: { title: string; slug: string; catalogNumber?: string }[];
 }
 
 export interface EventLineup {
@@ -84,6 +82,8 @@ export interface Event {
   date: string;
   venue?: string;
   flyer?: any;
+  /** 0–100: object-position Y for square (and strip) flyer framing; omit → site default. */
+  flyerVerticalAlign?: number;
   ticketUrl?: string;
   recapUrl?: string;
   description?: any;

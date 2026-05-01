@@ -1,5 +1,7 @@
 import { defineField, defineType } from "sanity";
 
+import { FlyerVerticalAlignInput } from "../components/FlyerVerticalAlignInput";
+
 export const event = defineType({
   name: "event",
   title: "Event",
@@ -40,6 +42,17 @@ export const event = defineType({
       name: "flyer",
       title: "Flyer",
       type: "image",
+      description: "Full art — no in-Studio cropping. Use “Vertical position in square” below to slide it up or down in thumbnails.",
+    }),
+    defineField({
+      name: "flyerVerticalAlign",
+      title: "Vertical position in square",
+      type: "number",
+      description:
+        "Use the preview and slider below — no need to reload the site. 0 = top of art, 100 = bottom.",
+      initialValue: 85,
+      validation: (rule) => rule.min(0).max(100),
+      components: { input: FlyerVerticalAlignInput },
     }),
     defineField({
       name: "ticketUrl",

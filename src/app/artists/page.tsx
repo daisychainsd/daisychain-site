@@ -46,9 +46,6 @@ export default async function ArtistsPage() {
 }
 
 function ArtistCard({ artist }: { artist: Artist }) {
-  const hasRecent = (artist.recentReleases?.length ?? 0) > 0;
-  const count = artist.releaseCount ?? 0;
-
   return (
     <Link href={`/artists/${artist.slug}`} className="group block hover-lift">
       <div
@@ -82,23 +79,6 @@ function ArtistCard({ artist }: { artist: Artist }) {
               {artist.name.charAt(0)}
             </div>
           )}
-          {count > 0 && (
-            <span
-              className="absolute top-2.5 left-2.5"
-              style={{
-                padding: "3px 10px",
-                borderRadius: 999,
-                background: "rgba(0,0,0,0.55)",
-                backdropFilter: "blur(6px)",
-                color: "rgba(255,255,255,0.9)",
-                fontFamily: "var(--font-mono), monospace",
-                fontSize: 10,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {count} {count === 1 ? "release" : "releases"}
-            </span>
-          )}
         </div>
 
         {/* Meta */}
@@ -114,34 +94,16 @@ function ArtistCard({ artist }: { artist: Artist }) {
           >
             {artist.name}
           </h3>
-          {artist.role && (
-            <p className="text-text-secondary text-[13px] m-0 mt-1.5">{artist.role}</p>
-          )}
           {artist.hometown && (
             <p
-              className="text-text-muted m-0 mt-1.5"
-              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, letterSpacing: "0.02em" }}
+              className="text-text-secondary m-0 mt-1.5"
+              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13, letterSpacing: "0.02em" }}
             >
               {artist.hometown}
             </p>
           )}
-
-          {hasRecent && (
-            <div
-              className="mt-3.5 pt-3 flex flex-col gap-1"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-            >
-              {artist.recentReleases!.map((r) => (
-                <span
-                  key={r.slug}
-                  className="text-blue-300 truncate"
-                  style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12 }}
-                >
-                  {r.catalogNumber ? `${r.catalogNumber} — ` : ""}
-                  {r.title}
-                </span>
-              ))}
-            </div>
+          {artist.role && (
+            <p className="text-text-muted text-[13px] m-0 mt-1.5">{artist.role}</p>
           )}
         </div>
       </div>

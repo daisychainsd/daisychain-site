@@ -91,13 +91,7 @@ export const ARTISTS_LIST = `
     "slug": slug.current,
     photo,
     role,
-    hometown,
-    "releaseCount": count(*[_type == "release" && hidden != true && references(^._id)]),
-    "recentReleases": *[_type == "release" && hidden != true && references(^._id)] | order(releaseDate desc)[0...2] {
-      title,
-      "slug": slug.current,
-      catalogNumber
-    }
+    hometown
   }
 `;
 
@@ -202,7 +196,7 @@ export const HOMEPAGE_SETTINGS = `
   *[_type == "homepageSettings"][0] {
     upcoming[] {
       itemType,
-      show->{ title, "slug": slug.current, date, venue, flyer, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },
+      show->{ title, "slug": slug.current, date, venue, flyer, flyerVerticalAlign, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },
       release->{ title, "slug": slug.current, "artist": coalesce(artists[0]->name, displayArtist, artist->name), coverArt, presaveUrl, catalogNumber, status }
     }
   }
@@ -223,6 +217,7 @@ export const EVENTS_LIST = `
     date,
     venue,
     flyer,
+    flyerVerticalAlign,
     ticketUrl,
     recapUrl,
     description,

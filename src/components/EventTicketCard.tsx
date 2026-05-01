@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { urlFor } from "@/sanity/image";
+import { eventFlyerUrl, flyerObjectPosition } from "@/lib/eventFlyerUrl";
 import type { Event } from "@/lib/types";
 import { DC_TIMEZONE } from "@/lib/dates";
 
@@ -17,7 +17,7 @@ function formatTicketDateTimeLine(d: Date) {
 
 export default function EventTicketCard({ event }: { event: Event }) {
   const eventDate = new Date(event.date);
-  const flyerUrl = event.flyer ? urlFor(event.flyer).width(800).url() : null;
+  const flyerUrl = event.flyer ? eventFlyerUrl(event.flyer, 1400) : null;
   const headline =
     event.lineup && event.lineup.length > 0 ? event.lineup[0].name : "Daisy Chain";
 
@@ -60,7 +60,8 @@ export default function EventTicketCard({ event }: { event: Event }) {
               <img
                 src={flyerUrl}
                 alt=""
-                className="h-32 w-full object-cover object-top sm:h-40"
+                className="h-32 w-full object-cover sm:h-40"
+                style={{ objectPosition: flyerObjectPosition(event.flyerVerticalAlign) }}
                 loading="lazy"
               />
             </div>

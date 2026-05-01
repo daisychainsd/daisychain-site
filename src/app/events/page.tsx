@@ -3,13 +3,13 @@ import { sanityFetch } from "@/sanity/client";
 
 export const revalidate = 60;
 
-import { urlFor } from "@/sanity/image";
+import { eventFlyerUrl } from "@/lib/eventFlyerUrl";
 import { EVENTS_LIST } from "@/lib/queries";
 import type { Event } from "@/lib/types";
-import { fmtEventDate } from "@/lib/dates";
 import EventsToggle from "@/components/EventsToggle";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
 import SectionHeader from "@/components/SectionHeader";
+import PastFlyerGrid from "@/components/PastFlyerGrid";
 
 export default async function EventsPage() {
   const events = await sanityFetch<Event>(EVENTS_LIST);
@@ -17,6 +17,14 @@ export default async function EventsPage() {
   const now = new Date().toISOString();
   const upcoming = events.filter((e) => e.date >= now);
   const past = events.filter((e) => e.date < now);
+
+  const pastFlyerTiles = past
+    .filter((e) => e.flyer)
+    .map((e) => ({
+      slug: e.slug,
+      imageUrl: eventFlyerUrl(e.flyer!, 1200),
+      flyerVerticalAlign: e.flyerVerticalAlign,
+    }));
 
   return (
     <div className="max-w-[1440px] mx-auto relative" style={{ padding: "clamp(40px, 5vw, 56px) clamp(24px, 4vw, 48px)" }}>
@@ -45,7 +53,8 @@ export default async function EventsPage() {
                 title={event.title}
                 date={event.date}
                 venue={event.venue}
-                flyerUrl={event.flyer ? urlFor(event.flyer).width(800).url() : undefined}
+                flyerUrl={event.flyer ? eventFlyerUrl(event.flyer, 1600) : undefined}
+                flyerVerticalAlign={event.flyerVerticalAlign}
                 ticketUrl={event.ticketUrl}
               />
             ))}
@@ -56,97 +65,15 @@ export default async function EventsPage() {
       {past.length > 0 && (
         <section id="past" className="scroll-mt-28">
           <SectionHeader kicker="Archive" title="Past Shows" />
-          <PastShowsList events={past} />
+          {pastFlyerTiles.length > 0 ? (
+            <PastFlyerGrid tiles={pastFlyerTiles} />
+          ) : (
+            <p className="text-text-muted text-sm mt-4 max-w-md">
+              Add flyer images in Sanity Studio on each past event to show them here.
+            </p>
+          )}
         </section>
       )}
-    </div>
-  );
-}
-
-function PastShowsList({ events }: { events: Event[] }) {
-  // Event numbers: newest past show = highest number. Use the EVENTS_LIST order (desc by date).
-  // The DC event title typically already contains "Daisy Chain #N"; if not, fall back to position.
-  return (
-    <div className="flex flex-col" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-      {events.map((event, i) => {
-        const dateStr = fmtEventDate(event.date, {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }).toUpperCase();
-
-        // Pull "#NN" out of the title if present, else use position
-        const numMatch = event.title.match(/#\s*(\d+)/);
-        const num = numMatch ? numMatch[1].padStart(2, "0") : String(events.length - i).padStart(2, "0");
-        const displayTitle = event.title.replace(/\s*Daisy Chain\s*/i, "").trim() || event.title;
-        const headliner = event.lineup?.[0]?.name;
-
-        return (
-          <div
-            key={event.slug}
-            className="grid items-center gap-4 transition-colors"
-            style={{
-              gridTemplateColumns: "minmax(48px, 60px) minmax(120px, 160px) minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) auto",
-              padding: "22px 8px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <span
-              className="text-blue-300"
-              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13 }}
-            >
-              #{num}
-            </span>
-            <span
-              className="text-text-muted"
-              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 12, letterSpacing: "0.04em" }}
-            >
-              {dateStr}
-            </span>
-            <span
-              className="uppercase text-text-primary truncate"
-              style={{
-                fontFamily: "var(--font-heading), system-ui, sans-serif",
-                fontWeight: 900,
-                fontSize: 20,
-                letterSpacing: "-0.01em",
-              }}
-            >
-              {displayTitle}
-            </span>
-            <span className="text-text-secondary text-sm truncate">
-              {headliner ? `w/ ${headliner}` : ""}
-            </span>
-            <span
-              className="text-text-muted truncate"
-              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13 }}
-            >
-              {event.venue || ""}
-            </span>
-            <div className="flex justify-end">
-              {event.recapUrl ? (
-                <a
-                  href={event.recapUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="uppercase text-blue-300 hover:text-blue-200 transition-colors whitespace-nowrap"
-                  style={{
-                    fontFamily: "var(--font-heading), system-ui, sans-serif",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  View recap →
-                </a>
-              ) : (
-                <span className="text-text-faint text-xs select-none whitespace-nowrap">—</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }

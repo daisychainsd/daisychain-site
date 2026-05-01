@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { flyerObjectPosition } from "@/lib/eventFlyerUrl";
 import { ArrowIcon } from "./icons";
 import { fmtEventDate, fmtEventYear } from "@/lib/dates";
 
@@ -7,6 +8,8 @@ export interface UpcomingEventCardProps {
   date: string;
   venue?: string;
   flyerUrl?: string;
+  /** 0–100 vertical anchor for `object-position` inside the square crop. */
+  flyerVerticalAlign?: number;
   ticketUrl?: string;
 }
 
@@ -15,6 +18,7 @@ export default function UpcomingEventCard({
   date,
   venue,
   flyerUrl,
+  flyerVerticalAlign,
   ticketUrl,
 }: UpcomingEventCardProps) {
   return (
@@ -26,6 +30,7 @@ export default function UpcomingEventCard({
               src={flyerUrl}
               alt={title}
               className="w-full h-full object-cover"
+              style={{ objectPosition: flyerObjectPosition(flyerVerticalAlign) }}
             />
           </div>
         )}
