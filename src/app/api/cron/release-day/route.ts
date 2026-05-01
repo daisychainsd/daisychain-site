@@ -11,10 +11,10 @@ import { revalidatePath } from "next/cache";
  * "Streaming / DSP Links" collapsible — the auto-populate experiments only
  * found Apple Music reliably and that wasn't worth the script-maintenance cost.
  *
- * Schedule (vercel.json): `0 5 * * *` UTC.
- *   - In EST (UTC-5, winter) this fires at 00:00 ET — exactly midnight.
- *   - In EDT (UTC-4, summer) this fires at 01:00 ET — one hour after midnight.
- *   Vercel Cron is UTC-only; this 1-hour DST drift is acceptable.
+ * Schedule (vercel.json): `0 4 * * *` UTC.
+ *   - In EDT (UTC-4, summer) this fires at 00:00 ET — exactly midnight.
+ *   - In EST (UTC-5, winter) this fires at 23:00 ET the night before.
+ *   Vercel Cron is UTC-only; adjust between `0 4` (summer) and `0 5` (winter) at DST boundaries.
  *
  * Auth: requires `Authorization: Bearer ${CRON_SECRET}` header. Vercel Cron
  * sends this automatically when CRON_SECRET is set in Vercel env vars.
