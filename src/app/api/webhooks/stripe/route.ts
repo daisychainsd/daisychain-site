@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createDraftOrder } from "@/lib/shopify-admin";
+import { sendDownloadEmail } from "@/lib/email";
 import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -82,10 +83,24 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
   const isGuest = session.metadata?.isGuest === "true";
 
-  // Guest purchases aren't tied to a Supabase account, so there's nothing to
-  // record in our `purchases` table. Stripe is the source of truth and
-  // /api/verify-purchase re-validates the session before serving downloads.
+  // Guest purchases: send a download-link email so they can come back later.
+  // Stripe is the source of truth — /api/verify-purchase re-validates the
+  // session before serving downloads.
   if (isGuest) {
+    const slug = session.metadata?.slug;
+    const email = session.customer_details?.email || session.customer_email;
+    if (slug && email) {
+      const origin = "https://www.daisychainsd.com";
+      const downloadUrl = `${origin}/download/${slug}?session_id=${session.id}`;
+      const title = session.metadata?.title || slug;
+      const artist = session.metadata?.artist || "Daisy Chain";
+      await sendDownloadEmail({
+        to: email,
+        releaseTitle: title,
+        artistName: artist,
+        downloadUrl,
+      });
+    }
     return;
   }
 

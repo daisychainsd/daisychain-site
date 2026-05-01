@@ -90,6 +90,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         releaseId,
         slug: slugStr,
+        title: title || "",
+        artist: artist || "",
         ...(isGuestCheckout ? { isGuest: "true" } : { userId: user!.id }),
       },
     });
