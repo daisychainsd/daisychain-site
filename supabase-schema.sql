@@ -64,3 +64,29 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Download tokens (one-time download links sent via email)
+create table if not exists public.download_tokens (
+  id uuid default gen_random_uuid() primary key,
+  token text not null unique,
+  slug text not null,
+  email text not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '7 days')
+);
+alter table public.download_tokens enable row level security;
+create policy "Service role full access" on public.download_tokens for all using (true) with check (true);
+create index idx_download_tokens_token on public.download_tokens (token);
+
+-- Guest purchases (saves guest email + purchase data, separate from auth-required purchases table)
+create table if not exists public.guest_purchases (
+  id uuid default gen_random_uuid() primary key,
+  email text not null,
+  release_slug text not null,
+  stripe_session_id text not null,
+  purchased_at timestamptz not null default now()
+);
+alter table public.guest_purchases enable row level security;
+create policy "Service role full access on guest_purchases" on public.guest_purchases for all using (true) with check (true);
+create index idx_guest_purchases_email on public.guest_purchases (email);

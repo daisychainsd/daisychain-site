@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { validateDownloadToken } from "@/lib/download-tokens";
 
 export async function POST(req: NextRequest) {
-  const { sessionId, slug } = await req.json();
+  const { sessionId, slug, token } = await req.json();
 
+  // Token-based verification (from email link)
+  if (token && slug) {
+    const result = await validateDownloadToken(token, slug);
+    return NextResponse.json(result);
+  }
+
+  // Session-based verification (from Stripe redirect)
   if (!sessionId) {
     return NextResponse.json({ valid: false }, { status: 400 });
   }
@@ -16,7 +24,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Cross-check: the slug being downloaded must match the slug that was purchased.
-    // Without this, a buyer of Release A could use their session_id on /download/release-b.
     const purchasedSlug = session.metadata?.slug;
     if (slug && purchasedSlug && slug !== purchasedSlug) {
       return NextResponse.json({ valid: false });

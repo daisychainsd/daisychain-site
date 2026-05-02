@@ -10,12 +10,12 @@ export default async function DownloadPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; token?: string }>;
 }) {
   const { slug } = await params;
-  const { session_id } = await searchParams;
+  const { session_id, token } = await searchParams;
 
-  if (!session_id) notFound();
+  if (!session_id && !token) notFound();
 
   const release: Release | null = client
     ? await client.fetch(RELEASE_DOWNLOAD, { slug })
@@ -43,6 +43,7 @@ export default async function DownloadPage({
 
         <DownloadPanel
           sessionId={session_id}
+          token={token}
           slug={slug}
           tracks={release.tracks || []}
           releaseArtist={release.artist}
