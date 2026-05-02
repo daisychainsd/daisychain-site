@@ -59,6 +59,20 @@ export const metadata: Metadata = {
   title: "Daisy Chain Records — San Diego",
   description:
     "Independent electronic music label based in San Diego, California.",
+  openGraph: {
+    title: "Daisy Chain Records — San Diego",
+    description: "Independent electronic music label based in San Diego, California.",
+    url: "https://www.daisychainsd.com",
+    siteName: "Daisy Chain Records",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Daisy Chain Records — San Diego",
+    description: "Independent electronic music label based in San Diego, California.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
