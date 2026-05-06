@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { client } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { notFound } from "next/navigation";
@@ -13,6 +14,19 @@ import {
 import { IconSocialLink } from "@/components/BrandIcon";
 
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const artist: Artist | null = client
+    ? await client.fetch(ARTIST_DETAIL, { slug })
+    : null;
+  if (!artist) return {};
+  return { title: artist.name };
+}
 
 export default async function ArtistPage({
   params,

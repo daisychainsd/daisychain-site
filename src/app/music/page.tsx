@@ -9,7 +9,7 @@ import type { ReleaseCard as ReleaseCardType } from "@/lib/types";
 import CatalogGrid from "@/components/CatalogGrid";
 
 export const metadata: Metadata = {
-  title: "Music — Daisy Chain Records",
+  title: "Music",
   description:
     "Browse Daisy Chain digital and physical releases — electronic music from San Diego.",
 };

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { client } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { notFound } from "next/navigation";
@@ -6,6 +7,21 @@ import type { Release } from "@/lib/types";
 import ReleaseInteractive from "@/components/ReleaseInteractive";
 
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const release: Release | null = client
+    ? await client.fetch(RELEASE_DETAIL, { slug })
+    : null;
+  if (!release) return {};
+  const artistName = release.artists?.[0]?.name ?? release.primaryArtistName ?? release.artist;
+  const title = artistName ? `${release.title} by ${artistName}` : release.title;
+  return { title };
+}
 
 export default async function ReleasePage({
   params,

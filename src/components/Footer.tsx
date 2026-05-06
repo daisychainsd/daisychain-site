@@ -47,7 +47,7 @@ export default function Footer() {
           </div>
           <div className="divider-glow mt-8 mb-6" />
           <p className="text-text-muted text-sm">
-            &copy; {new Date().getFullYear()} Daisy Chain Records. San Diego, CA.
+            &copy; {new Date().getFullYear()} Daisy Chain Recordings. San Diego, CA.
           </p>
         </div>
       </div>

@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { sanityFetch } from "@/sanity/client";
 
+export const metadata: Metadata = { title: "Events" };
 export const revalidate = 60;
 
 import { eventFlyerUrl } from "@/lib/eventFlyerUrl";

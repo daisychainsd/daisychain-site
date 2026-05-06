@@ -56,22 +56,32 @@ const rubikMonoOne = Rubik_Mono_One({
 });
 
 export const metadata: Metadata = {
-  title: "Daisy Chain Records — San Diego",
+  title: {
+    default: "Daisy Chain Recordings — San Diego",
+    template: "%s — Daisy Chain Recordings",
+  },
   description:
     "Independent electronic music label based in San Diego, California.",
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
   openGraph: {
-    title: "Daisy Chain Records — San Diego",
+    title: "Daisy Chain Recordings — San Diego",
     description: "Independent electronic music label based in San Diego, California.",
     url: "https://www.daisychainsd.com",
-    siteName: "Daisy Chain Records",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    siteName: "Daisy Chain Recordings",
+    images: [{ url: "/DCR_PFP_NoCircle_2025.png", width: 500, height: 500 }],
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Daisy Chain Records — San Diego",
+    card: "summary",
+    title: "Daisy Chain Recordings — San Diego",
     description: "Independent electronic music label based in San Diego, California.",
-    images: ["/og-image.png"],
+    images: ["/DCR_PFP_NoCircle_2025.png"],
   },
 };
 
@@ -87,6 +97,8 @@ export default function RootLayout({
     >
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/ecz5lqw.css" />
+        <link rel="icon" href="/favicon-white-32x32.png" sizes="32x32" type="image/png" media="(prefers-color-scheme: dark)" />
+        <link rel="icon" href="/favicon-white-16x16.png" sizes="16x16" type="image/png" media="(prefers-color-scheme: dark)" />
       </head>
       <body className="min-h-full flex flex-col">
         <style>{`

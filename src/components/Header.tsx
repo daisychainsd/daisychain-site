@@ -12,7 +12,7 @@ export default function Header() {
       <nav className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <Link
           href="/"
-          aria-label="Daisy Chain Records home"
+          aria-label="Daisy Chain Recordings home"
           className="flex items-center justify-center min-h-11 min-w-11 rounded-lg text-text-primary group shrink-0"
         >
           <img
