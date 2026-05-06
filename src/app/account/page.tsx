@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "Account" };
 import { sanityFetch } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { RELEASES_BY_SLUGS, ALL_RELEASES_DOWNLOAD } from "@/lib/queries";

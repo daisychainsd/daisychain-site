@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import SectionHeader from "@/components/SectionHeader";
 
 export const metadata: Metadata = {
-  title: "About — Daisy Chain Records",
+  title: "About",
   description:
-    "Daisy Chain Records is an independent electronic music label and intimate dance floor in San Diego, California, run by Player Dave.",
+    "Daisy Chain Recordings is an independent electronic music label and intimate dance floor in San Diego, California, run by Player Dave.",
 };
 
 export const revalidate = 300;

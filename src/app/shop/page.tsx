@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getProducts } from "@/lib/shopify";
+
+export const metadata: Metadata = { title: "Shop" };
 import type { ShopifyProduct } from "@/lib/shopify";
 import SectionHeader from "@/components/SectionHeader";
 

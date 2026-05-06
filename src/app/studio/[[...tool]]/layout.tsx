@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Daisy Chain Records — Studio",
+  title: "Daisy Chain Recordings — Studio",
 };
 
 // The studio is wrapped by the root layout's Header/Footer/main padding, which

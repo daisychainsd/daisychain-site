@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { sanityFetch } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { ARTISTS_LIST } from "@/lib/queries";
+
+export const metadata: Metadata = { title: "Artists" };
 import type { Artist } from "@/lib/types";
 import Link from "next/link";
 import SectionHeader from "@/components/SectionHeader";

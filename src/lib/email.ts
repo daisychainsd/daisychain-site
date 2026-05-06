@@ -39,7 +39,7 @@ export async function sendDownloadEmail({
     : "";
 
   const { error } = await resend.emails.send({
-    from: "Daisy Chain Records <noreply@daisychainsd.com>",
+    from: "Daisy Chain Recordings <noreply@daisychainsd.com>",
     to,
     subject: `Your download: ${releaseTitle} by ${artistName}`,
     html: `
