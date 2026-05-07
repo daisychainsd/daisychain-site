@@ -47,6 +47,7 @@ export const RELEASE_DETAIL = `
     links,
     description,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -75,6 +76,7 @@ export const RELEASE_DOWNLOAD = `
     coverArt,
     catalogNumber,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -116,6 +118,7 @@ export const RELEASES_BY_SLUGS = `
     coverArt,
     catalogNumber,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -134,6 +137,32 @@ export const ALL_RELEASES_DOWNLOAD = `
     coverArt,
     catalogNumber,
     tracks[] {
+      _key,
+      title,
+      trackArtist,
+      "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
+      trackNumber,
+      "audioUrl": audioFile.asset->url,
+      "previewUrl": previewFile.asset->url
+    }
+  }
+`;
+
+// Pass holders: all live releases + upcoming releases within 7 days of releaseDate
+export const ALL_RELEASES_DOWNLOAD_WITH_EARLY = `
+  *[_type == "release" && (
+    status != "upcoming" ||
+    (status == "upcoming" && releaseDate <= $earlyAccessDate)
+  )] | order(releaseDate desc) {
+    title,
+    "slug": slug.current,
+    "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+    coverArt,
+    catalogNumber,
+    status,
+    releaseDate,
+    tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -158,6 +187,7 @@ export const LATEST_RELEASE = `
     description,
     status,
     tracks[0...4] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },

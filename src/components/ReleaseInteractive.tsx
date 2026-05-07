@@ -8,6 +8,7 @@ import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
 import DspRow from "./DspRow";
 import { useCart } from "./CartProvider";
+import UnlimitedPassInfo from "./UnlimitedPassInfo";
 import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/lib/types";
 import type { ShopifyProduct } from "@/lib/shopify";
@@ -76,22 +77,35 @@ export default function ReleaseInteractive({
 }: ReleaseInteractiveProps) {
   const isUpcoming = status === "upcoming";
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem, items: cartItems } = useCart();
 
   const [activeFormat, setActiveFormat] = useState(
     formats?.[0] || "digital"
   );
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasPass, setHasPass] = useState(false);
   const [shopifyProduct, setShopifyProduct] = useState<ShopifyProduct | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [buyingPass, setBuyingPass] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
     supabase.auth.getUser().then(
       (res: { data: { user: unknown } }) => {
-        setIsLoggedIn(!!res.data.user);
+        const u = res.data.user as { id: string } | null;
+        setIsLoggedIn(!!u);
+        if (u) {
+          supabase
+            .from("profiles")
+            .select("has_unlimited_pass")
+            .eq("id", u.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.has_unlimited_pass) setHasPass(true);
+            });
+        }
       },
     );
   }, []);
@@ -105,6 +119,7 @@ export default function ReleaseInteractive({
   }, [shopifyHandle]);
 
   const [buying, setBuying] = useState(false);
+  const [buyingTrackKey, setBuyingTrackKey] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedImageIndex(0);
@@ -117,41 +132,55 @@ export default function ReleaseInteractive({
     ? releaseTitle.replace(/\s+(EP|Album)$/i, "")
     : releaseTitle;
 
-  async function handleBuy() {
-    if (!isLoggedIn) {
-      // Pass buy context to /login so it can render a contextual value-prop
-      // banner ("you're about to buy X for $Y") and offer a guest checkout
-      // option alongside the standard sign-in flow.
-      const buyContext = new URLSearchParams({
-        redirect: `/releases/${releaseSlug ?? ""}`,
-        slug: releaseSlug ?? "",
-        title: releaseTitle,
-        artist: releaseArtist,
-        releaseId: releaseId ?? "",
-        price: String(activePrice ?? ""),
-      });
-      router.push(`/login?${buyContext.toString()}`);
-      return;
-    }
+  const releaseCartId = `digital-release-${releaseSlug}`;
 
+  function handleBuy() {
+    addItem(
+      {
+        variantId: releaseCartId,
+        productId: releaseSlug || "",
+        handle: releaseSlug || "",
+        title: releaseTitle,
+        variantTitle: releaseArtist,
+        price: activePrice || 0,
+        currency: "USD",
+        imageUrl: coverUrl || "",
+        type: "digital",
+        slug: releaseSlug,
+        releaseTitle,
+      },
+      1,
+      false,
+    );
     setBuying(true);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          releaseId,
-          title: releaseTitle,
-          artist: releaseArtist,
-          price: activePrice,
-          slug: releaseSlug,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } finally {
-      setBuying(false);
-    }
+    setTimeout(() => setBuying(false), 2000);
+  }
+
+  function handleBuyTrack(track: Track) {
+    if (!track._key) return;
+
+    const digitalId = `digital-${releaseSlug}-${track._key}`;
+    addItem(
+      {
+        variantId: digitalId,
+        productId: releaseSlug || "",
+        handle: releaseSlug || "",
+        title: track.title,
+        variantTitle: releaseArtist,
+        price: 2,
+        currency: "USD",
+        imageUrl: coverUrl || "",
+        type: "digital",
+        slug: releaseSlug,
+        trackKey: track._key,
+        releaseTitle,
+      },
+      1,
+      false, // don't auto-open drawer
+    );
+
+    setBuyingTrackKey(track._key);
+    setTimeout(() => setBuyingTrackKey(null), 2000);
   }
 
   function handleAddPhysicalToCart() {
@@ -408,21 +437,35 @@ export default function ReleaseInteractive({
             {addedToCart ? "Added to Cart" : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${parseFloat(shopifyProduct.variants.edges[0]?.node.price.amount || "0").toFixed(2)}`}
           </button>
         </div>
-      ) : activePrice && activePrice > 0 ? (
-        <div className="mt-8 flex items-center justify-between">
-          <div>
-            <p className="text-label mb-1">Tracks</p>
-            <h2 className="text-title text-text-primary">Tracklist</h2>
+      ) : activePrice && activePrice > 0 ? (() => {
+        const releaseInCart = cartItems.some((ci) => ci.variantId === releaseCartId);
+        const justAdded = buying;
+        return (
+          <div className="mt-8 flex items-center justify-between">
+            <div>
+              <p className="text-label mb-1">Tracks</p>
+              <h2 className="text-title text-text-primary">Tracklist</h2>
+            </div>
+            <button
+              onClick={() => { if (!releaseInCart) handleBuy(); }}
+              disabled={releaseInCart && !justAdded}
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+                justAdded
+                  ? "bg-green-500/20 text-green-400 border border-green-400/30"
+                  : releaseInCart
+                    ? "bg-bg-raised text-text-muted border border-blue-300/10"
+                    : "bg-blue-300 text-bg-deep hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)]"
+              }`}
+            >
+              {justAdded
+                ? "Added to Cart"
+                : releaseInCart
+                  ? "In Cart"
+                  : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${activePrice.toFixed(2)}`}
+            </button>
           </div>
-          <button
-            onClick={handleBuy}
-            disabled={buying}
-            className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
-          >
-            {buying ? "Redirecting..." : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${activePrice.toFixed(2)}`}
-          </button>
-        </div>
-      ) : (
+        );
+      })() : (
         <div className="mt-8 mb-4">
           <p className="text-label mb-1">Tracks</p>
           <h2 className="text-title text-text-primary">Tracklist</h2>
@@ -436,8 +479,43 @@ export default function ReleaseInteractive({
             tracks={tracks}
             releaseArtist={releaseArtist}
             releaseStatus={status}
+            onBuyTrack={!isUpcoming && !physical && tracks.length > 1 ? handleBuyTrack : undefined}
+            buyingTrackKey={buyingTrackKey}
+            releaseSlug={releaseSlug}
           />
         </section>
+      )}
+
+      {/* Unlimited Pass CTA */}
+      {!isUpcoming && !physical && !hasPass && (
+        <div className="mt-8 flex items-center justify-between p-4 rounded-lg border border-blue-300/10 bg-blue-300/[0.03]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-text-primary text-sm font-semibold whitespace-nowrap">
+              Unlimited Music Pass
+            </span>
+            <UnlimitedPassInfo />
+          </div>
+          <button
+            onClick={async () => {
+              setBuyingPass(true);
+              try {
+                const res = await fetch("/api/checkout-pass", { method: "POST" });
+                const data = await res.json();
+                if (res.status === 401) {
+                  router.push("/login?redirect=" + encodeURIComponent(window.location.pathname));
+                  return;
+                }
+                if (data.url) window.location.href = data.url;
+              } finally {
+                setBuyingPass(false);
+              }
+            }}
+            disabled={buyingPass}
+            className="shrink-0 px-4 py-2 rounded-full text-sm font-semibold bg-blue-300/10 text-blue-300 border border-blue-300/20 hover:bg-blue-300/20 transition-colors disabled:opacity-50"
+          >
+            {buyingPass ? "..." : "$99"}
+          </button>
+        </div>
       )}
 
       {/* Embedded Player fallback */}

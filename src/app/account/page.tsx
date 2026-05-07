@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Account" };
 import { sanityFetch } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
-import { RELEASES_BY_SLUGS, ALL_RELEASES_DOWNLOAD } from "@/lib/queries";
+import { RELEASES_BY_SLUGS, ALL_RELEASES_DOWNLOAD_WITH_EARLY } from "@/lib/queries";
 import AccountClient from "./AccountClient";
 
 interface DownloadRelease {
@@ -15,6 +15,7 @@ interface DownloadRelease {
   coverArt?: any;
   catalogNumber?: string;
   tracks?: {
+    _key?: string;
     title: string;
     trackArtist?: string;
     trackArtists?: { name: string; slug: string }[];
@@ -43,18 +44,48 @@ export default async function AccountPage() {
   let releases: DownloadRelease[] = [];
 
   if (hasUnlimitedPass) {
-    releases = await sanityFetch<DownloadRelease>(ALL_RELEASES_DOWNLOAD);
+    // Pass holders get all releases + upcoming within 7 days (early access)
+    const earlyAccessDate = new Date();
+    earlyAccessDate.setDate(earlyAccessDate.getDate() + 7);
+    const earlyDateStr = earlyAccessDate.toISOString().split("T")[0];
+    releases = await sanityFetch<DownloadRelease>(ALL_RELEASES_DOWNLOAD_WITH_EARLY, {
+      earlyAccessDate: earlyDateStr,
+    });
   } else {
     const { data: purchases } = await supabase
       .from("purchases")
-      .select("release_slug")
+      .select("release_slug, track_key")
       .eq("user_id", user.id);
 
-    const slugs = purchases?.map((p: { release_slug: string }) => p.release_slug) ?? [];
+    // Build a map of release_slug → purchased track_keys (null = full release)
+    const purchaseMap = new Map<string, string[] | null>();
+    for (const p of purchases ?? []) {
+      const existing = purchaseMap.get(p.release_slug);
+      if (existing === null) continue; // already have full release
+      if (!p.track_key) {
+        purchaseMap.set(p.release_slug, null); // full release
+      } else if (existing) {
+        existing.push(p.track_key);
+      } else {
+        purchaseMap.set(p.release_slug, [p.track_key]);
+      }
+    }
+
+    const slugs = [...purchaseMap.keys()];
 
     if (slugs.length > 0) {
       releases = await sanityFetch<DownloadRelease>(RELEASES_BY_SLUGS, {
         slugs,
+      });
+
+      // Filter tracks to only purchased ones for per-track purchases
+      releases = releases.map((r) => {
+        const trackKeys = purchaseMap.get(r.slug);
+        if (trackKeys === null || trackKeys === undefined) return r; // full release
+        return {
+          ...r,
+          tracks: r.tracks?.filter((t) => t._key && trackKeys.includes(t._key)),
+        };
       });
     }
   }

@@ -19,6 +19,8 @@ export default function LoginForm() {
   const buyReleaseId = searchParams.get("releaseId");
   const buyPriceRaw = searchParams.get("price");
   const buyPrice = buyPriceRaw ? Number(buyPriceRaw) : null;
+  const buyTrackKey = searchParams.get("trackKey");
+  const buyTrackTitle = searchParams.get("trackTitle");
   const isBuyFlow = Boolean(buySlug);
 
   const [email, setEmail] = useState("");
@@ -37,6 +39,8 @@ export default function LoginForm() {
     if (buyArtist) qp.set("artist", buyArtist);
     if (buyReleaseId) qp.set("releaseId", buyReleaseId);
     if (buyPriceRaw) qp.set("price", buyPriceRaw);
+    if (buyTrackKey) qp.set("trackKey", buyTrackKey);
+    if (buyTrackTitle) qp.set("trackTitle", buyTrackTitle);
     const q = qp.toString();
     return `/signup${q ? `?${q}` : ""}`;
   })();
@@ -91,6 +95,7 @@ export default function LoginForm() {
           artist: buyArtist || "Daisy Chain",
           price: buyPrice ?? 0,
           slug: buySlug,
+          ...(buyTrackKey ? { trackKey: buyTrackKey, trackTitle: buyTrackTitle } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));

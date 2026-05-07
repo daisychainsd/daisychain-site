@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "./CartProvider";
+import UnlimitedPassInfo from "./UnlimitedPassInfo";
 
 export default function CartDrawer() {
   const { items, itemCount, subtotal, isOpen, setIsOpen, removeItem, updateQuantity } =
     useCart();
   const router = useRouter();
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  const physicalItems = items.filter((i) => i.type !== "digital");
+  const digitalItems = items.filter((i) => i.type === "digital");
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -23,9 +28,58 @@ export default function CartDrawer() {
     };
   }, [isOpen, setIsOpen]);
 
-  function handleCheckout() {
+  function handlePhysicalCheckout() {
     setIsOpen(false);
     router.push("/shop/checkout");
+  }
+
+  async function handleDigitalCheckout() {
+    setCheckingOut(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cartItems: digitalItems.map((item) => ({
+            slug: item.slug,
+            ...(item.trackKey ? { trackKey: item.trackKey, trackTitle: item.title } : {}),
+            releaseTitle: item.releaseTitle || item.title,
+            price: item.price,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        // Not logged in — bounce to login with buy context so the
+        // value-prop banner + guest checkout option shows.
+        setIsOpen(false);
+        const totalPrice = digitalItems.reduce((s, i) => s + i.price, 0);
+        const first = digitalItems[0];
+        const qp = new URLSearchParams({
+          redirect: window.location.pathname,
+          slug: first.slug || "",
+          title: digitalItems.length === 1
+            ? (first.releaseTitle || first.title)
+            : `${digitalItems.length} items`,
+          artist: first.variantTitle || "Daisy Chain",
+          price: String(totalPrice),
+        });
+        router.push(`/login?${qp.toString()}`);
+        return;
+      }
+      if (data.url) {
+        // Clear digital items from cart before redirecting to Stripe
+        for (const item of digitalItems) {
+          removeItem(item.variantId);
+        }
+        window.location.href = data.url;
+        return;
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setCheckingOut(false);
+    }
   }
 
   return (
@@ -75,63 +129,122 @@ export default function CartDrawer() {
               </div>
             ) : (
               <div className="space-y-4">
-                {items.map((item) => (
-                  <div
-                    key={item.variantId}
-                    className="flex gap-4 p-3 rounded-lg bg-bg-raised/50"
-                  >
-                    {item.imageUrl && (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="w-16 h-16 object-cover rounded-md shrink-0"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">
-                        {item.title}
-                      </p>
-                      {item.variantTitle !== "Default Title" && (
-                        <p className="text-xs text-text-muted mt-0.5">
-                          {item.variantTitle}
-                        </p>
-                      )}
-                      <p className="text-sm text-blue-300 mt-1">
-                        ${item.price.toFixed(2)}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          onClick={() =>
-                            updateQuantity(item.variantId, item.quantity - 1)
-                          }
-                          className="w-6 h-6 flex items-center justify-center rounded bg-bg-shelf text-text-secondary hover:text-text-primary text-xs transition-colors"
-                        >
-                          −
-                        </button>
-                        <span className="text-sm text-text-primary w-6 text-center" data-label>
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() =>
-                            updateQuantity(item.variantId, item.quantity + 1)
-                          }
-                          className="w-6 h-6 flex items-center justify-center rounded bg-bg-shelf text-text-secondary hover:text-text-primary text-xs transition-colors"
-                        >
-                          +
-                        </button>
+                {/* Digital items */}
+                {digitalItems.length > 0 && (
+                  <>
+                    <p className="text-label text-xs uppercase tracking-wider text-text-muted" data-label>
+                      Digital
+                    </p>
+                    {digitalItems.map((item) => (
+                      <div
+                        key={item.variantId}
+                        className="flex gap-4 p-3 rounded-lg bg-bg-raised/50"
+                      >
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.releaseTitle || item.title}
+                            className="w-12 h-12 object-cover rounded-md shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate">
+                            {item.title}
+                          </p>
+                          <p className="text-xs text-text-muted mt-0.5 truncate">
+                            {item.variantTitle}
+                            {item.releaseTitle ? ` — ${item.releaseTitle}` : ""}
+                          </p>
+                          <p className="text-sm text-blue-300 mt-1">
+                            ${item.price.toFixed(2)}
+                          </p>
+                        </div>
                         <button
                           onClick={() => removeItem(item.variantId)}
-                          className="ml-auto text-text-muted hover:text-red-400 text-xs transition-colors"
+                          className="self-center text-text-muted hover:text-red-400 text-xs transition-colors shrink-0"
                         >
                           Remove
                         </button>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    ))}
+                  </>
+                )}
+
+                {/* Physical items */}
+                {physicalItems.length > 0 && (
+                  <>
+                    {digitalItems.length > 0 && (
+                      <p className="text-label text-xs uppercase tracking-wider text-text-muted pt-2" data-label>
+                        Physical
+                      </p>
+                    )}
+                    {physicalItems.map((item) => (
+                      <div
+                        key={item.variantId}
+                        className="flex gap-4 p-3 rounded-lg bg-bg-raised/50"
+                      >
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-16 h-16 object-cover rounded-md shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate">
+                            {item.title}
+                          </p>
+                          {item.variantTitle !== "Default Title" && (
+                            <p className="text-xs text-text-muted mt-0.5">
+                              {item.variantTitle}
+                            </p>
+                          )}
+                          <p className="text-sm text-blue-300 mt-1">
+                            ${item.price.toFixed(2)}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.variantId, item.quantity - 1)
+                              }
+                              className="w-6 h-6 flex items-center justify-center rounded bg-bg-shelf text-text-secondary hover:text-text-primary text-xs transition-colors"
+                            >
+                              −
+                            </button>
+                            <span className="text-sm text-text-primary w-6 text-center" data-label>
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateQuantity(item.variantId, item.quantity + 1)
+                              }
+                              className="w-6 h-6 flex items-center justify-center rounded bg-bg-shelf text-text-secondary hover:text-text-primary text-xs transition-colors"
+                            >
+                              +
+                            </button>
+                            <button
+                              onClick={() => removeItem(item.variantId)}
+                              className="ml-auto text-text-muted hover:text-red-400 text-xs transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
+
+          {/* Unlimited Pass upsell */}
+          {digitalItems.length > 0 && (
+            <PassUpsell
+              cartDigitalTotal={digitalItems.reduce((s, i) => s + i.price, 0)}
+              onClose={() => setIsOpen(false)}
+            />
+          )}
 
           {/* Footer */}
           {items.length > 0 && (
@@ -144,19 +257,98 @@ export default function CartDrawer() {
                   ${subtotal.toFixed(2)}
                 </span>
               </div>
-              <p className="text-text-muted text-xs mb-4">
-                Shipping calculated at checkout
-              </p>
-              <button
-                onClick={handleCheckout}
-                className="w-full py-3 rounded-full bg-blue-300 text-bg-deep font-semibold text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors"
-              >
-                Checkout
-              </button>
+
+              {physicalItems.length > 0 && digitalItems.length > 0 ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={handleDigitalCheckout}
+                    disabled={checkingOut}
+                    className="w-full py-3 rounded-full bg-blue-300 text-bg-deep font-semibold text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
+                  >
+                    {checkingOut ? "Redirecting..." : `Checkout Digital (${digitalItems.length} ${digitalItems.length === 1 ? "track" : "tracks"})`}
+                  </button>
+                  <button
+                    onClick={handlePhysicalCheckout}
+                    className="w-full py-3 rounded-full border border-blue-300/30 text-blue-300 font-semibold text-sm hover:bg-blue-300/10 transition-colors"
+                  >
+                    Checkout Physical ({physicalItems.length} {physicalItems.length === 1 ? "item" : "items"})
+                  </button>
+                </div>
+              ) : digitalItems.length > 0 ? (
+                <>
+                  <button
+                    onClick={handleDigitalCheckout}
+                    disabled={checkingOut}
+                    className="w-full py-3 rounded-full bg-blue-300 text-bg-deep font-semibold text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
+                  >
+                    {checkingOut ? "Redirecting..." : "Checkout"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-text-muted text-xs mb-4">
+                    Shipping calculated at checkout
+                  </p>
+                  <button
+                    onClick={handlePhysicalCheckout}
+                    className="w-full py-3 rounded-full bg-blue-300 text-bg-deep font-semibold text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors"
+                  >
+                    Checkout
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
       </div>
     </>
+  );
+}
+
+function PassUpsell({
+  cartDigitalTotal,
+  onClose,
+}: {
+  cartDigitalTotal: number;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [buying, setBuying] = useState(false);
+  const passPrice = 99;
+  const remaining = Math.max(passPrice - cartDigitalTotal, 1);
+
+  return (
+    <div className="mx-6 mb-2 p-3 rounded-lg border border-blue-300/15 bg-blue-300/[0.04]">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-text-primary text-xs font-semibold">
+          Unlimited Music Pass
+        </span>
+        <UnlimitedPassInfo />
+      </div>
+      <p className="text-text-secondary text-xs leading-relaxed mb-3">
+        For ${remaining.toFixed(0)} more, get our entire discography and every upcoming release a week before it drops. For eternity.
+      </p>
+      <button
+        onClick={async () => {
+          setBuying(true);
+          try {
+            const res = await fetch("/api/checkout-pass", { method: "POST" });
+            const data = await res.json();
+            if (res.status === 401) {
+              onClose();
+              router.push("/login?redirect=/account");
+              return;
+            }
+            if (data.url) window.location.href = data.url;
+          } finally {
+            setBuying(false);
+          }
+        }}
+        disabled={buying}
+        className="w-full py-2 rounded-full text-xs font-semibold bg-blue-300/10 text-blue-300 border border-blue-300/20 hover:bg-blue-300/20 transition-colors disabled:opacity-50"
+      >
+        {buying ? "Redirecting..." : `Upgrade — $${remaining.toFixed(0)}`}
+      </button>
+    </div>
   );
 }

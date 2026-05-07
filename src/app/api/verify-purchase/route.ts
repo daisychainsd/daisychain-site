@@ -29,9 +29,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valid: false });
     }
 
+    const trackKey = session.metadata?.trackKey || null;
     return NextResponse.json({
       valid: true,
       slug: purchasedSlug,
+      ...(trackKey ? { trackKey } : {}),
     });
   } catch {
     return NextResponse.json({ valid: false });

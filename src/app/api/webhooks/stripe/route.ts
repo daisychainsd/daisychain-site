@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
 
     if (purchaseType === "physical") {
       await handlePhysicalOrder(session);
+    } else if (purchaseType === "cart") {
+      await handleCartPurchase(session);
     } else {
       await handleDigitalPurchase(session);
     }
@@ -96,6 +98,7 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
     const email = session.customer_details?.email || session.customer_email;
     if (slug && email) {
       // Save guest purchase to Supabase
+      const trackKey = session.metadata?.trackKey || null;
       const supabase = createAdminClient();
       const { error: gpError } = await supabase
         .from("guest_purchases")
@@ -103,6 +106,7 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
           email,
           release_slug: slug,
           stripe_session_id: session.id,
+          ...(trackKey ? { track_key: trackKey } : {}),
         });
       if (gpError) {
         console.error("Failed to record guest purchase:", gpError);
@@ -174,17 +178,63 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
       return;
     }
 
-    const { error } = await supabase.from("purchases").upsert(
-      {
-        user_id: userId,
-        release_slug: slug,
-        stripe_session_id: session.id,
-      },
-      { onConflict: "user_id,release_slug" },
-    );
+    const trackKey = session.metadata?.trackKey || null;
+
+    // For track purchases, use insert (the COALESCE-based unique index handles dedup).
+    // For full-release purchases, upsert on the original (user_id, release_slug) pair.
+    const row = {
+      user_id: userId,
+      release_slug: slug,
+      stripe_session_id: session.id,
+      ...(trackKey ? { track_key: trackKey } : {}),
+    };
+    const { error } = trackKey
+      ? await supabase.from("purchases").insert(row)
+      : await supabase.from("purchases").upsert(row, { onConflict: "user_id,release_slug" });
 
     if (error) {
       console.error("Failed to record purchase:", error);
+    }
+  }
+}
+
+async function handleCartPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.userId;
+  if (!userId) {
+    console.error("No userId in cart session metadata");
+    return;
+  }
+
+  const cartTracksRaw = session.metadata?.cartTracks;
+  if (!cartTracksRaw) {
+    console.error("No cartTracks in cart session metadata");
+    return;
+  }
+
+  let items: { slug: string; trackKey?: string; trackTitle?: string }[];
+  try {
+    items = JSON.parse(cartTracksRaw);
+  } catch {
+    console.error("Failed to parse cartTracks metadata:", cartTracksRaw);
+    return;
+  }
+
+  const supabase = createAdminClient();
+
+  for (const item of items) {
+    const row = {
+      user_id: userId,
+      release_slug: item.slug,
+      stripe_session_id: session.id,
+      ...(item.trackKey ? { track_key: item.trackKey } : {}),
+    };
+    // Track purchases use INSERT (COALESCE index handles dedup).
+    // Full-release purchases use UPSERT on (user_id, release_slug).
+    const { error } = item.trackKey
+      ? await supabase.from("purchases").insert(row)
+      : await supabase.from("purchases").upsert(row, { onConflict: "user_id,release_slug" });
+    if (error) {
+      console.error(`Failed to record cart purchase (${item.slug}/${item.trackKey || "full"}):`, error);
     }
   }
 }

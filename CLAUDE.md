@@ -28,7 +28,7 @@ local work  →  push to dev  →  dev.daisychainsd.com auto-builds  →  review
 - **Stale build cache gotcha**: Occasionally Vercel ships a prerendered homepage with empty Sanity data even though Sanity has content (likely an intermittent fetch during build). Nuclear fix: **`git commit --allow-empty -m "rebuild" && git push origin dev`** — a fresh build regenerates the HTML correctly.
 - **Vercel CLI** (`vercel`) is installed and logged in as **playerdave-1800**. Useful: `vercel ls`, `vercel env ls preview`, `vercel env pull /tmp/preview.env --environment=preview --git-branch=dev`, `vercel inspect <url> --logs`.
 
-Daisy Chain SD is an independent electronic music label based in San Diego, run by Player Dave. This site replaces the old Squarespace site at daisychainsd.com and aims to be a self-hosted Bandcamp alternative.
+Daisy Chain SD is an independent electronic music label based in San Diego, run by Player Dave. The label name is **Daisy Chain Recordings** (never "Records") across all site copy, metadata, and emails. This site replaces the old Squarespace site at daisychainsd.com and aims to be a self-hosted Bandcamp alternative.
 
 ## Stack
 
@@ -399,6 +399,12 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - Track streaming lock: per-track `comingSoon` bool + auto-lock when release `status === "upcoming"`; GROQ nulls `audioUrl`/`previewUrl` so stream URLs never reach the browser; `TrackList` shows lock icon + Coming Soon pill
 - Homepage ISR: `export const revalidate = 60` so Studio edits propagate without redeploying
 - Stable preview alias: **`dev.daisychainsd.com`** aliased to `dev` branch in Vercel; DNS CNAME set at Squarespace
+- Transparent PNG favicons: black flower (light mode) + white flower (dark mode via `prefers-color-scheme` media query). Apple touch icon at 180x180. Old `favicon.ico` / `icon.png` removed.
+- OG image switched to `DCR_PFP_NoCircle_2025.png` (the PFP) for link previews. Twitter card set to `summary` (square).
+- Page-specific titles via `title.template: "%s — Daisy Chain Recordings"` — every page now shows its name in the tab/link preview (e.g. "Music — Daisy Chain Recordings", "Ballerina by Player Dave — Daisy Chain Recordings"). Dynamic `generateMetadata` on release, artist, and shop product pages.
+- "Daisy Chain Records" → "Daisy Chain Recordings" across all site copy, metadata, footer, header aria-label, email sender, studio title.
+- Sanity data fix: `trackArtists` added to DCR#18 "Cocky" (Mirror Maze, Niles) and DCR#18.5 "Cocky (Coido Remix)" (Mirror Maze, Niles, Coido) so per-track credits match release-level credits.
+- Sanity data fix: DCR#21 title corrected from "Sakima EP" to "Sakima / Melted EP".
 
 ### Session 1 (2026-04-22) — Daisy Chain Design System install + Homepage V2 port
 

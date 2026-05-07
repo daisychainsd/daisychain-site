@@ -3,18 +3,19 @@ import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { client as sanityClient } from "@/sanity/client";
 
+const PER_TRACK_PRICE = 2;
+
 /**
- * Create a Stripe Checkout session for a digital release purchase.
+ * Create a Stripe Checkout session for digital purchases.
  *
- * Two paths:
- *   - Authenticated: existing flow. Uses Supabase user.email + userId metadata.
- *     Success URL drops back into /account?purchased=<slug> so downloads
- *     appear in the user's dashboard.
- *   - Guest: caller provides `guestEmail`, and should send `guestCheckout: true`
- *     from /login so the session stays guest even if a stale auth cookie exists.
- *     No userId metadata; `isGuest: "true"` instead. Success URL goes to
- *     /download/<slug>?session_id={CHECKOUT_SESSION_ID} which uses
- *     /api/verify-purchase to validate the session before serving downloads.
+ * Accepts three shapes:
+ *   1. Single full release: `{ slug }` — price from Sanity.
+ *   2. Single track: `{ slug, trackKey, trackTitle }` — fixed $2.
+ *   3. Cart batch: `{ cartItems: [{ slug, trackKey, trackTitle }] }` — $2 each.
+ *
+ * Two auth paths:
+ *   - Authenticated: uses Supabase user.email + userId metadata.
+ *   - Guest: caller provides `guestEmail` + `guestCheckout: true`.
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -27,21 +28,25 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   const body = await req.json();
-  const { releaseId, slug } = body;
+  const { cartItems } = body;
+
+  // Cart batch mode — multiple tracks at $2 each
+  if (Array.isArray(cartItems) && cartItems.length > 0) {
+    return handleCartCheckout(req, user, cartItems);
+  }
+
+  // Single item mode (existing flow)
+  const { releaseId, slug, trackKey, trackTitle } = body;
   const guestEmail =
     typeof body.guestEmail === "string" ? body.guestEmail.trim().toLowerCase() : undefined;
 
   const forceGuestCheckout =
     body.guestCheckout === true || body.guestCheckout === "true";
 
-  // Guest checkout from /login must stay on the guest path even when a stale
-  // Supabase session cookie exists; otherwise Stripe gets account success_url +
-  // userId metadata and the buyer never lands on /download.
   const isGuestCheckout = Boolean(
     guestEmail && (!user || forceGuestCheckout),
   );
 
-  // Either an authenticated user OR a valid guest email must be present.
   if (!isGuestCheckout && !user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -53,6 +58,8 @@ export async function POST(req: NextRequest) {
   if (!slugStr) {
     return NextResponse.json({ error: "Missing release" }, { status: 400 });
   }
+
+  const isTrackPurchase = typeof trackKey === "string" && trackKey.length > 0;
 
   // Server-side price lookup — never trust client-supplied price.
   const release = sanityClient
@@ -69,9 +76,18 @@ export async function POST(req: NextRequest) {
   if (!release) {
     return NextResponse.json({ error: "Release not found" }, { status: 404 });
   }
-  if (!release.price || release.price <= 0) {
+
+  const unitPrice = isTrackPurchase ? PER_TRACK_PRICE : release.price;
+  if (!unitPrice || unitPrice <= 0) {
     return NextResponse.json({ error: "No price set for this release" }, { status: 400 });
   }
+
+  const productName = isTrackPurchase
+    ? (trackTitle || "Track")
+    : release.title;
+  const productDesc = isTrackPurchase
+    ? `${release.artist} — ${release.title} — Single Track (WAV)`
+    : `${release.artist} — Digital Download (WAV)`;
 
   const customerEmail = isGuestCheckout ? guestEmail! : user!.email!;
   const origin = req.nextUrl.origin;
@@ -86,17 +102,15 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: release.title,
-              description: `${release.artist} — Digital Download (WAV)`,
+              name: productName,
+              description: productDesc,
             },
-            unit_amount: Math.round(release.price * 100),
+            unit_amount: Math.round(unitPrice * 100),
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      // Logged-in users go to their dashboard; guests get the single-release
-      // download page which validates the Stripe session against the slug.
       success_url: isGuestCheckout
         ? `${origin}/download/${slugStr}?session_id={CHECKOUT_SESSION_ID}`
         : `${origin}/account?purchased=${slugStr}`,
@@ -106,12 +120,114 @@ export async function POST(req: NextRequest) {
         slug: slugStr,
         title: release.title,
         artist: release.artist,
+        ...(isTrackPurchase ? { trackKey, trackTitle: trackTitle || "" } : {}),
         ...(isGuestCheckout ? { isGuest: "true" } : { userId: user!.id }),
       },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Checkout failed";
     console.error("Stripe checkout.session.create:", err);
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+
+  return NextResponse.json({ url: session.url });
+}
+
+/**
+ * Handle cart-based checkout for digital items (full releases + individual tracks).
+ * Creates a single Stripe session with one line item per cart entry.
+ * Tracks are $2 each; full releases use the Sanity price.
+ */
+async function handleCartCheckout(
+  req: NextRequest,
+  user: { id: string; email?: string } | null,
+  cartItems: { slug: string; trackKey?: string; trackTitle?: string; releaseTitle?: string; price?: number }[],
+) {
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Dedupe and validate
+  const seen = new Set<string>();
+  const validItems: typeof cartItems = [];
+  for (const item of cartItems) {
+    if (!item.slug) continue;
+    const key = item.trackKey ? `${item.slug}-${item.trackKey}` : `release-${item.slug}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    validItems.push(item);
+  }
+
+  if (validItems.length === 0) {
+    return NextResponse.json({ error: "No valid items" }, { status: 400 });
+  }
+
+  // Look up release info for each unique slug (title, artist, price)
+  const slugs = [...new Set(validItems.map((i) => i.slug))];
+  const releases = sanityClient
+    ? await sanityClient.fetch<{ slug: string; title: string; artist: string; price: number | null }[]>(
+        `*[_type == "release" && slug.current in $slugs] {
+          "slug": slug.current,
+          title,
+          "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+          price
+        }`,
+        { slugs },
+      )
+    : [];
+
+  const releaseMap = new Map(releases.map((r) => [r.slug, r]));
+
+  const lineItems = validItems.map((item) => {
+    const release = releaseMap.get(item.slug);
+    const artist = release?.artist || "Daisy Chain";
+    const relTitle = release?.title || item.releaseTitle || item.slug;
+    const isTrack = Boolean(item.trackKey);
+    const unitPrice = isTrack ? PER_TRACK_PRICE : (release?.price || item.price || 0);
+    return {
+      price_data: {
+        currency: "usd" as const,
+        product_data: {
+          name: isTrack ? (item.trackTitle || "Track") : relTitle,
+          description: isTrack
+            ? `${artist} — ${relTitle} — Single Track (WAV)`
+            : `${artist} — Digital Download (WAV)`,
+        },
+        unit_amount: Math.round(unitPrice * 100),
+      },
+      quantity: 1 as const,
+    };
+  });
+
+  const origin = req.nextUrl.origin;
+
+  // Store item list as JSON in metadata for the webhook
+  const tracksMeta = JSON.stringify(
+    validItems.map((item) => ({
+      slug: item.slug,
+      ...(item.trackKey ? { trackKey: item.trackKey } : {}),
+      trackTitle: item.trackTitle || "",
+    })),
+  );
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      customer_email: user.email!,
+      line_items: lineItems,
+      mode: "payment",
+      success_url: `${origin}/account?purchased=cart`,
+      cancel_url: `${origin}/music`,
+      metadata: {
+        userId: user.id,
+        type: "cart",
+        cartTracks: tracksMeta,
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Checkout failed";
+    console.error("Stripe cart checkout.session.create:", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
