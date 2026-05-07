@@ -49,9 +49,21 @@ export default function CartDrawer() {
       });
       const data = await res.json();
       if (res.status === 401) {
-        // Not logged in — bounce to login with redirect back
+        // Not logged in — bounce to login with buy context so the
+        // value-prop banner + guest checkout option shows.
         setIsOpen(false);
-        router.push("/login?redirect=" + encodeURIComponent(window.location.pathname));
+        const totalPrice = digitalItems.reduce((s, i) => s + i.price, 0);
+        const first = digitalItems[0];
+        const qp = new URLSearchParams({
+          redirect: window.location.pathname,
+          slug: first.slug || "",
+          title: digitalItems.length === 1
+            ? (first.releaseTitle || first.title)
+            : `${digitalItems.length} items`,
+          artist: first.variantTitle || "Daisy Chain",
+          price: String(totalPrice),
+        });
+        router.push(`/login?${qp.toString()}`);
         return;
       }
       if (data.url) {
@@ -60,11 +72,6 @@ export default function CartDrawer() {
           removeItem(item.variantId);
         }
         window.location.href = data.url;
-        return;
-      }
-      if (data.guestRequired) {
-        setIsOpen(false);
-        router.push("/login?redirect=" + encodeURIComponent(window.location.pathname));
         return;
       }
     } catch {
