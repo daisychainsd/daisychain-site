@@ -85,8 +85,18 @@ create table if not exists public.guest_purchases (
   email text not null,
   release_slug text not null,
   stripe_session_id text not null,
+  track_key text,
   purchased_at timestamptz not null default now()
 );
 alter table public.guest_purchases enable row level security;
 create policy "Service role full access on guest_purchases" on public.guest_purchases for all using (true) with check (true);
 create index idx_guest_purchases_email on public.guest_purchases (email);
+
+-- Per-track purchasing support (added 2026-05-07)
+-- track_key: NULL = full release purchase, non-null = individual track (Sanity _key)
+-- The unique constraint on purchases uses COALESCE so NULL (full release) deduplicates correctly.
+-- Migration:
+--   ALTER TABLE purchases ADD COLUMN IF NOT EXISTS track_key TEXT;
+--   ALTER TABLE purchases DROP CONSTRAINT IF EXISTS purchases_user_id_release_slug_key;
+--   CREATE UNIQUE INDEX IF NOT EXISTS purchases_user_release_track ON purchases(user_id, release_slug, COALESCE(track_key, '__full__'));
+--   ALTER TABLE guest_purchases ADD COLUMN IF NOT EXISTS track_key TEXT;

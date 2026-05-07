@@ -1,4 +1,5 @@
 export interface Track {
+  _key?: string;
   title: string;
   trackArtist?: string;
   trackArtists?: { name: string; slug: string; rosterTier?: string }[];

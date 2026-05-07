@@ -48,10 +48,14 @@ export default function TrackList({
   tracks,
   releaseArtist,
   releaseStatus,
+  onBuyTrack,
+  buyingTrackKey,
 }: {
   tracks: Track[];
   releaseArtist: string;
   releaseStatus?: string;
+  onBuyTrack?: (track: Track) => void;
+  buyingTrackKey?: string | null;
 }) {
   const lockAll = releaseStatus === "upcoming";
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -237,6 +241,20 @@ export default function TrackList({
               >
                 <BrandIcon icon={siYoutube} size={18} />
               </a>
+            )}
+
+            {!locked && onBuyTrack && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBuyTrack(track);
+                }}
+                disabled={buyingTrackKey === track._key}
+                className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold text-blue-300 border border-blue-300/20 hover:bg-blue-300/10 transition-colors disabled:opacity-50"
+                aria-label={`Buy ${track.title} for $2`}
+              >
+                {buyingTrackKey === track._key ? "..." : "$2"}
+              </button>
             )}
           </div>
         );

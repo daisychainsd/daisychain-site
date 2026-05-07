@@ -3,18 +3,18 @@ import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { client as sanityClient } from "@/sanity/client";
 
+const PER_TRACK_PRICE = 2;
+
 /**
- * Create a Stripe Checkout session for a digital release purchase.
+ * Create a Stripe Checkout session for a digital release or single-track purchase.
  *
- * Two paths:
- *   - Authenticated: existing flow. Uses Supabase user.email + userId metadata.
- *     Success URL drops back into /account?purchased=<slug> so downloads
- *     appear in the user's dashboard.
- *   - Guest: caller provides `guestEmail`, and should send `guestCheckout: true`
- *     from /login so the session stays guest even if a stale auth cookie exists.
- *     No userId metadata; `isGuest: "true"` instead. Success URL goes to
- *     /download/<slug>?session_id={CHECKOUT_SESSION_ID} which uses
- *     /api/verify-purchase to validate the session before serving downloads.
+ * Two purchase types:
+ *   - Full release: sends `slug` (no `trackKey`). Price from Sanity.
+ *   - Single track: sends `slug` + `trackKey` + `trackTitle`. Fixed $2.
+ *
+ * Two auth paths:
+ *   - Authenticated: uses Supabase user.email + userId metadata.
+ *   - Guest: caller provides `guestEmail` + `guestCheckout: true`.
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -27,21 +27,17 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   const body = await req.json();
-  const { releaseId, slug } = body;
+  const { releaseId, slug, trackKey, trackTitle } = body;
   const guestEmail =
     typeof body.guestEmail === "string" ? body.guestEmail.trim().toLowerCase() : undefined;
 
   const forceGuestCheckout =
     body.guestCheckout === true || body.guestCheckout === "true";
 
-  // Guest checkout from /login must stay on the guest path even when a stale
-  // Supabase session cookie exists; otherwise Stripe gets account success_url +
-  // userId metadata and the buyer never lands on /download.
   const isGuestCheckout = Boolean(
     guestEmail && (!user || forceGuestCheckout),
   );
 
-  // Either an authenticated user OR a valid guest email must be present.
   if (!isGuestCheckout && !user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -53,6 +49,8 @@ export async function POST(req: NextRequest) {
   if (!slugStr) {
     return NextResponse.json({ error: "Missing release" }, { status: 400 });
   }
+
+  const isTrackPurchase = typeof trackKey === "string" && trackKey.length > 0;
 
   // Server-side price lookup — never trust client-supplied price.
   const release = sanityClient
@@ -69,9 +67,18 @@ export async function POST(req: NextRequest) {
   if (!release) {
     return NextResponse.json({ error: "Release not found" }, { status: 404 });
   }
-  if (!release.price || release.price <= 0) {
+
+  const unitPrice = isTrackPurchase ? PER_TRACK_PRICE : release.price;
+  if (!unitPrice || unitPrice <= 0) {
     return NextResponse.json({ error: "No price set for this release" }, { status: 400 });
   }
+
+  const productName = isTrackPurchase
+    ? (trackTitle || "Track")
+    : release.title;
+  const productDesc = isTrackPurchase
+    ? `${release.artist} — ${release.title} — Single Track (WAV)`
+    : `${release.artist} — Digital Download (WAV)`;
 
   const customerEmail = isGuestCheckout ? guestEmail! : user!.email!;
   const origin = req.nextUrl.origin;
@@ -86,17 +93,15 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: release.title,
-              description: `${release.artist} — Digital Download (WAV)`,
+              name: productName,
+              description: productDesc,
             },
-            unit_amount: Math.round(release.price * 100),
+            unit_amount: Math.round(unitPrice * 100),
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      // Logged-in users go to their dashboard; guests get the single-release
-      // download page which validates the Stripe session against the slug.
       success_url: isGuestCheckout
         ? `${origin}/download/${slugStr}?session_id={CHECKOUT_SESSION_ID}`
         : `${origin}/account?purchased=${slugStr}`,
@@ -106,6 +111,7 @@ export async function POST(req: NextRequest) {
         slug: slugStr,
         title: release.title,
         artist: release.artist,
+        ...(isTrackPurchase ? { trackKey, trackTitle: trackTitle || "" } : {}),
         ...(isGuestCheckout ? { isGuest: "true" } : { userId: user!.id }),
       },
     });

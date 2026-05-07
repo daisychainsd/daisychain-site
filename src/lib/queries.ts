@@ -47,6 +47,7 @@ export const RELEASE_DETAIL = `
     links,
     description,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -75,6 +76,7 @@ export const RELEASE_DOWNLOAD = `
     coverArt,
     catalogNumber,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -116,6 +118,7 @@ export const RELEASES_BY_SLUGS = `
     coverArt,
     catalogNumber,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -134,6 +137,7 @@ export const ALL_RELEASES_DOWNLOAD = `
     coverArt,
     catalogNumber,
     tracks[] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
@@ -158,6 +162,7 @@ export const LATEST_RELEASE = `
     description,
     status,
     tracks[0...4] {
+      _key,
       title,
       trackArtist,
       "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },

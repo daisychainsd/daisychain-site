@@ -32,6 +32,7 @@ export default function DownloadPanel({
   const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("wav");
   const [converting, setConverting] = useState<string | null>(null);
+  const [purchasedTrackKey, setPurchasedTrackKey] = useState<string | null>(null);
 
   const verify = useCallback(async () => {
     setChecking(true);
@@ -51,6 +52,7 @@ export default function DownloadPanel({
         clearTimeout(timeout);
         const data = await res.json();
         setVerified(data.valid);
+        if (data.trackKey) setPurchasedTrackKey(data.trackKey);
         setChecking(false);
         return;
       } catch {
@@ -99,6 +101,7 @@ export default function DownloadPanel({
 
   const downloadableTracks = tracks
     .filter((t) => t.audioUrl)
+    .filter((t) => !purchasedTrackKey || t._key === purchasedTrackKey)
     .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0));
 
   async function downloadTrack(track: Track) {

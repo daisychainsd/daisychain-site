@@ -105,6 +105,7 @@ export default function ReleaseInteractive({
   }, [shopifyHandle]);
 
   const [buying, setBuying] = useState(false);
+  const [buyingTrackKey, setBuyingTrackKey] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedImageIndex(0);
@@ -151,6 +152,43 @@ export default function ReleaseInteractive({
       if (data.url) window.location.href = data.url;
     } finally {
       setBuying(false);
+    }
+  }
+
+  async function handleBuyTrack(track: Track) {
+    if (!track._key) return;
+
+    if (!isLoggedIn) {
+      const buyContext = new URLSearchParams({
+        redirect: `/releases/${releaseSlug ?? ""}`,
+        slug: releaseSlug ?? "",
+        title: releaseTitle,
+        artist: releaseArtist,
+        releaseId: releaseId ?? "",
+        price: "2",
+        trackKey: track._key,
+        trackTitle: track.title,
+      });
+      router.push(`/login?${buyContext.toString()}`);
+      return;
+    }
+
+    setBuyingTrackKey(track._key);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          releaseId,
+          slug: releaseSlug,
+          trackKey: track._key,
+          trackTitle: track.title,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } finally {
+      setBuyingTrackKey(null);
     }
   }
 
@@ -436,6 +474,8 @@ export default function ReleaseInteractive({
             tracks={tracks}
             releaseArtist={releaseArtist}
             releaseStatus={status}
+            onBuyTrack={!isUpcoming && !physical && tracks.length > 1 ? handleBuyTrack : undefined}
+            buyingTrackKey={buyingTrackKey}
           />
         </section>
       )}
