@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "./CartProvider";
+import UnlimitedPassInfo from "./UnlimitedPassInfo";
 
 export default function CartDrawer() {
   const { items, itemCount, subtotal, isOpen, setIsOpen, removeItem, updateQuantity } =
@@ -237,6 +238,14 @@ export default function CartDrawer() {
             )}
           </div>
 
+          {/* Unlimited Pass upsell */}
+          {digitalItems.length > 0 && (
+            <PassUpsell
+              cartDigitalTotal={digitalItems.reduce((s, i) => s + i.price, 0)}
+              onClose={() => setIsOpen(false)}
+            />
+          )}
+
           {/* Footer */}
           {items.length > 0 && (
             <div className="px-6 py-5 border-t border-blue-300/10">
@@ -293,5 +302,53 @@ export default function CartDrawer() {
         </div>
       </div>
     </>
+  );
+}
+
+function PassUpsell({
+  cartDigitalTotal,
+  onClose,
+}: {
+  cartDigitalTotal: number;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [buying, setBuying] = useState(false);
+  const passPrice = 99;
+  const remaining = Math.max(passPrice - cartDigitalTotal, 1);
+
+  return (
+    <div className="mx-6 mb-2 p-3 rounded-lg border border-blue-300/15 bg-blue-300/[0.04]">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-text-primary text-xs font-semibold">
+          Unlimited Music Pass
+        </span>
+        <UnlimitedPassInfo />
+      </div>
+      <p className="text-text-secondary text-xs leading-relaxed mb-3">
+        For ${remaining.toFixed(0)} more, get our entire discography and every upcoming release a week before it drops. For eternity.
+      </p>
+      <button
+        onClick={async () => {
+          setBuying(true);
+          try {
+            const res = await fetch("/api/checkout-pass", { method: "POST" });
+            const data = await res.json();
+            if (res.status === 401) {
+              onClose();
+              router.push("/login?redirect=/account");
+              return;
+            }
+            if (data.url) window.location.href = data.url;
+          } finally {
+            setBuying(false);
+          }
+        }}
+        disabled={buying}
+        className="w-full py-2 rounded-full text-xs font-semibold bg-blue-300/10 text-blue-300 border border-blue-300/20 hover:bg-blue-300/20 transition-colors disabled:opacity-50"
+      >
+        {buying ? "Redirecting..." : `Upgrade — $${remaining.toFixed(0)}`}
+      </button>
+    </div>
   );
 }

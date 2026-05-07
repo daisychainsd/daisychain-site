@@ -8,6 +8,7 @@ import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
 import DspRow from "./DspRow";
 import { useCart } from "./CartProvider";
+import UnlimitedPassInfo from "./UnlimitedPassInfo";
 import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/lib/types";
 import type { ShopifyProduct } from "@/lib/shopify";
@@ -82,16 +83,29 @@ export default function ReleaseInteractive({
     formats?.[0] || "digital"
   );
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasPass, setHasPass] = useState(false);
   const [shopifyProduct, setShopifyProduct] = useState<ShopifyProduct | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [buyingPass, setBuyingPass] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
     supabase.auth.getUser().then(
       (res: { data: { user: unknown } }) => {
-        setIsLoggedIn(!!res.data.user);
+        const u = res.data.user as { id: string } | null;
+        setIsLoggedIn(!!u);
+        if (u) {
+          supabase
+            .from("profiles")
+            .select("has_unlimited_pass")
+            .eq("id", u.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.has_unlimited_pass) setHasPass(true);
+            });
+        }
       },
     );
   }, []);
@@ -470,6 +484,38 @@ export default function ReleaseInteractive({
             releaseSlug={releaseSlug}
           />
         </section>
+      )}
+
+      {/* Unlimited Pass CTA */}
+      {!isUpcoming && !physical && !hasPass && (
+        <div className="mt-8 flex items-center justify-between p-4 rounded-lg border border-blue-300/10 bg-blue-300/[0.03]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-text-primary text-sm font-semibold whitespace-nowrap">
+              Unlimited Music Pass
+            </span>
+            <UnlimitedPassInfo />
+          </div>
+          <button
+            onClick={async () => {
+              setBuyingPass(true);
+              try {
+                const res = await fetch("/api/checkout-pass", { method: "POST" });
+                const data = await res.json();
+                if (res.status === 401) {
+                  router.push("/login?redirect=" + encodeURIComponent(window.location.pathname));
+                  return;
+                }
+                if (data.url) window.location.href = data.url;
+              } finally {
+                setBuyingPass(false);
+              }
+            }}
+            disabled={buyingPass}
+            className="shrink-0 px-4 py-2 rounded-full text-sm font-semibold bg-blue-300/10 text-blue-300 border border-blue-300/20 hover:bg-blue-300/20 transition-colors disabled:opacity-50"
+          >
+            {buyingPass ? "..." : "$99"}
+          </button>
+        </div>
       )}
 
       {/* Embedded Player fallback */}

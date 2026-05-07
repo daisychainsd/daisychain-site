@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import UnlimitedPassInfo from "@/components/UnlimitedPassInfo";
 
 type Format = "wav" | "flac" | "aiff" | "mp3";
 const FORMATS: { id: Format; label: string }[] = [
@@ -145,13 +146,16 @@ export default function AccountClient({
           <div className="container-organic p-6 sm:p-8 mb-12">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-title text-text-primary mb-1">
-                  Unlimited Pass
-                </h2>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-title text-text-primary">
+                    Unlimited Music Pass
+                  </h2>
+                  <UnlimitedPassInfo />
+                </div>
                 <p className="text-text-secondary text-sm max-w-lg">
-                  One-time purchase of $100 for lifetime access to download
-                  every Daisy Chain release — past, present, and future — in
-                  any format.
+                  Every release in our catalog, new drops a week early, all
+                  future releases included. One price, forever. Any previous
+                  purchases are credited toward the pass.
                 </p>
               </div>
               <button
@@ -159,7 +163,7 @@ export default function AccountClient({
                 disabled={buyingPass}
                 className="shrink-0 container-pill-r px-6 py-3 bg-blue-300 text-bg-deep font-medium text-sm hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
               >
-                {buyingPass ? "Redirecting..." : "Get Unlimited — $100"}
+                {buyingPass ? "Redirecting..." : "Get Unlimited — $99"}
               </button>
             </div>
           </div>

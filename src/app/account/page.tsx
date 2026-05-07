@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = { title: "Account" };
 import { sanityFetch } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
-import { RELEASES_BY_SLUGS, ALL_RELEASES_DOWNLOAD } from "@/lib/queries";
+import { RELEASES_BY_SLUGS, ALL_RELEASES_DOWNLOAD_WITH_EARLY } from "@/lib/queries";
 import AccountClient from "./AccountClient";
 
 interface DownloadRelease {
@@ -44,7 +44,13 @@ export default async function AccountPage() {
   let releases: DownloadRelease[] = [];
 
   if (hasUnlimitedPass) {
-    releases = await sanityFetch<DownloadRelease>(ALL_RELEASES_DOWNLOAD);
+    // Pass holders get all releases + upcoming within 7 days (early access)
+    const earlyAccessDate = new Date();
+    earlyAccessDate.setDate(earlyAccessDate.getDate() + 7);
+    const earlyDateStr = earlyAccessDate.toISOString().split("T")[0];
+    releases = await sanityFetch<DownloadRelease>(ALL_RELEASES_DOWNLOAD_WITH_EARLY, {
+      earlyAccessDate: earlyDateStr,
+    });
   } else {
     const { data: purchases } = await supabase
       .from("purchases")
