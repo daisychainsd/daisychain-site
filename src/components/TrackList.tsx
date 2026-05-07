@@ -253,7 +253,7 @@ export default function TrackList({
                 className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold text-blue-300 border border-blue-300/20 hover:bg-blue-300/10 transition-colors disabled:opacity-50"
                 aria-label={`Buy ${track.title} for $2`}
               >
-                {buyingTrackKey === track._key ? "..." : "$2"}
+                {buyingTrackKey === track._key ? "..." : "$2 Add to Cart"}
               </button>
             )}
           </div>
