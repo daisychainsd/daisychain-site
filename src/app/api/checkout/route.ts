@@ -134,14 +134,14 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Handle cart-based checkout for multiple digital tracks.
- * Creates a single Stripe session with one line item per track at $2 each.
- * Stores track details as JSON in session metadata for the webhook to process.
+ * Handle cart-based checkout for digital items (full releases + individual tracks).
+ * Creates a single Stripe session with one line item per cart entry.
+ * Tracks are $2 each; full releases use the Sanity price.
  */
 async function handleCartCheckout(
   req: NextRequest,
   user: { id: string; email?: string } | null,
-  cartItems: { slug: string; trackKey: string; trackTitle?: string; releaseTitle?: string }[],
+  cartItems: { slug: string; trackKey?: string; trackTitle?: string; releaseTitle?: string; price?: number }[],
 ) {
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -151,8 +151,8 @@ async function handleCartCheckout(
   const seen = new Set<string>();
   const validItems: typeof cartItems = [];
   for (const item of cartItems) {
-    if (!item.slug || !item.trackKey) continue;
-    const key = `${item.slug}-${item.trackKey}`;
+    if (!item.slug) continue;
+    const key = item.trackKey ? `${item.slug}-${item.trackKey}` : `release-${item.slug}`;
     if (seen.has(key)) continue;
     seen.add(key);
     validItems.push(item);
@@ -162,14 +162,15 @@ async function handleCartCheckout(
     return NextResponse.json({ error: "No valid items" }, { status: 400 });
   }
 
-  // Look up release info for each unique slug
+  // Look up release info for each unique slug (title, artist, price)
   const slugs = [...new Set(validItems.map((i) => i.slug))];
   const releases = sanityClient
-    ? await sanityClient.fetch<{ slug: string; title: string; artist: string }[]>(
+    ? await sanityClient.fetch<{ slug: string; title: string; artist: string; price: number | null }[]>(
         `*[_type == "release" && slug.current in $slugs] {
           "slug": slug.current,
           title,
-          "artist": coalesce(artists[0]->name, displayArtist, artist->name)
+          "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+          price
         }`,
         { slugs },
       )
@@ -181,14 +182,18 @@ async function handleCartCheckout(
     const release = releaseMap.get(item.slug);
     const artist = release?.artist || "Daisy Chain";
     const relTitle = release?.title || item.releaseTitle || item.slug;
+    const isTrack = Boolean(item.trackKey);
+    const unitPrice = isTrack ? PER_TRACK_PRICE : (release?.price || item.price || 0);
     return {
       price_data: {
         currency: "usd" as const,
         product_data: {
-          name: item.trackTitle || "Track",
-          description: `${artist} — ${relTitle} — Single Track (WAV)`,
+          name: isTrack ? (item.trackTitle || "Track") : relTitle,
+          description: isTrack
+            ? `${artist} — ${relTitle} — Single Track (WAV)`
+            : `${artist} — Digital Download (WAV)`,
         },
-        unit_amount: PER_TRACK_PRICE * 100,
+        unit_amount: Math.round(unitPrice * 100),
       },
       quantity: 1 as const,
     };
@@ -196,11 +201,11 @@ async function handleCartCheckout(
 
   const origin = req.nextUrl.origin;
 
-  // Store track list as JSON in metadata for the webhook
+  // Store item list as JSON in metadata for the webhook
   const tracksMeta = JSON.stringify(
     validItems.map((item) => ({
       slug: item.slug,
-      trackKey: item.trackKey,
+      ...(item.trackKey ? { trackKey: item.trackKey } : {}),
       trackTitle: item.trackTitle || "",
     })),
   );

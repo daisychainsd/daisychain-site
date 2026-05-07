@@ -41,9 +41,9 @@ export default function CartDrawer() {
         body: JSON.stringify({
           cartItems: digitalItems.map((item) => ({
             slug: item.slug,
-            trackKey: item.trackKey,
-            trackTitle: item.title,
-            releaseTitle: item.releaseTitle,
+            ...(item.trackKey ? { trackKey: item.trackKey, trackTitle: item.title } : {}),
+            releaseTitle: item.releaseTitle || item.title,
+            price: item.price,
           })),
         }),
       });
@@ -125,7 +125,7 @@ export default function CartDrawer() {
                 {digitalItems.length > 0 && (
                   <>
                     <p className="text-label text-xs uppercase tracking-wider text-text-muted" data-label>
-                      Digital Tracks
+                      Digital
                     </p>
                     {digitalItems.map((item) => (
                       <div

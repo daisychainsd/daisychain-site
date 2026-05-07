@@ -76,7 +76,7 @@ export default function ReleaseInteractive({
 }: ReleaseInteractiveProps) {
   const isUpcoming = status === "upcoming";
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem, items: cartItems } = useCart();
 
   const [activeFormat, setActiveFormat] = useState(
     formats?.[0] || "digital"
@@ -118,41 +118,28 @@ export default function ReleaseInteractive({
     ? releaseTitle.replace(/\s+(EP|Album)$/i, "")
     : releaseTitle;
 
-  async function handleBuy() {
-    if (!isLoggedIn) {
-      // Pass buy context to /login so it can render a contextual value-prop
-      // banner ("you're about to buy X for $Y") and offer a guest checkout
-      // option alongside the standard sign-in flow.
-      const buyContext = new URLSearchParams({
-        redirect: `/releases/${releaseSlug ?? ""}`,
-        slug: releaseSlug ?? "",
-        title: releaseTitle,
-        artist: releaseArtist,
-        releaseId: releaseId ?? "",
-        price: String(activePrice ?? ""),
-      });
-      router.push(`/login?${buyContext.toString()}`);
-      return;
-    }
+  const releaseCartId = `digital-release-${releaseSlug}`;
 
+  function handleBuy() {
+    addItem(
+      {
+        variantId: releaseCartId,
+        productId: releaseSlug || "",
+        handle: releaseSlug || "",
+        title: releaseTitle,
+        variantTitle: releaseArtist,
+        price: activePrice || 0,
+        currency: "USD",
+        imageUrl: coverUrl || "",
+        type: "digital",
+        slug: releaseSlug,
+        releaseTitle,
+      },
+      1,
+      false,
+    );
     setBuying(true);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          releaseId,
-          title: releaseTitle,
-          artist: releaseArtist,
-          price: activePrice,
-          slug: releaseSlug,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } finally {
-      setBuying(false);
-    }
+    setTimeout(() => setBuying(false), 2000);
   }
 
   function handleBuyTrack(track: Track) {
@@ -436,21 +423,35 @@ export default function ReleaseInteractive({
             {addedToCart ? "Added to Cart" : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${parseFloat(shopifyProduct.variants.edges[0]?.node.price.amount || "0").toFixed(2)}`}
           </button>
         </div>
-      ) : activePrice && activePrice > 0 ? (
-        <div className="mt-8 flex items-center justify-between">
-          <div>
-            <p className="text-label mb-1">Tracks</p>
-            <h2 className="text-title text-text-primary">Tracklist</h2>
+      ) : activePrice && activePrice > 0 ? (() => {
+        const releaseInCart = cartItems.some((ci) => ci.variantId === releaseCartId);
+        const justAdded = buying;
+        return (
+          <div className="mt-8 flex items-center justify-between">
+            <div>
+              <p className="text-label mb-1">Tracks</p>
+              <h2 className="text-title text-text-primary">Tracklist</h2>
+            </div>
+            <button
+              onClick={() => { if (!releaseInCart) handleBuy(); }}
+              disabled={releaseInCart && !justAdded}
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
+                justAdded
+                  ? "bg-green-500/20 text-green-400 border border-green-400/30"
+                  : releaseInCart
+                    ? "bg-bg-raised text-text-muted border border-blue-300/10"
+                    : "bg-blue-300 text-bg-deep hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)]"
+              }`}
+            >
+              {justAdded
+                ? "Added to Cart"
+                : releaseInCart
+                  ? "In Cart"
+                  : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${activePrice.toFixed(2)}`}
+            </button>
           </div>
-          <button
-            onClick={handleBuy}
-            disabled={buying}
-            className="px-5 py-2.5 rounded-full bg-blue-300 text-bg-deep text-sm font-semibold hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors disabled:opacity-50"
-          >
-            {buying ? "Redirecting..." : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${activePrice.toFixed(2)}`}
-          </button>
-        </div>
-      ) : (
+        );
+      })() : (
         <div className="mt-8 mb-4">
           <p className="text-label mb-1">Tracks</p>
           <h2 className="text-title text-text-primary">Tracklist</h2>

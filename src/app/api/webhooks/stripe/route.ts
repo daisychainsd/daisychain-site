@@ -211,9 +211,9 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
     return;
   }
 
-  let tracks: { slug: string; trackKey: string; trackTitle?: string }[];
+  let items: { slug: string; trackKey?: string; trackTitle?: string }[];
   try {
-    tracks = JSON.parse(cartTracksRaw);
+    items = JSON.parse(cartTracksRaw);
   } catch {
     console.error("Failed to parse cartTracks metadata:", cartTracksRaw);
     return;
@@ -221,15 +221,20 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
 
   const supabase = createAdminClient();
 
-  for (const track of tracks) {
-    const { error } = await supabase.from("purchases").insert({
+  for (const item of items) {
+    const row = {
       user_id: userId,
-      release_slug: track.slug,
+      release_slug: item.slug,
       stripe_session_id: session.id,
-      track_key: track.trackKey,
-    });
+      ...(item.trackKey ? { track_key: item.trackKey } : {}),
+    };
+    // Track purchases use INSERT (COALESCE index handles dedup).
+    // Full-release purchases use UPSERT on (user_id, release_slug).
+    const { error } = item.trackKey
+      ? await supabase.from("purchases").insert(row)
+      : await supabase.from("purchases").upsert(row, { onConflict: "user_id,release_slug" });
     if (error) {
-      console.error(`Failed to record cart track purchase (${track.slug}/${track.trackKey}):`, error);
+      console.error(`Failed to record cart purchase (${item.slug}/${item.trackKey || "full"}):`, error);
     }
   }
 }
