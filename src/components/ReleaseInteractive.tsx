@@ -155,41 +155,31 @@ export default function ReleaseInteractive({
     }
   }
 
-  async function handleBuyTrack(track: Track) {
+  function handleBuyTrack(track: Track) {
     if (!track._key) return;
 
-    if (!isLoggedIn) {
-      const buyContext = new URLSearchParams({
-        redirect: `/releases/${releaseSlug ?? ""}`,
-        slug: releaseSlug ?? "",
-        title: releaseTitle,
-        artist: releaseArtist,
-        releaseId: releaseId ?? "",
-        price: "2",
+    const digitalId = `digital-${releaseSlug}-${track._key}`;
+    addItem(
+      {
+        variantId: digitalId,
+        productId: releaseSlug || "",
+        handle: releaseSlug || "",
+        title: track.title,
+        variantTitle: releaseArtist,
+        price: 2,
+        currency: "USD",
+        imageUrl: coverUrl || "",
+        type: "digital",
+        slug: releaseSlug,
         trackKey: track._key,
-        trackTitle: track.title,
-      });
-      router.push(`/login?${buyContext.toString()}`);
-      return;
-    }
+        releaseTitle,
+      },
+      1,
+      false, // don't auto-open drawer
+    );
 
     setBuyingTrackKey(track._key);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          releaseId,
-          slug: releaseSlug,
-          trackKey: track._key,
-          trackTitle: track.title,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } finally {
-      setBuyingTrackKey(null);
-    }
+    setTimeout(() => setBuyingTrackKey(null), 2000);
   }
 
   function handleAddPhysicalToCart() {
@@ -476,6 +466,7 @@ export default function ReleaseInteractive({
             releaseStatus={status}
             onBuyTrack={!isUpcoming && !physical && tracks.length > 1 ? handleBuyTrack : undefined}
             buyingTrackKey={buyingTrackKey}
+            releaseSlug={releaseSlug}
           />
         </section>
       )}

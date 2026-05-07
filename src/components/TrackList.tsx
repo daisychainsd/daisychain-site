@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { siYoutube } from "simple-icons";
 import { BrandIcon } from "@/components/BrandIcon";
+import { useCart } from "@/components/CartProvider";
 import type { Track } from "@/lib/types";
 
 // Renders the per-track credit. If trackArtists (refs) exist, each name is a
@@ -50,14 +51,17 @@ export default function TrackList({
   releaseStatus,
   onBuyTrack,
   buyingTrackKey,
+  releaseSlug,
 }: {
   tracks: Track[];
   releaseArtist: string;
   releaseStatus?: string;
   onBuyTrack?: (track: Track) => void;
   buyingTrackKey?: string | null;
+  releaseSlug?: string;
 }) {
   const lockAll = releaseStatus === "upcoming";
+  const { items: cartItems } = useCart();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const wsRef = useRef<any>(null);
@@ -243,19 +247,31 @@ export default function TrackList({
               </a>
             )}
 
-            {!locked && onBuyTrack && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onBuyTrack(track);
-                }}
-                disabled={buyingTrackKey === track._key}
-                className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold text-blue-300 border border-blue-300/20 hover:bg-blue-300/10 transition-colors disabled:opacity-50"
-                aria-label={`Buy ${track.title} for $2`}
-              >
-                {buyingTrackKey === track._key ? "..." : "$2 Add to Cart"}
-              </button>
-            )}
+            {!locked && onBuyTrack && (() => {
+              const inCart = cartItems.some(
+                (ci) => ci.variantId === `digital-${releaseSlug}-${track._key}`,
+              );
+              const justAdded = buyingTrackKey === track._key;
+              return (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!inCart) onBuyTrack(track);
+                  }}
+                  disabled={inCart && !justAdded}
+                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    justAdded
+                      ? "text-green-400 border border-green-400/30 bg-green-500/10"
+                      : inCart
+                        ? "text-text-muted border border-blue-300/10"
+                        : "text-blue-300 border border-blue-300/20 hover:bg-blue-300/10"
+                  }`}
+                  aria-label={`Buy ${track.title} for $2`}
+                >
+                  {justAdded ? "Added to Cart" : inCart ? "In Cart" : "$2 Add to Cart"}
+                </button>
+              );
+            })()}
           </div>
         );
       })}

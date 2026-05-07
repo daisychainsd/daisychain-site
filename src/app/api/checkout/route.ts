@@ -6,11 +6,12 @@ import { client as sanityClient } from "@/sanity/client";
 const PER_TRACK_PRICE = 2;
 
 /**
- * Create a Stripe Checkout session for a digital release or single-track purchase.
+ * Create a Stripe Checkout session for digital purchases.
  *
- * Two purchase types:
- *   - Full release: sends `slug` (no `trackKey`). Price from Sanity.
- *   - Single track: sends `slug` + `trackKey` + `trackTitle`. Fixed $2.
+ * Accepts three shapes:
+ *   1. Single full release: `{ slug }` — price from Sanity.
+ *   2. Single track: `{ slug, trackKey, trackTitle }` — fixed $2.
+ *   3. Cart batch: `{ cartItems: [{ slug, trackKey, trackTitle }] }` — $2 each.
  *
  * Two auth paths:
  *   - Authenticated: uses Supabase user.email + userId metadata.
@@ -27,6 +28,14 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   const body = await req.json();
+  const { cartItems } = body;
+
+  // Cart batch mode — multiple tracks at $2 each
+  if (Array.isArray(cartItems) && cartItems.length > 0) {
+    return handleCartCheckout(req, user, cartItems);
+  }
+
+  // Single item mode (existing flow)
   const { releaseId, slug, trackKey, trackTitle } = body;
   const guestEmail =
     typeof body.guestEmail === "string" ? body.guestEmail.trim().toLowerCase() : undefined;
@@ -118,6 +127,102 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Checkout failed";
     console.error("Stripe checkout.session.create:", err);
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+
+  return NextResponse.json({ url: session.url });
+}
+
+/**
+ * Handle cart-based checkout for multiple digital tracks.
+ * Creates a single Stripe session with one line item per track at $2 each.
+ * Stores track details as JSON in session metadata for the webhook to process.
+ */
+async function handleCartCheckout(
+  req: NextRequest,
+  user: { id: string; email?: string } | null,
+  cartItems: { slug: string; trackKey: string; trackTitle?: string; releaseTitle?: string }[],
+) {
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Dedupe and validate
+  const seen = new Set<string>();
+  const validItems: typeof cartItems = [];
+  for (const item of cartItems) {
+    if (!item.slug || !item.trackKey) continue;
+    const key = `${item.slug}-${item.trackKey}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    validItems.push(item);
+  }
+
+  if (validItems.length === 0) {
+    return NextResponse.json({ error: "No valid items" }, { status: 400 });
+  }
+
+  // Look up release info for each unique slug
+  const slugs = [...new Set(validItems.map((i) => i.slug))];
+  const releases = sanityClient
+    ? await sanityClient.fetch<{ slug: string; title: string; artist: string }[]>(
+        `*[_type == "release" && slug.current in $slugs] {
+          "slug": slug.current,
+          title,
+          "artist": coalesce(artists[0]->name, displayArtist, artist->name)
+        }`,
+        { slugs },
+      )
+    : [];
+
+  const releaseMap = new Map(releases.map((r) => [r.slug, r]));
+
+  const lineItems = validItems.map((item) => {
+    const release = releaseMap.get(item.slug);
+    const artist = release?.artist || "Daisy Chain";
+    const relTitle = release?.title || item.releaseTitle || item.slug;
+    return {
+      price_data: {
+        currency: "usd" as const,
+        product_data: {
+          name: item.trackTitle || "Track",
+          description: `${artist} — ${relTitle} — Single Track (WAV)`,
+        },
+        unit_amount: PER_TRACK_PRICE * 100,
+      },
+      quantity: 1 as const,
+    };
+  });
+
+  const origin = req.nextUrl.origin;
+
+  // Store track list as JSON in metadata for the webhook
+  const tracksMeta = JSON.stringify(
+    validItems.map((item) => ({
+      slug: item.slug,
+      trackKey: item.trackKey,
+      trackTitle: item.trackTitle || "",
+    })),
+  );
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      customer_email: user.email!,
+      line_items: lineItems,
+      mode: "payment",
+      success_url: `${origin}/account?purchased=cart`,
+      cancel_url: `${origin}/music`,
+      metadata: {
+        userId: user.id,
+        type: "cart",
+        cartTracks: tracksMeta,
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Checkout failed";
+    console.error("Stripe cart checkout.session.create:", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }
 

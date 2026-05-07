@@ -19,6 +19,10 @@ export interface CartItem {
   currency: string;
   imageUrl: string;
   quantity: number;
+  type?: "physical" | "digital";
+  slug?: string;
+  trackKey?: string;
+  releaseTitle?: string;
 }
 
 interface CartContextValue {
@@ -27,7 +31,7 @@ interface CartContextValue {
   subtotal: number;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
+  addItem: (item: Omit<CartItem, "quantity">, quantity?: number, openDrawer?: boolean) => void;
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
@@ -70,10 +74,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, hydrated]);
 
   const addItem = useCallback(
-    (item: Omit<CartItem, "quantity">, quantity = 1) => {
+    (item: Omit<CartItem, "quantity">, quantity = 1, openDrawer = true) => {
       setItems((prev) => {
         const existing = prev.find((i) => i.variantId === item.variantId);
         if (existing) {
+          // Digital items are always qty 1 — don't increment
+          if (item.type === "digital") return prev;
           return prev.map((i) =>
             i.variantId === item.variantId
               ? { ...i, quantity: i.quantity + quantity }
@@ -82,7 +88,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, { ...item, quantity }];
       });
-      setIsOpen(true);
+      if (openDrawer) setIsOpen(true);
     },
     [],
   );

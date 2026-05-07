@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
 
     if (purchaseType === "physical") {
       await handlePhysicalOrder(session);
+    } else if (purchaseType === "cart") {
+      await handleCartPurchase(session);
     } else {
       await handleDigitalPurchase(session);
     }
@@ -192,6 +194,42 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
 
     if (error) {
       console.error("Failed to record purchase:", error);
+    }
+  }
+}
+
+async function handleCartPurchase(session: Stripe.Checkout.Session) {
+  const userId = session.metadata?.userId;
+  if (!userId) {
+    console.error("No userId in cart session metadata");
+    return;
+  }
+
+  const cartTracksRaw = session.metadata?.cartTracks;
+  if (!cartTracksRaw) {
+    console.error("No cartTracks in cart session metadata");
+    return;
+  }
+
+  let tracks: { slug: string; trackKey: string; trackTitle?: string }[];
+  try {
+    tracks = JSON.parse(cartTracksRaw);
+  } catch {
+    console.error("Failed to parse cartTracks metadata:", cartTracksRaw);
+    return;
+  }
+
+  const supabase = createAdminClient();
+
+  for (const track of tracks) {
+    const { error } = await supabase.from("purchases").insert({
+      user_id: userId,
+      release_slug: track.slug,
+      stripe_session_id: session.id,
+      track_key: track.trackKey,
+    });
+    if (error) {
+      console.error(`Failed to record cart track purchase (${track.slug}/${track.trackKey}):`, error);
     }
   }
 }
