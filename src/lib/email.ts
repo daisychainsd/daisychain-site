@@ -79,3 +79,48 @@ export async function sendDownloadEmail({
     console.error("Failed to send download email:", error);
   }
 }
+
+/**
+ * Alert the label owner when a purchase fails to record.
+ * Best-effort — if Resend is not configured, falls back to console.error only.
+ */
+export async function sendPurchaseFailureAlert({
+  email,
+  slug,
+  sessionId,
+  error,
+}: {
+  email: string;
+  slug: string;
+  sessionId: string;
+  error: string;
+}) {
+  const alertTo = process.env.ALERT_EMAIL || "playerdave@daisychainsd.com";
+  console.error(`PURCHASE FAILURE ALERT — customer: ${email}, slug: ${slug}, session: ${sessionId}, error: ${error}`);
+
+  const resend = getResend();
+  if (!resend) return;
+
+  try {
+    await resend.emails.send({
+      from: "Daisy Chain Recordings <noreply@daisychainsd.com>",
+      to: alertTo,
+      subject: `[ALERT] Purchase failed to record — ${slug}`,
+      html: `
+        <div style="font-family: monospace; padding: 24px; color: #e8e4df; background: #0f0e0c;">
+          <h2 style="color: #e85c5c; margin: 0 0 16px;">Purchase Recording Failed</h2>
+          <p><strong>Customer email:</strong> ${email}</p>
+          <p><strong>Release:</strong> ${slug}</p>
+          <p><strong>Stripe session:</strong> ${sessionId}</p>
+          <p><strong>Error:</strong> ${error}</p>
+          <p style="margin-top: 24px; color: #a8a299;">
+            The customer was charged but their purchase was NOT saved.
+            Check Stripe dashboard and manually add the purchase to Supabase.
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send purchase failure alert email:", err);
+  }
+}

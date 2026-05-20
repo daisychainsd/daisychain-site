@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createDraftOrder } from "@/lib/shopify-admin";
-import { sendDownloadEmail } from "@/lib/email";
+import { sendDownloadEmail, sendPurchaseFailureAlert } from "@/lib/email";
 import { generateDownloadToken } from "@/lib/download-tokens";
 import { client } from "@/sanity/client";
 import type Stripe from "stripe";
@@ -86,6 +86,12 @@ async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
     console.log("Created Shopify draft order:", draftOrder?.name);
   } catch (err) {
     console.error("Failed to create Shopify draft order:", err);
+    await sendPurchaseFailureAlert({
+      email: session.customer_details?.email || "unknown",
+      slug: "physical-order",
+      sessionId: session.id,
+      error: `Shopify draft order failed: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 }
 
@@ -108,8 +114,14 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
           stripe_session_id: session.id,
           ...(trackKey ? { track_key: trackKey } : {}),
         });
-      if (gpError) {
+      if (gpError && gpError.code !== "23505") {
         console.error("Failed to record guest purchase:", gpError);
+        await sendPurchaseFailureAlert({
+          email,
+          slug,
+          sessionId: session.id,
+          error: `guest: ${gpError.code}: ${gpError.message}`,
+        });
       }
 
       // Generate a one-time download token for the email
@@ -180,20 +192,27 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
 
     const trackKey = session.metadata?.trackKey || null;
 
-    // For track purchases, use insert (the COALESCE-based unique index handles dedup).
-    // For full-release purchases, upsert on the original (user_id, release_slug) pair.
     const row = {
       user_id: userId,
       release_slug: slug,
       stripe_session_id: session.id,
       ...(trackKey ? { track_key: trackKey } : {}),
     };
-    const { error } = trackKey
-      ? await supabase.from("purchases").insert(row)
-      : await supabase.from("purchases").upsert(row, { onConflict: "user_id,release_slug" });
+    const { error } = await supabase.from("purchases").insert(row);
 
     if (error) {
-      console.error("Failed to record purchase:", error);
+      // 23505 = duplicate key — purchase already recorded, safe to ignore
+      if (error.code === "23505") {
+        console.log("Purchase already recorded (duplicate):", slug);
+      } else {
+        console.error("Failed to record purchase:", error);
+        await sendPurchaseFailureAlert({
+          email: session.customer_details?.email || "unknown",
+          slug,
+          sessionId: session.id,
+          error: `${error.code}: ${error.message}`,
+        });
+      }
     }
   }
 }
@@ -221,6 +240,7 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
 
   const supabase = createAdminClient();
 
+  const failures: string[] = [];
   for (const item of items) {
     const row = {
       user_id: userId,
@@ -228,13 +248,22 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
       stripe_session_id: session.id,
       ...(item.trackKey ? { track_key: item.trackKey } : {}),
     };
-    // Track purchases use INSERT (COALESCE index handles dedup).
-    // Full-release purchases use UPSERT on (user_id, release_slug).
-    const { error } = item.trackKey
-      ? await supabase.from("purchases").insert(row)
-      : await supabase.from("purchases").upsert(row, { onConflict: "user_id,release_slug" });
+    const { error } = await supabase.from("purchases").insert(row);
     if (error) {
-      console.error(`Failed to record cart purchase (${item.slug}/${item.trackKey || "full"}):`, error);
+      if (error.code === "23505") {
+        console.log(`Cart item already recorded (duplicate): ${item.slug}`);
+      } else {
+        console.error(`Failed to record cart purchase (${item.slug}/${item.trackKey || "full"}):`, error);
+        failures.push(`${item.slug}: ${error.code} ${error.message}`);
+      }
     }
+  }
+  if (failures.length > 0) {
+    await sendPurchaseFailureAlert({
+      email: session.customer_details?.email || "unknown",
+      slug: items.map((i) => i.slug).join(", "),
+      sessionId: session.id,
+      error: failures.join("; "),
+    });
   }
 }

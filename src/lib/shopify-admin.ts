@@ -1,16 +1,51 @@
 const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
-const adminToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+
+// Cache the access token in memory (expires every 24h, refreshed automatically)
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+async function getAdminToken(): Promise<string> {
+  const clientId = process.env.SHOPIFY_APP_CLIENT_ID;
+  const clientSecret = process.env.SHOPIFY_APP_CLIENT_SECRET;
+
+  if (!domain || !clientId || !clientSecret) {
+    throw new Error("Shopify Admin API not configured — set SHOPIFY_APP_CLIENT_ID and SHOPIFY_APP_CLIENT_SECRET");
+  }
+
+  // Return cached token if still valid (with 5min buffer)
+  if (cachedToken && Date.now() < cachedToken.expiresAt - 300_000) {
+    return cachedToken.token;
+  }
+
+  const res = await fetch(`https://${domain}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "client_credentials",
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Shopify token exchange failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  cachedToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return cachedToken.token;
+}
 
 async function adminFetch<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
-  if (!domain || !adminToken || adminToken === "your_admin_access_token") {
-    throw new Error("Shopify Admin API not configured");
-  }
+  const token = await getAdminToken();
 
   const res = await fetch(`https://${domain}/admin/api/2024-01/graphql.json`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Shopify-Access-Token": adminToken,
+      "X-Shopify-Access-Token": token,
     },
     body: JSON.stringify({ query, variables }),
   });
