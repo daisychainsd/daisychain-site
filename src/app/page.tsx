@@ -45,6 +45,7 @@ interface UpcomingItem {
 }
 
 interface HomepageSettings {
+  latestRelease?: LatestReleaseData | null;
   upcoming?: UpcomingItem[];
 }
 
@@ -78,10 +79,14 @@ function isInLatestReleasePromoWindow(releaseDate: string): boolean {
 }
 
 export default async function HomePage() {
-  const [settings, latest] = await Promise.all([
+  const [settings, autoLatest] = await Promise.all([
     client?.fetch<HomepageSettings | null>(HOMEPAGE_SETTINGS) ?? Promise.resolve(null),
     client?.fetch<LatestReleaseData | null>(LATEST_RELEASE) ?? Promise.resolve(null),
   ]);
+
+  // Use CMS-set latest release if available, otherwise fall back to auto-detected
+  const latest = settings?.latestRelease || autoLatest;
+
   // Auto-prune: once a release flips to status:"live" (via the daily cron on
   // release day, or manually in Studio), drop it from the Upcoming section so
   // the homepage doesn't keep advertising a release that's already out.
