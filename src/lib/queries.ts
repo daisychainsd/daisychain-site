@@ -224,6 +224,37 @@ export const NEXT_EVENT = `
 
 export const HOMEPAGE_SETTINGS = `
   *[_type == "homepageSettings"][0] {
+    latestRelease->{
+      title,
+      "slug": slug.current,
+      "artist": coalesce(artists[0]->name, displayArtist, artist->name),
+      "artistSlug": artist->slug.current,
+      coverArt,
+      catalogNumber,
+      releaseType,
+      releaseDate,
+      price,
+      description,
+      status,
+      tracks[0...4] {
+        _key,
+        title,
+        trackArtist,
+        "trackArtists": trackArtists[]->{ name, "slug": slug.current, rosterTier },
+        trackNumber,
+        duration,
+        comingSoon,
+        youtubeUrl,
+        "audioUrl": select(
+          ^.status == "upcoming" || comingSoon == true => null,
+          audioFile.asset->url
+        ),
+        "previewUrl": select(
+          ^.status == "upcoming" || comingSoon == true => null,
+          previewFile.asset->url
+        )
+      }
+    },
     upcoming[] {
       itemType,
       show->{ title, "slug": slug.current, date, venue, flyer, flyerVerticalAlign, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },

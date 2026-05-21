@@ -7,6 +7,14 @@ export const homepageSettings = defineType({
   liveEdit: true,
   fields: [
     defineField({
+      name: "latestRelease",
+      title: "Latest Release",
+      description:
+        "The release featured in the Latest Release spotlight on the homepage. When a release moves from Upcoming to live, set it here.",
+      type: "reference",
+      to: [{ type: "release" }],
+    }),
+    defineField({
       name: "upcoming",
       title: "Upcoming — Shows & Releases",
       description:
