@@ -32,6 +32,21 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Protect /studio — HTTP basic auth gate
+  if (request.nextUrl.pathname.startsWith("/studio")) {
+    const studioPassword = process.env.STUDIO_PASSWORD;
+    if (studioPassword) {
+      const auth = request.headers.get("authorization");
+      const expected = "Basic " + btoa("admin:" + studioPassword);
+      if (auth !== expected) {
+        return new NextResponse("Authentication required", {
+          status: 401,
+          headers: { "WWW-Authenticate": 'Basic realm="Daisy Chain Studio"' },
+        });
+      }
+    }
+  }
+
   // Protect /account — redirect to /login if not authenticated
   if (!user && request.nextUrl.pathname.startsWith("/account")) {
     const url = request.nextUrl.clone();
@@ -52,6 +67,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|studio|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
