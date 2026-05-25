@@ -12,6 +12,7 @@ import EventsToggle from "@/components/EventsToggle";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
 import SectionHeader from "@/components/SectionHeader";
 import PastFlyerGrid from "@/components/PastFlyerGrid";
+import InlineSignup from "@/components/InlineSignup";
 
 export default async function EventsPage() {
   const events = await sanityFetch<Event>(EVENTS_LIST);
@@ -30,6 +31,8 @@ export default async function EventsPage() {
 
   return (
     <div className="max-w-[1440px] mx-auto relative" style={{ padding: "clamp(40px, 5vw, 56px) clamp(24px, 4vw, 48px)" }}>
+      <InlineSignup headline="Get notified when new events drop" campaign="events_page_signup" />
+
       <div className="flex items-end justify-between gap-4 flex-wrap mb-9">
         <SectionHeader kicker="Live" title="Events" size="xl" as="h1" />
         {upcoming.length > 0 && past.length > 0 && (

@@ -12,9 +12,11 @@ const PUBLICATION_ID = "pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed";
  */
 export async function POST(req: NextRequest) {
   let email: string;
+  let campaign: string;
   try {
     const body = await req.json();
     email = body.email?.trim().toLowerCase();
+    campaign = body.campaign || "homepage_signup";
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
           email,
           utm_source: "daisychainsd.com",
           utm_medium: "website",
-          utm_campaign: "homepage_signup",
+          utm_campaign: campaign,
         }),
       },
     );
