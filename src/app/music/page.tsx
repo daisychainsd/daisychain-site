@@ -7,6 +7,7 @@ import { urlFor } from "@/sanity/image";
 import { RELEASES_LIST } from "@/lib/queries";
 import type { ReleaseCard as ReleaseCardType } from "@/lib/types";
 import CatalogGrid from "@/components/CatalogGrid";
+import InlineSignup from "@/components/InlineSignup";
 
 export const metadata: Metadata = {
   title: "Music",
@@ -35,6 +36,7 @@ export default async function MusicPage() {
     >
       <div className="blob w-[400px] h-[400px] bg-blue-300 bottom-[-50px] left-[-100px] animate-drift" />
       <div className="max-w-7xl mx-auto relative">
+        <InlineSignup headline="Get notified when new music drops" campaign="music_page_signup" />
         <CatalogGrid releases={catalogReleases} />
       </div>
     </section>
