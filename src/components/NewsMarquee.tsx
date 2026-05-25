@@ -5,11 +5,10 @@ interface NewsMarqueeProps {
 }
 
 const DEFAULT_ITEMS = [
-  "DCR#22 BALLERINA",
-  "MAY 8 — LYNY LIVE",
-  "DAISY CHAIN #28",
+  "JUN 5 — PLAYER DAVE",
   "SPIN NIGHTCLUB · SD",
-  "NEW MERCH",
+  "DAISY CHAIN #29",
+  "DCR#22 BALLERINA",
   "DAISY CHAIN MAIL",
 ];
 
