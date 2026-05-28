@@ -49,8 +49,8 @@ export default function ReleaseCard({
         </div>
 
         <div className="px-3 pt-3 pb-3">
-          <p className="text-text-primary font-semibold text-base truncate">{title.replace(/\s+(EP|Album)$/i, "")}</p>
-          <p className="text-text-secondary text-sm truncate">{artist}</p>
+          <p className="text-text-primary font-semibold text-base truncate">{(title || "").replace(/\s+(EP|Album)$/i, "")}</p>
+          <p className="text-text-secondary text-sm truncate">{artist || ""}</p>
         </div>
       </div>
     </Link>
