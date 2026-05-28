@@ -234,7 +234,19 @@ export const release = defineType({
         ],
         layout: "radio",
       },
-      description: "Set to 'Upcoming' to show a Pre-save button instead of Buy.",
+      description: "Set to 'Upcoming' to show a Pre-save button instead of Buy. It will auto-flip to Live when 'Go Live At' arrives.",
+    }),
+    defineField({
+      name: "goLiveAt",
+      title: "Go Live At",
+      type: "datetime",
+      description: "Exact date and time this release should automatically switch from Upcoming to Live. The cron checks hourly.",
+      options: {
+        dateFormat: "YYYY-MM-DD",
+        timeFormat: "h:mm A",
+        timeStep: 15,
+      },
+      hidden: ({ document }) => (document as { status?: string })?.status !== "upcoming",
     }),
     defineField({
       name: "presaveUrl",

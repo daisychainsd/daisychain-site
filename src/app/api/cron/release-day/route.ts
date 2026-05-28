@@ -11,10 +11,9 @@ import { revalidatePath } from "next/cache";
  * "Streaming / DSP Links" collapsible — the auto-populate experiments only
  * found Apple Music reliably and that wasn't worth the script-maintenance cost.
  *
- * Schedule (vercel.json): `0 4 * * *` UTC.
- *   - In EDT (UTC-4, summer) this fires at 00:00 ET — exactly midnight.
- *   - In EST (UTC-5, winter) this fires at 23:00 ET the night before.
- *   Vercel Cron is UTC-only; adjust between `0 4` (summer) and `0 5` (winter) at DST boundaries.
+ * Schedule (vercel.json): `0 * * * *` UTC (every hour, on the hour).
+ *   Checks goLiveAt (datetime with time precision) first, falls back to
+ *   releaseDate (date-only, evaluated as midnight UTC) for older releases.
  *
  * Auth: requires `Authorization: Bearer ${CRON_SECRET}` header. Vercel Cron
  * sends this automatically when CRON_SECRET is set in Vercel env vars.
@@ -33,19 +32,26 @@ type ReleaseRow = {
   slug: string;
   catalogNumber?: string;
   releaseDate?: string;
+  goLiveAt?: string;
 };
 
 async function fetchUpcomingDue(): Promise<ReleaseRow[]> {
   const token = process.env.SANITY_API_TOKEN;
   if (!token) throw new Error("SANITY_API_TOKEN not set");
 
-  // Releases still flagged upcoming whose releaseDate has arrived (UTC-evaluated).
-  const query = `*[_type == "release" && hidden != true && status == "upcoming" && defined(releaseDate) && dateTime(releaseDate + "T00:00:00Z") <= dateTime(now())] {
+  // Releases still flagged upcoming whose goLiveAt (or releaseDate fallback)
+  // has arrived. goLiveAt is a full datetime; releaseDate is date-only so we
+  // append T00:00:00Z for the comparison.
+  const query = `*[_type == "release" && hidden != true && status == "upcoming" && (
+    (defined(goLiveAt) && dateTime(goLiveAt) <= dateTime(now()))
+    || (!defined(goLiveAt) && defined(releaseDate) && dateTime(releaseDate + "T00:00:00Z") <= dateTime(now()))
+  )] {
     _id,
     title,
     "slug": slug.current,
     catalogNumber,
-    releaseDate
+    releaseDate,
+    goLiveAt
   }`;
   const url = `${SANITY_API}/data/query/${DATASET}?query=${encodeURIComponent(query)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
