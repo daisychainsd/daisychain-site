@@ -7,6 +7,30 @@ import { generateDownloadToken } from "@/lib/download-tokens";
 import { client } from "@/sanity/client";
 import type Stripe from "stripe";
 
+const BEEHIIV_PUB_ID = "pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed";
+
+async function subscribeToBeehiiv(email: string, campaign: string) {
+  const apiKey = process.env.BEEHIIV_API_KEY;
+  if (!apiKey || !email) return;
+  try {
+    await fetch(`https://api.beehiiv.com/v2/publications/${BEEHIIV_PUB_ID}/subscriptions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        utm_source: "daisychainsd.com",
+        utm_medium: "website",
+        utm_campaign: campaign,
+      }),
+    });
+  } catch (err) {
+    console.error("Beehiiv subscribe failed:", err);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
@@ -84,6 +108,9 @@ async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
       session.customer_details?.email || undefined,
     );
     console.log("Created Shopify draft order:", draftOrder?.name);
+    if (session.customer_details?.email) {
+      await subscribeToBeehiiv(session.customer_details.email, "physical_purchase");
+    }
   } catch (err) {
     console.error("Failed to create Shopify draft order:", err);
     await sendPurchaseFailureAlert({
@@ -159,6 +186,7 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
         downloadUrl,
         coverArtUrl,
       });
+      await subscribeToBeehiiv(email, "guest_purchase");
     }
     return;
   }
@@ -199,6 +227,10 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
       ...(trackKey ? { track_key: trackKey } : {}),
     };
     const { error } = await supabase.from("purchases").insert(row);
+
+    if (!error && session.customer_details?.email) {
+      await subscribeToBeehiiv(session.customer_details.email, "digital_purchase");
+    }
 
     if (error) {
       // 23505 = duplicate key — purchase already recorded, safe to ignore
@@ -258,6 +290,10 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
       }
     }
   }
+  if (session.customer_details?.email) {
+    await subscribeToBeehiiv(session.customer_details.email, "cart_purchase");
+  }
+
   if (failures.length > 0) {
     await sendPurchaseFailureAlert({
       email: session.customer_details?.email || "unknown",
