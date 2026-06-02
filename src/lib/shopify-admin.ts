@@ -27,7 +27,8 @@ async function getAdminToken(): Promise<string> {
   });
 
   if (!res.ok) {
-    throw new Error(`Shopify token exchange failed: ${res.status} ${await res.text()}`);
+    const text = await res.text();
+    throw new Error(`Shopify token exchange failed: ${res.status}: ${text}`);
   }
 
   const data = await res.json();
