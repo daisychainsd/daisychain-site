@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createDraftOrder } from "@/lib/shopify-admin";
-import { sendDownloadEmail, sendPurchaseFailureAlert } from "@/lib/email";
+import { sendDownloadEmail, sendOrderConfirmationEmail, sendPurchaseFailureAlert } from "@/lib/email";
 import { generateDownloadToken } from "@/lib/download-tokens";
 import { client } from "@/sanity/client";
 import type Stripe from "stripe";
@@ -112,12 +112,33 @@ async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
       await subscribeToBeehiiv(session.customer_details.email, "physical_purchase");
     }
   } catch (err) {
+    // Draft order failed but we still send confirmation below
     console.error("Failed to create Shopify draft order:", err);
     await sendPurchaseFailureAlert({
       email: session.customer_details?.email || "unknown",
       slug: "physical-order",
       sessionId: session.id,
       error: `Shopify draft order failed: ${err instanceof Error ? err.message : String(err)}`,
+    });
+  }
+
+  // Send confirmation email for physical orders
+  const email = session.customer_details?.email;
+  if (email) {
+    // Retrieve line items from Stripe for item names
+    let itemNames: { title: string }[] = [];
+    try {
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+      itemNames = lineItems.data.map((li) => ({ title: li.description || "Item" }));
+    } catch {
+      itemNames = [{ title: "Your order" }];
+    }
+    await sendOrderConfirmationEmail({
+      to: email,
+      customerName: session.customer_details?.name || undefined,
+      type: "physical",
+      items: itemNames,
+      totalCents: session.amount_total || 0,
     });
   }
 }
@@ -211,6 +232,17 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
     if (error) {
       console.error("Failed to activate unlimited pass:", error);
     }
+    // Send confirmation email for unlimited pass
+    const passEmail = session.customer_details?.email;
+    if (passEmail) {
+      await sendOrderConfirmationEmail({
+        to: passEmail,
+        customerName: session.customer_details?.name || undefined,
+        type: "unlimited_pass",
+        items: [{ title: "Unlimited Pass" }],
+        totalCents: session.amount_total || 0,
+      });
+    }
   } else {
     const slug = session.metadata?.slug;
     if (!slug) {
@@ -245,6 +277,33 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
           error: `${error.code}: ${error.message}`,
         });
       }
+    }
+
+    // Send confirmation email for logged-in digital purchases
+    const email = session.customer_details?.email;
+    if (email) {
+      const title = session.metadata?.title || slug;
+      const artist = session.metadata?.artist || "Daisy Chain";
+      let coverArtUrl: string | undefined;
+      if (client) {
+        try {
+          const release = await client.fetch<{ coverArt?: string } | null>(
+            `*[_type == "release" && slug.current == $slug][0]{ "coverArt": coverArt.asset->url }`,
+            { slug },
+          );
+          coverArtUrl = release?.coverArt || undefined;
+        } catch {
+          // non-critical
+        }
+      }
+      await sendOrderConfirmationEmail({
+        to: email,
+        customerName: session.customer_details?.name || undefined,
+        type: "digital",
+        items: [{ title, artist }],
+        totalCents: session.amount_total || 0,
+        coverArtUrl,
+      });
     }
   }
 }
@@ -300,6 +359,21 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
       slug: items.map((i) => i.slug).join(", "),
       sessionId: session.id,
       error: failures.join("; "),
+    });
+  }
+
+  // Send confirmation email for cart purchases
+  const email = session.customer_details?.email;
+  if (email) {
+    const cartItems = items.map((item) => ({
+      title: item.trackTitle || item.slug,
+    }));
+    await sendOrderConfirmationEmail({
+      to: email,
+      customerName: session.customer_details?.name || undefined,
+      type: "cart",
+      items: cartItems,
+      totalCents: session.amount_total || 0,
     });
   }
 }
