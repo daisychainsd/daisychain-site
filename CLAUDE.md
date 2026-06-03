@@ -58,7 +58,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **Public queries** (`src/lib/queries.ts`): filter with `hidden != true` (and equivalent for nested references where needed) so hidden content never appears on the site.
 
 ### Schemas
-- **release** — title, slug, **`artists`** (array of artist refs in display order — primary credit is `artists[0]`, all rendered as comma-separated clickable links), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl, **`trackArtists`** array of artist refs for per-track linkable credits, plus a legacy `trackArtist` text fallback), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true). The legacy fields `artist` (single ref), `displayArtist` (string), `additionalArtists` (refs) auto-hide in Studio once `artists[]` has at least one entry; they remain in older docs as fallback so unmigrated releases keep rendering. GROQ pattern: `coalesce(artists[0]->name, displayArtist, artist->name)`. Per-track multi-artist credits render as comma-separated `<Link>`s in `TrackList` (Spotify/Apple-style); fallback order is `trackArtists[]` → `trackArtist` string → release primary artist.
+- **release** — title, slug, **`artists`** (array of artist refs in display order — primary credit is `artists[0]`, all rendered as comma-separated clickable links), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl, **`trackArtists`** array of artist refs for per-track linkable credits, plus a legacy `trackArtist` text fallback), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **`goLiveAt`** (datetime, only visible when status is upcoming — exact date+time for auto-promotion, 15min time steps, cron checks hourly), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true). The legacy fields `artist` (single ref), `displayArtist` (string), `additionalArtists` (refs) auto-hide in Studio once `artists[]` has at least one entry; they remain in older docs as fallback so unmigrated releases keep rendering. GROQ pattern: `coalesce(artists[0]->name, displayArtist, artist->name)`. Per-track multi-artist credits render as comma-separated `<Link>`s in `TrackList` (Spotify/Apple-style); fallback order is `trackArtists[]` → `trackArtist` string → release primary artist.
 - **artist** — name, slug, photo, bio, role, hometown, **rosterTier** (`"main"` default / `"side"`), links (website, instagram, spotify, soundcloud). `rosterTier: "side"` hides the artist from the `/artists` roster grid (filtered by `ARTISTS_LIST` GROQ) but the doc still exists, the `/artists/[slug]` profile page still works, and any release credit (primary `artist`, `additionalArtists`, or per-track `trackArtist`) still renders. Use Side for featured artists / collaborators / one-track contributors who shouldn't take up a roster slot.
 - **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description, **hidden** (exclude from site when true)
 
@@ -102,8 +102,9 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/api/checkout-physical` | Creates Stripe Embedded Checkout session for physical products with shipping |
 | `/api/convert` | Server-side audio format conversion (WAV → MP3/FLAC/AIFF via ffmpeg) |
 | `/api/shopify-product` | GET endpoint returning Shopify product data by handle (used by ReleaseInteractive for physical format display) |
-| `/api/webhooks/stripe` | Stripe webhook — handles `checkout.session.completed`. Records purchase in Supabase for logged-in users; sends download email via Resend for guests. Requires `STRIPE_WEBHOOK_SECRET`. |
-| `/api/newsletter` | POST endpoint — subscribes email to beehiiv newsletter (Daisy Chain Mail) with UTM tracking |
+| `/api/webhooks/stripe` | Stripe webhook — handles `checkout.session.completed`. Records purchase in Supabase for logged-in users; sends download email via Resend for guests; auto-subscribes all purchase emails to beehiiv. Requires `STRIPE_WEBHOOK_SECRET`. |
+| `/api/webhooks/sanity/preview-gen` | Sanity webhook handler — auto-generates 128k MP3 preview files for tracks with `audioFile` but no `previewFile`. Auth via `SANITY_WEBHOOK_SECRET`. **Not yet deployed** — code written, needs Sanity webhook creation + env var. |
+| `/api/newsletter` | POST endpoint — subscribes email to beehiiv newsletter (Daisy Chain Mail) with dynamic `campaign` parameter for UTM tracking |
 
 ## Components
 
@@ -125,6 +126,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and Upcoming section on homepage inside **`container-organic`**: **`text-label`** “Newsletter”, **`text-title`** headline **“skip the algorithm”**, supporting line, rounded-lg field + button (not full-width pill row). Headline copy stays direct.
 - **LayloModal** (`src/components/LayloModal.tsx`) — client component that opens a modal popup embedding the Laylo drop iframe (`dropId: feb0139b-a3c8-48cb-9aea-97055521f1b6`). Triggered by "i hate presaving things, just notify me when it's out →" text. Shown on all upcoming release views (homepage card + release detail page). Loads `laylo-sdk.js` dynamically and locks body scroll while open.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — guest post-purchase download UI. Verifies Stripe session via `/api/verify-purchase`, then shows format picker (WAV/FLAC/AIFF/MP3), per-track download buttons with conversion status, and download-all. Non-WAV formats use `/api/convert` for server-side ffmpeg transcoding.
+- **InlineSignup** (`src/components/InlineSignup.tsx`) — compact email signup banner for `/music` and `/events` pages. Pulsing red dot, uppercase headline, email input pill, blue "Join" button. Accepts `headline` and `campaign` props for contextual copy. Follows design system: `--radius-organic-sm`, `--font-heading`, `--color-bg-surface`, 6% white borders, `--ease-daisy` transitions. Success state collapses to "You're on Chain Mail." confirmation.
 - **Header/Footer** — site-wide layout; Footer includes YouTube channel link, Header includes cart icon
 
 ## Events
@@ -150,7 +152,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 ## Shopify Integration (Physical Products)
 
 - **Storefront API** (`src/lib/shopify.ts`): fetches products, variants, images, inventory for the shop pages. Read-only, public token. Also used by release pages to fetch product photos for physical formats via `getProductByHandle()`.
-- **Admin API** (`src/lib/shopify-admin.ts`): creates draft orders after Stripe payment. Requires `SHOPIFY_ADMIN_ACCESS_TOKEN` (create via Shopify admin > Settings > Apps > Develop apps).
+- **Admin API** (`src/lib/shopify-admin.ts`): creates draft orders after Stripe payment. Uses OAuth **client_credentials** flow with `SHOPIFY_APP_CLIENT_ID` + `SHOPIFY_APP_CLIENT_SECRET` to get a fresh 24h access token (cached in memory with 5min expiry buffer). App: `dc-draft-orders` created in Shopify Partners dashboard, installed on daisychainsd store, scope: `write_draft_orders`.
 - **Release → Shopify linking**: Releases with physical formats have a `shopifyHandle` field in Sanity that maps to a Shopify product. Currently linked: Dream Disc CD (`dream-disc-cd`), and then i started floating vinyl (`and-then-i-started-floating-vinyl`).
 - **Flow**: Customer browses → adds to cart → Stripe Embedded Checkout (with shipping) → payment → webhook creates Shopify draft order → fulfill via Pirate Ship
 - **Shipping tiers**: Standard ($5.99, 5-7 days), Priority ($9.99, 2-3 days), International ($15.99, 7-14 days) — defined in `/api/checkout-physical`
@@ -160,7 +162,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 Two non-overlapping subscriber pools:
 
-- **Email / Chain Mail (beehiiv)** — homepage `LeadGen` form → `/api/newsletter` → beehiiv publication "Daisy Chain Mail" (`pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed`). UTM-tagged `daisychainsd.com / website / homepage_signup`. Email-only.
+- **Email / Chain Mail (beehiiv)** — homepage `LeadGen` form → `/api/newsletter` → beehiiv publication "Daisy Chain Mail" (`pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed`). UTM-tagged `daisychainsd.com / website / <campaign>`. Email-only. Also fed by: inline signup forms on `/music` and `/events` pages (`InlineSignup` component), and **auto-subscribe on every purchase** (Stripe webhook pushes buyer email to beehiiv with campaign tags `physical_purchase`, `guest_purchase`, `digital_purchase`, `cart_purchase`).
 - **SMS drops (Laylo)** — account-signup form (`/signup`) collects an optional phone number → `/api/laylo-subscribe` → Laylo's `subscribeToUser(email, phoneNumber)` GraphQL mutation. Account holders are encouraged but not required to provide a phone; if blank, Laylo push is skipped. Email is also sent through to Laylo when present so contacts there have both channels.
 - **Why split**: beehiiv list = newsletter readers; Laylo list = SMS drop notifications. The two audiences don't auto-cross-subscribe — fans pick which channel they want by which form they fill in. Future: a phone field on `LeadGen` that pushes to Laylo too is easy if we ever want both at once (the `/api/newsletter` route would just need to call `/api/laylo-subscribe` after the beehiiv push).
 - **Endpoints**: beehiiv `https://api.beehiiv.com/v2/...` (Bearer `BEEHIIV_API_KEY`), Laylo `https://laylo.com/api/graphql` (Bearer `LAYLO_API_KEY`). Generate Laylo keys at laylo.com → Settings → Integrations → API Keyring.
@@ -355,8 +357,10 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - YouTube URLs on individual tracks (field exists in schema, needs data entry in Sanity Studio)
 - Missing cover art for 3 releases (DCR#02, DCR#10, DCR#20)
 - Missing artist photos for 7 artists
-- Resend domain verification (daisychainsd.com DNS records) + `RESEND_API_KEY` env var — until set, guest download emails silently skip
+- Resend domain verification (daisychainsd.com DNS records) — until verified, guest download emails silently skip
 - Laylo phone-number capture in LeadGen form (Laylo's `subscribeToUser` GraphQL mutation already accepts an optional `phoneNumber` variable, and `/api/newsletter` already forwards `body.phoneNumber` through to Laylo when present). Just needs a phone-input UI on the LeadGen card and a `phone` column migration on Supabase if we want to also persist it locally.
+- **Auto preview gen** — Sanity webhook → `/api/webhooks/sanity/preview-gen` auto-converts WAV→MP3 on track upload. Code written (uncommitted on dev), needs: push to main, add `SANITY_WEBHOOK_SECRET` env var to Vercel, create Sanity webhook in sanity.io/manage
+- **Scroll glitchiness** — site is glitchy when scrolling, needs investigation (reported 2026-05-20)
 - Parcel Sound API integration (future, low priority)
 
 ## What's Done
@@ -525,6 +529,61 @@ A long session covering schema cleanup, an audience-channels rebuild, the releas
 - `eventFlyerUrl` helper (`src/lib/eventFlyerUrl.ts`) for consistent flyer image URLs across components.
 - `PastFlyerGrid` component for events page past-shows section.
 
+### Session 5 (2026-05-20) — Purchase flow fix, Shopify Admin API, failure alerts, CMS latest release
+
+**Critical bug fix: logged-in purchases silently failing:**
+
+- **Root cause**: `purchases` table had a migration that dropped the `unique(user_id, release_slug)` constraint and replaced it with a COALESCE-based index (`purchases_user_release_track`) for per-track purchasing. The webhook code still used `.upsert(row, { onConflict: "user_id,release_slug" })` referencing the old constraint — Supabase returned error `42P10` on every logged-in purchase. Guest purchases worked fine (separate table).
+- **Fix**: Replaced `.upsert()` with `.insert()` + graceful duplicate handling (error code `23505`) in both `handleDigitalPurchase` and `handleCartPurchase`.
+- **Recovery**: Jonathan Thoresen (jonathanjthoresen@gmail.com) was the only affected customer — his Cocky (DCR#18) cart purchase recovered via `scripts/recover-purchases.mjs`.
+
+**Purchase failure alerts:**
+
+- Added `sendPurchaseFailureAlert()` to `src/lib/email.ts` — emails `playerdave@daisychainsd.com` whenever a purchase fails to record.
+- Alert coverage on all failure paths: logged-in digital, cart, guest, physical (Shopify draft order), unlimited pass.
+
+**Shopify Admin API — draft orders now working:**
+
+- Rewrote `src/lib/shopify-admin.ts` to use OAuth client_credentials flow instead of static access token.
+- **Shopify app**: `dc-draft-orders` created in dev.shopify.com, installed on daisychainsd store, scope: `write_draft_orders`.
+- Andrea Bauzulli's $45.99 physical order (May 19) — draft order #D3 created in Shopify with shipping address.
+
+**CMS: Latest Release field in Homepage Settings:**
+
+- Added `latestRelease` reference field to `homepageSettings` Sanity schema.
+- Homepage uses CMS-set latest release if available, falls back to auto-detected (most recent live release by date).
+- 7-day promo window logic still works with CMS-selected release.
+
+### Session 6 (2026-06-02) — Email lead gen, goLiveAt scheduling, Shopify app fix, purchase→beehiiv
+
+**Inline email signup forms:**
+
+- Created `InlineSignup` component with contextual headline + campaign props.
+- Added to `/music` page (campaign: `music_page_signup`) and `/events` page (campaign: `events_page_signup`).
+- `/api/newsletter` route updated to accept dynamic `campaign` parameter (was hardcoded `homepage_signup`).
+
+**`goLiveAt` datetime field on releases:**
+
+- Added `goLiveAt` datetime field to release schema — only visible when `status === "upcoming"`.
+- 15-minute time steps, 12-hour format. Sanity datetime picker shows user's local timezone (stores UTC internally).
+- `/api/cron/release-day` updated: checks `goLiveAt` first (exact datetime comparison), falls back to `releaseDate` (date-only, midnight UTC).
+- Cron schedule changed from daily (`0 4 * * *`) to **hourly** (`0 * * * *`) to support time-specific releases.
+
+**ReleaseCard null-safety fix:**
+
+- Fixed `TypeError: Cannot read properties of null (reading 'replace')` crash on `/music` page during static prerender — a release with null title caused `title.replace()` to fail. Fixed with `(title || "").replace(...)`.
+
+**Shopify app credentials fix:**
+
+- Old `dc-draft-orders` app broke (OAuth returned `app_not_installed`). New app created in Partners dashboard with fresh credentials.
+- `SHOPIFY_APP_CLIENT_ID` updated to `0fe082047071898b61f131ef587b9683`, new secret set in `.env.local` and Vercel.
+- Ty Orloski's $45.99 "The Mini Daisy Chain" purchase recovered — draft order #D4 created in Shopify.
+
+**Auto-subscribe purchasers to beehiiv:**
+
+- Added `subscribeToBeehiiv()` helper to Stripe webhook — every purchase/download email is pushed to beehiiv with campaign tags (`physical_purchase`, `guest_purchase`, `digital_purchase`, `cart_purchase`).
+- Backfilled 11 historical purchase emails (5 new, 6 already existed in beehiiv).
+
 ## Layout & Styling Rules
 
 These conventions must be followed when adding any new page or component.
@@ -610,7 +669,7 @@ Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). An
 
 ## Environment
 
-- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_ADMIN_ACCESS_TOKEN`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`, `LAYLO_API_KEY`, `RESEND_API_KEY`
+- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_APP_CLIENT_ID`, `SHOPIFY_APP_CLIENT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`, `LAYLO_API_KEY`, `RESEND_API_KEY`
 - **`LAYLO_API_KEY`** (optional) — generated at laylo.com → Settings → Integrations → API Keyring. When set, every newsletter signup is pushed to the Daisy Chain Laylo drop CRM in parallel with beehiiv. When missing, Laylo push is silently skipped. Add to Vercel env vars (Production + Preview) when ready to go live.
 - **`STRIPE_WEBHOOK_SECRET`** — signing secret for the Stripe webhook endpoint (`we_1TS9rnLSuqhEd0bb9AW3F5vo`). Required for `/api/webhooks/stripe` to verify incoming events. Set in Vercel env vars (Production + Preview).
 - **`RESEND_API_KEY`** (optional) — Resend API key for sending guest download emails. When missing, email delivery silently skips — guests still get downloads via the Stripe success redirect. Requires domain verification at resend.com before emails can send from `noreply@daisychainsd.com`.
@@ -633,7 +692,7 @@ Streaming / DSP links (Spotify, Apple Music, YouTube, SoundCloud, Bandcamp) are 
 
 Defined in [`vercel.json`](vercel.json):
 
-- **`/api/cron/release-day`** — daily at `0 4 * * *` UTC (midnight EDT). Finds releases with `status: "upcoming"` whose `releaseDate` has arrived, flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Streaming links are NOT auto-populated — fill those in Studio when adding the release. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://www.daisychainsd.com/api/cron/release-day`. Idempotent — running twice on the same day re-promotes nothing because the GROQ filter excludes anything already `status: live`. **Important:** hit `www.daisychainsd.com` (not bare domain) to avoid a 307 redirect that strips the auth header.
+- **`/api/cron/release-day`** — **hourly** at `0 * * * *` UTC. Finds releases with `status: "upcoming"` whose `goLiveAt` datetime has passed (or, if no `goLiveAt`, whose `releaseDate` date has arrived), flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Hourly schedule supports time-specific releases via `goLiveAt` (e.g. "go live at 9 AM PST on Friday"). Streaming links are NOT auto-populated — fill those in Studio when adding the release. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://www.daisychainsd.com/api/cron/release-day`. Idempotent — running multiple times re-promotes nothing because the GROQ filter excludes anything already `status: live`. **Important:** hit `www.daisychainsd.com` (not bare domain) to avoid a 307 redirect that strips the auth header.
 
 <!-- VERCEL BEST PRACTICES START -->
 ## Best practices for developing on Vercel
