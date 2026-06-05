@@ -186,6 +186,7 @@ export const LATEST_RELEASE = `
     price,
     description,
     status,
+    links,
     tracks[0...4] {
       _key,
       title,
@@ -236,6 +237,7 @@ export const HOMEPAGE_SETTINGS = `
       price,
       description,
       status,
+      links,
       tracks[0...4] {
         _key,
         title,
