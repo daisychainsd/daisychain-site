@@ -33,6 +33,7 @@ type ReleaseRow = {
   catalogNumber?: string;
   releaseDate?: string;
   goLiveAt?: string;
+  trackKeys?: string[];
 };
 
 async function fetchUpcomingDue(): Promise<ReleaseRow[]> {
@@ -51,7 +52,8 @@ async function fetchUpcomingDue(): Promise<ReleaseRow[]> {
     "slug": slug.current,
     catalogNumber,
     releaseDate,
-    goLiveAt
+    goLiveAt,
+    "trackKeys": tracks[]._key
   }`;
   const url = `${SANITY_API}/data/query/${DATASET}?query=${encodeURIComponent(query)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -62,18 +64,50 @@ async function fetchUpcomingDue(): Promise<ReleaseRow[]> {
   return (json.result || []).filter((r) => r.title && r.slug);
 }
 
-async function patchStatus(_id: string): Promise<void> {
+async function patchStatus(_id: string, trackKeys: string[]): Promise<void> {
+  const token = process.env.SANITY_API_TOKEN;
+  if (!token) throw new Error("SANITY_API_TOKEN not set");
+
+  // Set status to live + clear comingSoon on all tracks in one transaction
+  const mutations: Record<string, unknown>[] = [
+    { patch: { id: _id, set: { status: "live" } } },
+  ];
+  for (const key of trackKeys) {
+    mutations.push({
+      patch: { id: _id, set: { [`tracks[_key=="${key}"].comingSoon`]: false } },
+    });
+  }
+
+  const res = await fetch(`${SANITY_API}/data/mutate/${DATASET}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ mutations }),
+  });
+  if (!res.ok) {
+    throw new Error(`Sanity patch failed: ${res.status} ${await res.text()}`);
+  }
+}
+
+/** Point homepageSettings.latestRelease at the promoted release so it shows on the homepage. */
+async function setLatestRelease(_id: string): Promise<void> {
   const token = process.env.SANITY_API_TOKEN;
   if (!token) throw new Error("SANITY_API_TOKEN not set");
   const res = await fetch(`${SANITY_API}/data/mutate/${DATASET}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      mutations: [{ patch: { id: _id, set: { status: "live" } } }],
+      mutations: [{
+        patch: {
+          id: "homepageSettings",
+          set: {
+            latestRelease: { _type: "reference", _ref: _id },
+          },
+        },
+      }],
     }),
   });
   if (!res.ok) {
-    throw new Error(`Sanity patch failed: ${res.status} ${await res.text()}`);
+    throw new Error(`Failed to set latestRelease: ${res.status} ${await res.text()}`);
   }
 }
 
@@ -114,7 +148,8 @@ export async function GET(req: NextRequest) {
     };
 
     try {
-      await patchStatus(rel._id);
+      await patchStatus(rel._id, rel.trackKeys || []);
+      await setLatestRelease(rel._id);
       r.promoted = true;
       revalidatePath("/");
       revalidatePath(`/releases/${rel.slug}`);
