@@ -3,6 +3,7 @@ import { urlFor } from "@/sanity/image";
 import { ArrowIcon } from "@/components/icons";
 import SectionHeader from "@/components/SectionHeader";
 import TrackList from "@/components/TrackList";
+import DspRow from "@/components/DspRow";
 import type { Track } from "@/lib/types";
 
 type SanityImageRef = { asset?: { _ref?: string; _type?: string } } | Record<string, unknown>;
@@ -17,6 +18,13 @@ interface SpotlightRelease {
   releaseType?: string;
   status?: string;
   tracks?: Track[];
+  links?: {
+    spotify?: string;
+    appleMusic?: string;
+    bandcamp?: string;
+    soundcloud?: string;
+    youtube?: string;
+  };
 }
 
 interface ReleaseSpotlightProps {
@@ -93,6 +101,7 @@ export default function ReleaseSpotlight({ release }: ReleaseSpotlightProps) {
               ) : (
                 <span className="text-blue-300 text-lg">{release.artist}</span>
               )}
+              <DspRow links={release.links} />
               {release.tracks && release.tracks.length > 0 && (
                 <div className="mt-2 min-w-0">
                   <TrackList

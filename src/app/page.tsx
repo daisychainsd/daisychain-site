@@ -61,6 +61,7 @@ interface LatestReleaseData {
   price?: number;
   description?: PortableTextBlock[] | string;
   tracks?: { title: string; trackArtist?: string; trackArtists?: { name: string; slug: string }[]; trackNumber?: number; duration?: string }[];
+  links?: { spotify?: string; appleMusic?: string; bandcamp?: string; soundcloud?: string; youtube?: string };
 }
 
 const LATEST_RELEASE_PROMO_MS = 7 * 24 * 60 * 60 * 1000;
