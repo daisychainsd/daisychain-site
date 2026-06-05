@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { execFile } from "child_process";
 import { writeFile, readFile, unlink, rmdir, mkdtemp } from "fs/promises";
 import { createReadStream } from "fs";
+import { createHmac } from "crypto";
 import { tmpdir } from "os";
 import { join } from "path";
 import ffmpegPath from "ffmpeg-static";
@@ -93,24 +94,29 @@ async function convertTrack(
 }
 
 export async function POST(req: NextRequest) {
-  // Auth check
+  // Auth check — Sanity signs the body with HMAC-SHA256 using the webhook secret
   const secret = process.env.SANITY_WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "SANITY_WEBHOOK_SECRET not configured" }, { status: 503 });
-  }
-  const authHeader = req.headers.get("sanity-webhook-secret") || req.headers.get("authorization");
-  if (authHeader !== secret && authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!process.env.SANITY_API_TOKEN) {
     return NextResponse.json({ error: "SANITY_API_TOKEN not configured" }, { status: 503 });
   }
 
-  // Parse the webhook body — Sanity sends the document ID
+  const rawBody = await req.text();
+  const signature = req.headers.get("sanity-webhook-signature");
+  if (!signature) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+  }
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  if (signature !== expected) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
   let body: { _id?: string };
   try {
-    body = await req.json();
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
