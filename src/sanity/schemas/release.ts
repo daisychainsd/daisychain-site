@@ -138,6 +138,7 @@ export const release = defineType({
               title: "Track Artists",
               type: "array",
               of: [{ type: "reference", to: [{ type: "artist" }] }],
+              readOnly: () => false,
               description:
                 "Override the release artist on this specific track. Add one or more — each name renders as a separate clickable link. Use this for compilation tracks, features, or collabs. Leave empty to inherit from the release.",
             }),
