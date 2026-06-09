@@ -52,7 +52,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - `src/sanity/image.ts` — `urlFor()` helper for Sanity image CDN
 - `src/sanity/schemas/` — release, artist, event, blockContent
 - `sanity.config.ts` — uses relative imports (`./src/sanity/schemas`), NOT `@/` aliases
-- **Studio UX**: `liveEdit: true` on release, artist, event, and homepage singleton — edits publish immediately (no separate “Publish” step for day-to-day tweaks).
+- **Studio UX**: `liveEdit: true` on release, artist, event, and homepage singleton — edits publish immediately (no separate “Publish” step for day-to-day tweaks). **Caveat**: `liveEdit` can cause nested reference arrays inside inline objects (e.g. `trackArtists` inside `tracks[]`) to become read-only in Studio. Fix with `readOnly: () => false` on the affected field — the function form explicitly overrides the inferred lock.
 - **Visibility**: **`hidden`** boolean on **release** and **event** — when `true`, document is excluded from **public** GROQ queries (listings, homepage Upcoming, artist discography, etc.). Use instead of leaving drafts unpublished.
 - **Releases list order**: Custom structure in `sanity.config.ts` — default sort for the Releases tool is **`releaseDate` descending** (newest first).
 - **Public queries** (`src/lib/queries.ts`): filter with `hidden != true` (and equivalent for nested references where needed) so hidden content never appears on the site.
