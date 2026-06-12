@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useCart } from "@/components/CartProvider";
 import UnlimitedPassInfo from "@/components/UnlimitedPassInfo";
 
 type Format = "wav" | "flac" | "aiff" | "mp3";
@@ -40,10 +41,22 @@ export default function AccountClient({
   releases: DownloadRelease[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { items, removeItem } = useCart();
   const [buyingPass, setBuyingPass] = useState(false);
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("wav");
   const [converting, setConverting] = useState<string | null>(null);
+
+  // Landing here with ?purchased=... means a digital checkout succeeded. Clear
+  // only the digital items now (post-payment) — the cart is no longer cleared
+  // before the Stripe redirect, so cancelling checkout keeps the cart intact.
+  // Re-runs as the cart hydrates from localStorage and converges once empty.
+  useEffect(() => {
+    if (!searchParams.get("purchased")) return;
+    const digital = items.filter((i) => i.type === "digital");
+    if (digital.length > 0) digital.forEach((i) => removeItem(i.variantId));
+  }, [items, searchParams, removeItem]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -55,10 +68,18 @@ export default function AccountClient({
 
   async function handleBuyPass() {
     setBuyingPass(true);
-    const res = await fetch("/api/checkout-pass", { method: "POST" });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
-    setBuyingPass(false);
+    try {
+      const res = await fetch("/api/checkout-pass", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      // No URL came back — surface nothing destructive, just re-enable the button.
+      setBuyingPass(false);
+    } catch {
+      setBuyingPass(false);
+    }
   }
 
   async function handleDownloadTrack(track: Track, artist: string) {

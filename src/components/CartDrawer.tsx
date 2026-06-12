@@ -10,6 +10,7 @@ export default function CartDrawer() {
     useCart();
   const router = useRouter();
   const [checkingOut, setCheckingOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const physicalItems = items.filter((i) => i.type !== "digital");
   const digitalItems = items.filter((i) => i.type === "digital");
@@ -34,6 +35,7 @@ export default function CartDrawer() {
   }
 
   async function handleDigitalCheckout() {
+    setError(null);
     setCheckingOut(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -68,15 +70,15 @@ export default function CartDrawer() {
         return;
       }
       if (data.url) {
-        // Clear digital items from cart before redirecting to Stripe
-        for (const item of digitalItems) {
-          removeItem(item.variantId);
-        }
+        // Don't clear the cart here — if the buyer cancels on Stripe they'd
+        // lose it. The /account success page clears digital items post-payment.
         window.location.href = data.url;
         return;
       }
+      // Non-401 error with no URL — surface it instead of failing silently.
+      setError(data.error || "Couldn't start checkout. Please try again.");
     } catch {
-      // silently fail
+      setError("Couldn't reach checkout. Check your connection and try again.");
     } finally {
       setCheckingOut(false);
     }
@@ -240,10 +242,7 @@ export default function CartDrawer() {
 
           {/* Unlimited Pass upsell */}
           {digitalItems.length > 0 && (
-            <PassUpsell
-              cartDigitalTotal={digitalItems.reduce((s, i) => s + i.price, 0)}
-              onClose={() => setIsOpen(false)}
-            />
+            <PassUpsell onClose={() => setIsOpen(false)} />
           )}
 
           {/* Footer */}
@@ -257,6 +256,12 @@ export default function CartDrawer() {
                   ${subtotal.toFixed(2)}
                 </span>
               </div>
+
+              {error && (
+                <p className="text-red-400 text-xs mb-3" role="alert">
+                  {error}
+                </p>
+              )}
 
               {physicalItems.length > 0 && digitalItems.length > 0 ? (
                 <div className="space-y-3">
@@ -305,17 +310,10 @@ export default function CartDrawer() {
   );
 }
 
-function PassUpsell({
-  cartDigitalTotal,
-  onClose,
-}: {
-  cartDigitalTotal: number;
-  onClose: () => void;
-}) {
+function PassUpsell({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [buying, setBuying] = useState(false);
   const passPrice = 99;
-  const remaining = Math.max(passPrice - cartDigitalTotal, 1);
 
   return (
     <div className="mx-6 mb-2 p-3 rounded-lg border border-blue-300/15 bg-blue-300/[0.04]">
@@ -326,7 +324,7 @@ function PassUpsell({
         <UnlimitedPassInfo />
       </div>
       <p className="text-text-secondary text-xs leading-relaxed mb-3">
-        For ${remaining.toFixed(0)} more, get our entire discography and every upcoming release a week before it drops. For eternity.
+        ${passPrice} for our entire discography and every upcoming release a week before it drops, for eternity — minus credit for anything you already own.
       </p>
       <button
         onClick={async () => {
@@ -347,7 +345,7 @@ function PassUpsell({
         disabled={buying}
         className="w-full py-2 rounded-full text-xs font-semibold bg-blue-300/10 text-blue-300 border border-blue-300/20 hover:bg-blue-300/20 transition-colors disabled:opacity-50"
       >
-        {buying ? "Redirecting..." : `Upgrade — $${remaining.toFixed(0)}`}
+        {buying ? "Redirecting..." : `Get the Pass — $${passPrice}`}
       </button>
     </div>
   );

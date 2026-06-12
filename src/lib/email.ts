@@ -1,5 +1,20 @@
 import { Resend } from "resend";
 
+/**
+ * Escape values that may originate from buyer-controlled Stripe fields
+ * (customer name, email, item titles) before interpolating into email HTML.
+ * Prevents link/markup injection into the buyer's confirmation AND into the
+ * owner's [ALERT] inbox.
+ */
+function esc(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 let _resend: Resend | null = null;
 
 function getResend(): Resend | null {
@@ -35,7 +50,7 @@ export async function sendDownloadEmail({
   }
 
   const coverHtml = coverArtUrl
-    ? `<img src="${coverArtUrl}" alt="${releaseTitle}" width="200" height="200" style="display: block; margin: 0 auto 24px; border-radius: 24px 8px 24px 4px; object-fit: cover;" />`
+    ? `<img src="${esc(coverArtUrl)}" alt="${esc(releaseTitle)}" width="200" height="200" style="display: block; margin: 0 auto 24px; border-radius: 24px 8px 24px 4px; object-fit: cover;" />`
     : "";
 
   const { error } = await resend.emails.send({
@@ -50,7 +65,7 @@ export async function sendDownloadEmail({
             Thank you!
           </h1>
           <p style="font-size: 14px; color: #a8a299; margin: 0 0 24px; line-height: 1.6; text-align: center;">
-            Your purchase of <strong style="color: #e8e4df;">${releaseTitle}</strong> by <strong style="color: #e8e4df;">${artistName}</strong> is complete.
+            Your purchase of <strong style="color: #e8e4df;">${esc(releaseTitle)}</strong> by <strong style="color: #e8e4df;">${esc(artistName)}</strong> is complete.
           </p>
           <div style="text-align: center; margin: 0 0 24px;">
             <a href="${downloadUrl}" style="display: inline-block; background: #7cb9e8; color: #0f0e0c; font-weight: 600; font-size: 14px; padding: 12px 32px; border-radius: 0 24px 24px 24px; text-decoration: none;">
@@ -108,7 +123,7 @@ export async function sendOrderConfirmationEmail({
     return;
   }
 
-  const greeting = customerName ? `Hi ${customerName.split(" ")[0]},` : "Hi there,";
+  const greeting = customerName ? `Hi ${esc(customerName.split(" ")[0])},` : "Hi there,";
   const total = `$${(totalCents / 100).toFixed(2)}`;
 
   const isPhysical = type === "physical";
@@ -129,7 +144,7 @@ export async function sendOrderConfirmationEmail({
   const itemListHtml = items
     .map(
       (item) =>
-        `<li style="margin: 0 0 6px; color: #e8e4df;">${item.title}${item.artist ? ` <span style="color: #a8a299;">by ${item.artist}</span>` : ""}</li>`,
+        `<li style="margin: 0 0 6px; color: #e8e4df;">${esc(item.title)}${item.artist ? ` <span style="color: #a8a299;">by ${esc(item.artist)}</span>` : ""}</li>`,
     )
     .join("");
 
@@ -208,10 +223,10 @@ export async function sendOrderConfirmationEmail({
         html: `
           <div style="font-family: monospace; padding: 24px; color: #e8e4df; background: #0f0e0c;">
             <h2 style="color: #e85c5c; margin: 0 0 16px;">Confirmation Email Failed</h2>
-            <p><strong>Customer:</strong> ${to}</p>
-            <p><strong>Type:</strong> ${type}</p>
-            <p><strong>Items:</strong> ${items.map((i) => i.title).join(", ")}</p>
-            <p><strong>Error:</strong> ${JSON.stringify(error)}</p>
+            <p><strong>Customer:</strong> ${esc(to)}</p>
+            <p><strong>Type:</strong> ${esc(type)}</p>
+            <p><strong>Items:</strong> ${esc(items.map((i) => i.title).join(", "))}</p>
+            <p><strong>Error:</strong> ${esc(JSON.stringify(error))}</p>
             <p style="margin-top: 24px; color: #a8a299;">
               The customer was charged but did NOT receive a confirmation email.
               Consider reaching out to them directly.
@@ -254,10 +269,10 @@ export async function sendPurchaseFailureAlert({
       html: `
         <div style="font-family: monospace; padding: 24px; color: #e8e4df; background: #0f0e0c;">
           <h2 style="color: #e85c5c; margin: 0 0 16px;">Purchase Recording Failed</h2>
-          <p><strong>Customer email:</strong> ${email}</p>
-          <p><strong>Release:</strong> ${slug}</p>
-          <p><strong>Stripe session:</strong> ${sessionId}</p>
-          <p><strong>Error:</strong> ${error}</p>
+          <p><strong>Customer email:</strong> ${esc(email)}</p>
+          <p><strong>Release:</strong> ${esc(slug)}</p>
+          <p><strong>Stripe session:</strong> ${esc(sessionId)}</p>
+          <p><strong>Error:</strong> ${esc(error)}</p>
           <p style="margin-top: 24px; color: #a8a299;">
             The customer was charged but their purchase was NOT saved.
             Check Stripe dashboard and manually add the purchase to Supabase.

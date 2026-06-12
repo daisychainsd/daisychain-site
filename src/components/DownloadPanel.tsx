@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import type { Track } from "@/lib/types";
 
 type Format = "wav" | "flac" | "aiff" | "mp3";
@@ -11,87 +11,26 @@ const FORMATS: { id: Format; label: string }[] = [
   { id: "mp3", label: "MP3" },
 ];
 
-const MAX_RETRIES = 3;
-const RETRY_DELAYS = [2000, 4000];
-
 export default function DownloadPanel({
-  sessionId,
-  token,
-  slug,
   tracks,
   releaseArtist,
+  preVerified = false,
+  purchasedTrackKey = null,
 }: {
-  sessionId?: string;
-  token?: string;
-  slug?: string;
   tracks: Track[];
   releaseArtist: string;
+  /**
+   * Set by the server page once entitlement is verified. When true, the panel
+   * trusts the server and renders downloads directly — the audio URLs in
+   * `tracks` are only ever sent to a verified client.
+   */
+  preVerified?: boolean;
+  purchasedTrackKey?: string | null;
 }) {
-  const [verified, setVerified] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("wav");
   const [converting, setConverting] = useState<string | null>(null);
-  const [purchasedTrackKey, setPurchasedTrackKey] = useState<string | null>(null);
 
-  const verify = useCallback(async () => {
-    setChecking(true);
-    setError(null);
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-
-      try {
-        const res = await fetch("/api/verify-purchase", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, slug, token }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        const data = await res.json();
-        setVerified(data.valid);
-        if (data.trackKey) setPurchasedTrackKey(data.trackKey);
-        setChecking(false);
-        return;
-      } catch {
-        clearTimeout(timeout);
-        // If not the last attempt, wait before retrying
-        if (attempt < MAX_RETRIES - 1) {
-          await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt]));
-        }
-      }
-    }
-
-    // All retries exhausted
-    setError("Unable to verify your purchase. Please check your connection and try again.");
-    setChecking(false);
-  }, [sessionId, slug, token]);
-
-  useEffect(() => {
-    verify();
-  }, [verify]);
-
-  if (checking) {
-    return <p className="text-text-secondary">Verifying purchase...</p>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center">
-        <p className="text-red-400 mb-4">{error}</p>
-        <button
-          onClick={verify}
-          className="container-pill-r bg-blue-300 text-bg-deep font-semibold text-sm px-6 py-3"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  if (!verified) {
+  if (!preVerified) {
     return (
       <p className="text-red-400">
         Could not verify purchase. Please contact us if this is an error.

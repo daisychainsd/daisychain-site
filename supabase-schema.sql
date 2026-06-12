@@ -100,3 +100,20 @@ create index idx_guest_purchases_email on public.guest_purchases (email);
 --   ALTER TABLE purchases DROP CONSTRAINT IF EXISTS purchases_user_id_release_slug_key;
 --   CREATE UNIQUE INDEX IF NOT EXISTS purchases_user_release_track ON purchases(user_id, release_slug, COALESCE(track_key, '__full__'));
 --   ALTER TABLE guest_purchases ADD COLUMN IF NOT EXISTS track_key TEXT;
+
+-- Stripe webhook idempotency (added 2026-06-12)
+-- The webhook claims each event.id here exactly once; a duplicate insert (23505)
+-- means we already processed it and can skip. Without this table the webhook
+-- still works (fails open) but won't dedup duplicate Stripe deliveries.
+create table if not exists public.processed_stripe_events (
+  event_id text primary key,
+  processed_at timestamptz not null default now()
+);
+alter table public.processed_stripe_events enable row level security;
+create policy "Service role full access on processed_stripe_events"
+  on public.processed_stripe_events for all using (true) with check (true);
+
+-- Dedup guest purchases on (session, track) so a duplicate Stripe delivery can't
+-- create a second guest_purchases row / download token / email (added 2026-06-12).
+create unique index if not exists guest_purchases_session_track
+  on public.guest_purchases (stripe_session_id, coalesce(track_key, '__full__'));

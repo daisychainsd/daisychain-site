@@ -128,8 +128,10 @@ export default function ReleaseInteractive({
   const physical = isPhysical(activeFormat);
   const activePrice = physical ? physicalPrice : price;
   const hasToggle = formats && formats.length > 1;
+  // liveEdit publishes half-finished docs, so releaseTitle can be null at
+  // render — guard the .replace() (same crash class fixed earlier in ReleaseCard).
   const displayTitle = releaseType && ["ep", "album"].includes(releaseType)
-    ? releaseTitle.replace(/\s+(EP|Album)$/i, "")
+    ? (releaseTitle || "").replace(/\s+(EP|Album)$/i, "")
     : releaseTitle;
 
   const releaseCartId = `digital-release-${releaseSlug}`;

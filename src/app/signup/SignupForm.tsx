@@ -8,7 +8,13 @@ import { createClient } from "@/lib/supabase/client";
 export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/account";
+  // Only allow internal redirects (single leading slash). Blocks
+  // `?redirect=https://evil.com` and protocol-relative `//evil.com` phishing.
+  const rawRedirect = searchParams.get("redirect");
+  const redirect =
+    rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")
+      ? rawRedirect
+      : "/account";
 
   // Buy-flow context (mirrored from /login). When `slug` is present, the user
   // came from a "Buy Digital" click — we render the value-prop banner and
