@@ -15,7 +15,7 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-start justify-between gap-8">
             <div>
               <div className="flex items-center gap-2.5 mb-3">
-                <img src="/flower-white.png" alt="" className="w-5 h-5 opacity-50" />
+                <img src="/flower-white-sm.png" alt="" width={20} height={20} className="w-5 h-5 opacity-50" />
                 <span className="text-lg font-bold tracking-tight">DAISY CHAIN</span>
               </div>
               <p className="text-text-secondary text-sm max-w-xs">

@@ -41,11 +41,14 @@ async function fetchUpcomingDue(): Promise<ReleaseRow[]> {
   if (!token) throw new Error("SANITY_API_TOKEN not set");
 
   // Releases still flagged upcoming whose goLiveAt (or releaseDate fallback)
-  // has arrived. goLiveAt is a full datetime; releaseDate is date-only so we
-  // append T00:00:00Z for the comparison.
+  // has arrived. goLiveAt is a full datetime; releaseDate is date-only and is
+  // anchored to Pacific midnight (T07:00:00Z ≈ midnight PDT) so a San-Diego
+  // release dated e.g. 2026-07-01 goes live at midnight PT, not 5pm PT the day
+  // before (which T00:00:00Z / midnight UTC would cause). ~1h off across the
+  // PST↔PDT boundary — use goLiveAt for time-critical drops.
   const query = `*[_type == "release" && hidden != true && status == "upcoming" && (
     (defined(goLiveAt) && dateTime(goLiveAt) <= dateTime(now()))
-    || (!defined(goLiveAt) && defined(releaseDate) && dateTime(releaseDate + "T00:00:00Z") <= dateTime(now()))
+    || (!defined(goLiveAt) && defined(releaseDate) && dateTime(releaseDate + "T07:00:00Z") <= dateTime(now()))
   )] {
     _id,
     title,

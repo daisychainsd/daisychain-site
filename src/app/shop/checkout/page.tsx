@@ -42,9 +42,14 @@ export default function CheckoutPage() {
     return data.clientSecret;
   }, [items]);
 
+  // Note: CartProvider hydrates items from localStorage AFTER mount, so the
+  // first run sees an empty cart. Clear the error once items appear instead of
+  // dead-ending anyone who reloads or deep-links into checkout.
   useEffect(() => {
     if (items.length === 0) {
       setError("Your cart is empty. Add items before checking out.");
+    } else {
+      setError(null);
     }
   }, [items.length]);
 

@@ -16,8 +16,10 @@ export default function Header() {
           className="flex items-center justify-center min-h-11 min-w-11 rounded-lg text-text-primary group shrink-0"
         >
           <img
-            src="/flower-white.png"
+            src="/flower-white-sm.png"
             alt=""
+            width={32}
+            height={32}
             className="w-8 h-8 transition-[filter] logo-hover-glow"
           />
         </Link>

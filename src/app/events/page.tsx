@@ -17,9 +17,18 @@ import InlineSignup from "@/components/InlineSignup";
 export default async function EventsPage() {
   const events = await sanityFetch<Event>(EVENTS_LIST);
 
-  const now = new Date().toISOString();
-  const upcoming = events.filter((e) => e.date >= now);
-  const past = events.filter((e) => e.date < now);
+  // Compare by epoch, not by ISO string. Event dates are stored in mixed
+  // formats (some with explicit -07:00 offsets, some as UTC "Z"), so a
+  // lexicographic string compare misclassifies shows by several hours. Events
+  // with a missing/invalid date are treated as upcoming so they never silently
+  // vanish from both lists.
+  const nowMs = Date.now();
+  const eventMs = (d?: string) => {
+    const t = d ? new Date(d).getTime() : NaN;
+    return Number.isNaN(t) ? Infinity : t;
+  };
+  const upcoming = events.filter((e) => eventMs(e.date) >= nowMs);
+  const past = events.filter((e) => eventMs(e.date) < nowMs);
 
   const pastFlyerTiles = past
     .filter((e) => e.flyer)

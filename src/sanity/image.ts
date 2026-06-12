@@ -10,5 +10,7 @@ const noopUrlFor = (_source: any) =>
 
 export function urlFor(source: any) {
   if (!builder) return noopUrlFor(source);
-  return builder.image(source);
+  // `.auto("format")` lets Sanity's CDN serve WebP/AVIF to supporting browsers,
+  // cutting cover-art PNGs from ~1MB to ~60KB. Callers still chain .width()/.url().
+  return builder.image(source).auto("format");
 }

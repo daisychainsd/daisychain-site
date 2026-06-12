@@ -1,4 +1,6 @@
-import { Fragment } from "react";
+"use client";
+
+import { Fragment, useEffect, useRef, useState } from "react";
 
 interface NewsMarqueeProps {
   items?: string[];
@@ -13,26 +15,48 @@ const DEFAULT_ITEMS = [
 ];
 
 export default function NewsMarquee({ items = DEFAULT_ITEMS }: NewsMarqueeProps) {
-  const today = new Date().toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).toUpperCase();
+  const sectionRef = useRef<HTMLElement>(null);
+  // Pause the two big GPU-composited marquee layers when the section scrolls
+  // out of view, so the compositor isn't re-tiling them every frame while the
+  // user scrolls the rest of the page. Unlike `content-visibility: auto` (which
+  // froze the marquee in prod), animation-play-state resumes cleanly.
+  const [running, setRunning] = useState(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => setRunning(entry.isIntersecting),
+      { rootMargin: "100px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const playState = running ? "running" : "paused";
+
+  // Date pinned to the label's timezone so server and client render the same
+  // string (no hydration mismatch) and it's correct for San Diego viewers.
+  const today = new Date()
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "America/Los_Angeles",
+    })
+    .toUpperCase();
 
   // Tripled so the 33.333% keyframe creates a seamless loop
   const tripled = [...items, ...items, ...items];
 
   return (
     <section
+      ref={sectionRef}
       className="relative py-9 overflow-hidden"
       style={{
         borderTop: "1px solid rgba(255,255,255,0.06)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
         background: "var(--color-bg-abyss)",
-        // Note: `content-visibility: auto` was previously here as a perf
-        // optimization (skip render when offscreen). It also pauses CSS
-        // animations on the skipped tree — which made the marquee freeze in
-        // production. Removed in favor of the marquee always animating.
       }}
     >
       {/* Kicker row */}
@@ -74,6 +98,7 @@ export default function NewsMarquee({ items = DEFAULT_ITEMS }: NewsMarqueeProps)
           style={{
             gap: "0.3em",
             animation: "dcMarquee 42s linear infinite",
+            animationPlayState: playState,
             // Force GPU compositing on mobile Safari/Chrome — without this,
             // the animation can stutter or appear frozen at first paint.
             transform: "translateZ(0)",
@@ -124,6 +149,7 @@ export default function NewsMarquee({ items = DEFAULT_ITEMS }: NewsMarqueeProps)
           style={{
             gap: "0.3em",
             animation: "dcMarquee 55s linear infinite reverse",
+            animationPlayState: playState,
             transform: "translateZ(0)",
             backfaceVisibility: "hidden",
           }}

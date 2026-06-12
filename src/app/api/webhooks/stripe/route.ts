@@ -58,20 +58,129 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const purchaseType = session.metadata?.type;
-
-    if (purchaseType === "physical") {
-      await handlePhysicalOrder(session);
-    } else if (purchaseType === "cart") {
-      await handleCartPurchase(session);
-    } else {
-      await handleDigitalPurchase(session);
+  // Event-level idempotency. Stripe delivers at-least-once, so the same event
+  // can arrive more than once (including after a transient 500 on our side).
+  // We claim each event.id exactly once; a duplicate insert (23505) means we've
+  // already processed it and can safely skip. Fails OPEN if the table is missing
+  // so a not-yet-migrated deploy still processes purchases (just without dedup).
+  try {
+    const supabase = createAdminClient();
+    const { error: claimErr } = await supabase
+      .from("processed_stripe_events")
+      .insert({ event_id: event.id });
+    if (claimErr) {
+      if (claimErr.code === "23505") {
+        console.log("Duplicate Stripe event skipped:", event.id);
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      // Table missing / other error → log and continue (fail open).
+      console.error("Idempotency claim failed (continuing):", claimErr.code, claimErr.message);
     }
+  } catch (err) {
+    console.error("Idempotency claim threw (continuing):", err);
+  }
+
+  // Handlers are wrapped so a thrown side-effect error (e.g. Resend down) does
+  // NOT 500 the webhook and trigger a Stripe retry that re-runs work that
+  // already succeeded. Critical DB writes have their own failure alerts.
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const purchaseType = session.metadata?.type;
+
+      if (purchaseType === "physical") {
+        await handlePhysicalOrder(session);
+      } else if (purchaseType === "cart") {
+        await handleCartPurchase(session);
+      } else {
+        await handleDigitalPurchase(session);
+      }
+    } else if (event.type === "charge.refunded" || event.type === "charge.dispute.created") {
+      await handleRefundOrDispute(event);
+    }
+  } catch (err) {
+    console.error(`Webhook handler error for ${event.type}:`, err);
+    await sendPurchaseFailureAlert({
+      email: "unknown",
+      slug: event.type,
+      sessionId: event.id,
+      error: `Handler threw: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 
   return NextResponse.json({ received: true });
+}
+
+/**
+ * Revoke access when a charge is refunded or disputed. Maps the charge back to
+ * its Checkout Session (via payment_intent), then removes the matching purchase
+ * rows / deactivates an unlimited pass, and alerts the owner.
+ *
+ * NOTE: requires the Stripe webhook endpoint to be subscribed to
+ * `charge.refunded` and `charge.dispute.created` in the Stripe dashboard —
+ * otherwise these events are never delivered and this code stays dormant.
+ */
+async function handleRefundOrDispute(event: Stripe.Event) {
+  const charge =
+    event.type === "charge.refunded"
+      ? (event.data.object as Stripe.Charge)
+      : null;
+  const dispute =
+    event.type === "charge.dispute.created"
+      ? (event.data.object as Stripe.Dispute)
+      : null;
+
+  const paymentIntent = (charge?.payment_intent || dispute?.payment_intent) as
+    | string
+    | null
+    | undefined;
+  if (!paymentIntent) {
+    console.error("Refund/dispute with no payment_intent:", event.id);
+    return;
+  }
+
+  // Find the Checkout Session(s) for this payment intent.
+  let sessions: Stripe.Checkout.Session[] = [];
+  try {
+    const list = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 5 });
+    sessions = list.data;
+  } catch (err) {
+    console.error("Failed to list sessions for refund/dispute:", err);
+    return;
+  }
+
+  const supabase = createAdminClient();
+  const revoked: string[] = [];
+
+  for (const session of sessions) {
+    const sid = session.id;
+    // Remove logged-in + guest purchase rows tied to this session.
+    const { error: pErr } = await supabase.from("purchases").delete().eq("stripe_session_id", sid);
+    if (pErr) console.error("Failed to delete purchases on refund:", pErr);
+    const { error: gErr } = await supabase
+      .from("guest_purchases")
+      .delete()
+      .eq("stripe_session_id", sid);
+    if (gErr) console.error("Failed to delete guest_purchases on refund:", gErr);
+
+    // Deactivate an unlimited pass if this session bought one.
+    if (session.metadata?.type === "unlimited_pass" && session.metadata?.userId) {
+      const { error: passErr } = await supabase
+        .from("profiles")
+        .update({ has_unlimited_pass: false })
+        .eq("id", session.metadata.userId);
+      if (passErr) console.error("Failed to revoke unlimited pass on refund:", passErr);
+    }
+    revoked.push(sid);
+  }
+
+  const reason = event.type === "charge.refunded" ? "refunded" : "disputed (chargeback)";
+  await sendPurchaseFailureAlert({
+    email: charge?.billing_details?.email || "unknown",
+    slug: `ACCESS REVOKED (${reason})`,
+    sessionId: revoked.join(", ") || paymentIntent,
+    error: `Charge ${reason}. Access removed for ${revoked.length} session(s). Verify in Stripe + Supabase.`,
+  });
 }
 
 async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
@@ -195,9 +304,13 @@ async function handleDigitalPurchase(session: Stripe.Checkout.Session) {
       }
 
       const origin = "https://www.daisychainsd.com";
-      const downloadUrl = token
-        ? `${origin}/download/${slug}?token=${token}`
-        : `${origin}/download/${slug}?session_id=${session.id}`;
+      // For single-track purchases the session link carries the trackKey (so the
+      // download page can restrict to the purchased track). The release-scoped
+      // token would grant the whole release, so only use it for full releases.
+      const downloadUrl =
+        token && !trackKey
+          ? `${origin}/download/${slug}?token=${token}`
+          : `${origin}/download/${slug}?session_id=${session.id}`;
       const title = session.metadata?.title || slug;
       const artist = session.metadata?.artist || "Daisy Chain";
       await sendDownloadEmail({

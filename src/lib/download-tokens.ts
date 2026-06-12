@@ -44,21 +44,14 @@ export async function validateDownloadToken(
     return { valid: false };
   }
 
-  // Check not expired
+  // Validity is bounded by expires_at only (7 days). The previous 1-hour
+  // post-first-use window meant a guest returning the next day got "could not
+  // verify purchase" — a support-ticket generator for a guest-first product.
+  // We still stamp used_at on first use for analytics, but no longer reject on it.
   if (new Date(data.expires_at) < new Date()) {
     return { valid: false };
   }
 
-  // Check not used, or used within the last hour (grace window)
-  if (data.used_at) {
-    const usedAt = new Date(data.used_at);
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    if (usedAt < oneHourAgo) {
-      return { valid: false };
-    }
-  }
-
-  // Mark as used (first use sets the timestamp)
   if (!data.used_at) {
     await supabase
       .from("download_tokens")

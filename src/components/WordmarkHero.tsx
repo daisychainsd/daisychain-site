@@ -1,46 +1,11 @@
-"use client";
-
-import { useEffect, useRef } from "react";
 import LeadGen from "@/components/LeadGen";
 
 export default function WordmarkHero() {
-  // Scroll-driven letter-spacing is written directly to the DOM via a ref + rAF.
-  // Avoids re-rendering React on every scroll tick (was causing jank on fast scrolls).
-  const wordmarkRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const reduceMotion =
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) return;
-
-    let rafId = 0;
-    let pending = false;
-
-    const update = () => {
-      pending = false;
-      const el = wordmarkRef.current;
-      if (!el) return;
-      const t = Math.max(-0.04, -0.04 + window.scrollY * 0.00008);
-      el.style.letterSpacing = `${t}em`;
-    };
-
-    const onScroll = () => {
-      if (pending) return;
-      pending = true;
-      rafId = requestAnimationFrame(update);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    update();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(rafId);
-    };
-  }, []);
-
+  // Previously this drove `letter-spacing` on the wordmark from scrollY via a
+  // rAF loop. `letter-spacing` is a layout property, so mutating it every scroll
+  // frame forced a synchronous re-layout of the largest text on the page — the
+  // main cause of the "glitchy on scroll" symptom. The effect was removed; the
+  // wordmark now uses a static tracking value (visually near-identical).
   return (
     // Section is full-width. Photo + vignette fill the entire viewport-width
     // (no max-width). Inner content wrapper handles the 1440 max-width + padding
@@ -135,7 +100,6 @@ export default function WordmarkHero() {
           H/N/A glyphs are wide). max-width:100% + word-break belt-and-braces
           for narrow viewports. */}
       <h1
-        ref={wordmarkRef}
         className="uppercase text-text-primary text-left"
         style={{
           fontFamily: "var(--font-wordmark), sans-serif",

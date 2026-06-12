@@ -121,7 +121,13 @@ export async function POST(req: NextRequest) {
         title: release.title,
         artist: release.artist,
         ...(isTrackPurchase ? { trackKey, trackTitle: trackTitle || "" } : {}),
-        ...(isGuestCheckout ? { isGuest: "true" } : { userId: user!.id }),
+        // `buyerUserId` records a logged-in user who chose guest checkout, so a
+        // future reconciliation job can attach the guest purchase to their
+        // account. It deliberately does NOT use `userId` (which would route the
+        // webhook down the logged-in path).
+        ...(isGuestCheckout
+          ? { isGuest: "true", ...(user ? { buyerUserId: user.id } : {}) }
+          : { userId: user!.id }),
       },
     });
   } catch (err) {
@@ -178,13 +184,34 @@ async function handleCartCheckout(
 
   const releaseMap = new Map(releases.map((r) => [r.slug, r]));
 
-  const lineItems = validItems.map((item) => {
+  // Server-side pricing only — never trust client-supplied item.price. A full
+  // release must resolve in Sanity with a real price; tracks are the fixed
+  // per-track price. Anything unpriceable rejects the whole checkout rather than
+  // silently charging a client-chosen amount.
+  const lineItems: {
+    price_data: {
+      currency: "usd";
+      product_data: { name: string; description: string };
+      unit_amount: number;
+    };
+    quantity: 1;
+  }[] = [];
+
+  for (const item of validItems) {
     const release = releaseMap.get(item.slug);
     const artist = release?.artist || "Daisy Chain";
     const relTitle = release?.title || item.releaseTitle || item.slug;
     const isTrack = Boolean(item.trackKey);
-    const unitPrice = isTrack ? PER_TRACK_PRICE : (release?.price || item.price || 0);
-    return {
+    const unitPrice = isTrack ? PER_TRACK_PRICE : release?.price ?? 0;
+
+    if (!isTrack && (!release || !unitPrice || unitPrice <= 0)) {
+      return NextResponse.json(
+        { error: `No price set for ${relTitle}. Please refresh and try again.` },
+        { status: 400 },
+      );
+    }
+
+    lineItems.push({
       price_data: {
         currency: "usd" as const,
         product_data: {
@@ -196,8 +223,8 @@ async function handleCartCheckout(
         unit_amount: Math.round(unitPrice * 100),
       },
       quantity: 1 as const,
-    };
-  });
+    });
+  }
 
   const origin = req.nextUrl.origin;
 
