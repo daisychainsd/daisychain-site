@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
   const session = await stripe.checkout.sessions.create({
     ui_mode: "embedded_page",
     mode: "payment",
+    // Shows the "Add promotion code" field in checkout. The actual codes +
+    // their discount/expiry are managed in the Stripe dashboard (Coupons →
+    // Promotion codes), so we can run/end promos without a code change.
+    allow_promotion_codes: true,
     line_items: lineItems,
     shipping_address_collection: {
       allowed_countries: [
