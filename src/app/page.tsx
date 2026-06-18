@@ -5,7 +5,7 @@ import { eventFlyerUrl } from "@/lib/eventFlyerUrl";
 import { HOMEPAGE_SETTINGS, LATEST_RELEASE } from "@/lib/queries";
 import UpcomingEventCard from "@/components/UpcomingEventCard";
 import WordmarkHero from "@/components/WordmarkHero";
-import NewsMarquee from "@/components/NewsMarquee";
+// import NewsMarquee from "@/components/NewsMarquee"; // hidden for now (2026-06-17)
 import ReleaseSpotlight from "@/components/ReleaseSpotlight";
 import ShopStrip from "@/components/ShopStrip";
 import SectionHeader from "@/components/SectionHeader";
@@ -113,7 +113,8 @@ export default async function HomePage() {
         <WordmarkHero />
       </div>
 
-      <NewsMarquee />
+      {/* NewsMarquee hidden for now (2026-06-17) — restore by uncommenting this + the import. */}
+      {/* <NewsMarquee /> */}
 
       {prioritizeLatestRelease && <ReleaseSpotlight release={latest} />}
 
