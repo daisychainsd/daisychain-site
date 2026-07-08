@@ -46,7 +46,7 @@ goes to playerdave@daisychainsd.com.
 4. Vercel → Logs for cron runs (hourly release-day).
 5. `[ALERT]` emails to playerdave@daisychainsd.com mean a purchase record
    failed — act immediately (buyer paid, got nothing).
-6. Ops dashboard at `/ops` (planned) will surface all of the above.
+6. Ops dashboard at `/ops` surfaces all of the above (see "Ops dashboard" below).
 
 ## Env vars (Vercel; local via `vercel env pull`)
 Sanity: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`,
