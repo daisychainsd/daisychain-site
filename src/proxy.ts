@@ -5,6 +5,33 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function proxy(request: NextRequest) {
+  // Protect /ops + /api/ops — HTTP basic auth (any username, OPS_PASSWORD as
+  // password). Fail closed: 404 when OPS_PASSWORD is unset. Checked before the
+  // Supabase early-return so the gate holds even without Supabase env vars.
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/ops") || pathname.startsWith("/api/ops")) {
+    const opsPassword = process.env.OPS_PASSWORD;
+    if (!opsPassword) {
+      return new NextResponse("Not found", { status: 404 });
+    }
+    let providedPassword = "";
+    const auth = request.headers.get("authorization") ?? "";
+    const [scheme, encoded] = auth.split(" ");
+    if (scheme === "Basic" && encoded) {
+      try {
+        providedPassword = atob(encoded).split(":").slice(1).join(":");
+      } catch {
+        // malformed base64 → treated as wrong password
+      }
+    }
+    if (providedPassword !== opsPassword) {
+      return new NextResponse("Authentication required", {
+        status: 401,
+        headers: { "WWW-Authenticate": 'Basic realm="Daisy Chain Ops"' },
+      });
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   if (!supabaseUrl || !supabaseKey) {
@@ -67,6 +94,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // `api(?!/ops)` — API routes bypass the proxy EXCEPT /api/ops/*, which
+    // must pass the basic-auth gate above.
+    "/((?!_next/static|_next/image|favicon.ico|api(?!/ops)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -76,6 +76,26 @@ npm run build                 # run before merging to main — catches TS errors
 Work on `dev`, PR to `main`. Never merge to `main` without walking the
 purchase flow end-to-end.
 
+## Ops dashboard
+- **URL**: https://www.daisychainsd.com/ops — HTTP basic auth (any username,
+  password = `OPS_PASSWORD`). If `OPS_PASSWORD` is unset the route 404s (fail
+  closed). Gate lives in `src/proxy.ts`, covering `/ops` and `/api/ops`.
+- **Panels**: Health (dc-email-api, Stripe, Supabase, Sanity, Shopify —
+  shared checks in `src/lib/ops-health.ts`), Orders (last 10 Stripe charges +
+  30-day revenue), Email (dc-email-api `/api/status`: subscriber count, last
+  post, sync cursors, Laylo webhook age), Upcoming (Sanity events with a
+  future date + releases still marked `upcoming`). Page self-refreshes every
+  2 minutes.
+- **Alert cron**: `GET /api/cron/ops-health` — daily `0 14 * * *` UTC
+  (Vercel cron, Bearer `CRON_SECRET`). Emails `ALERT_EMAIL` (default
+  playerdave@daisychainsd.com) via Resend with subject `[OPS] N system(s)
+  failing` when any check fails; silent when all green.
+- **Env vars**: `OPS_PASSWORD` (required for the page to exist),
+  `DC_EMAIL_API_INTERNAL_SECRET` (= dc-email-api's `INTERNAL_SECRET`),
+  `DC_EMAIL_API_URL` (optional, defaults to https://dc-email-api.vercel.app).
+  Everything else reuses existing keys (Stripe/Supabase/Sanity/Shopify/
+  Resend/`CRON_SECRET`/`ALERT_EMAIL`).
+
 ## One-off scripts
 `scripts/fix-rls-guest-tables.sql` — applied 2026-07-03 in Supabase SQL editor;
 dropped permissive RLS policies that let the anon key read guest purchase data.
