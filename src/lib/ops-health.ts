@@ -144,12 +144,22 @@ export async function runHealthChecks(): Promise<OpsHealth> {
     }),
 
     timed("Supabase", async () => {
-      const { count, error } = await createAdminClient()
-        .from("purchases")
-        .select("*", { count: "exact", head: true })
-        .abortSignal(AbortSignal.timeout(TIMEOUT_MS));
-      if (error) throw new Error(error.message);
-      return `${count ?? 0} purchases`;
+      // Stripe lists every sale; Supabase only records digital entitlements —
+      // account purchases + guest purchases. Merch never writes a row here.
+      const supabase = createAdminClient();
+      const [acct, guest] = await Promise.all([
+        supabase
+          .from("purchases")
+          .select("*", { count: "exact", head: true })
+          .abortSignal(AbortSignal.timeout(TIMEOUT_MS)),
+        supabase
+          .from("guest_purchases")
+          .select("*", { count: "exact", head: true })
+          .abortSignal(AbortSignal.timeout(TIMEOUT_MS)),
+      ]);
+      const err = acct.error ?? guest.error;
+      if (err) throw new Error(err.message);
+      return `${(acct.count ?? 0) + (guest.count ?? 0)} download purchases (${acct.count ?? 0} account + ${guest.count ?? 0} guest)`;
     }),
 
     timed("Sanity", async () => {
