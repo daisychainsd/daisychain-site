@@ -241,6 +241,49 @@ export async function sendOrderConfirmationEmail({
 }
 
 /**
+ * Alert the label owner when the ops-health cron finds failing systems.
+ * One email per cron run, listing every failure. Best-effort — if Resend
+ * is not configured, falls back to console.error only.
+ */
+export async function sendOpsHealthAlert(
+  failures: { name: string; detail: string }[]
+) {
+  const alertTo = process.env.ALERT_EMAIL || "playerdave@daisychainsd.com";
+  console.error(
+    `OPS HEALTH ALERT — ${failures.map((f) => `${f.name}: ${f.detail}`).join("; ")}`
+  );
+
+  const resend = getResend();
+  if (!resend) return;
+
+  const rows = failures
+    .map(
+      (f) =>
+        `<p style="margin: 0 0 12px;"><strong style="color: #e85c5c;">${esc(f.name)}</strong><br /><span style="color: #a8a299;">${esc(f.detail)}</span></p>`
+    )
+    .join("");
+
+  try {
+    await resend.emails.send({
+      from: "Daisy Chain Recordings <noreply@daisychainsd.com>",
+      to: alertTo,
+      subject: `[OPS] ${failures.length} system(s) failing`,
+      html: `
+        <div style="font-family: monospace; padding: 24px; color: #e8e4df; background: #0f0e0c;">
+          <h2 style="color: #e85c5c; margin: 0 0 16px;">Ops Health Check Failed</h2>
+          ${rows}
+          <p style="margin-top: 24px; color: #a8a299;">
+            Full detail on the dashboard: https://www.daisychainsd.com/ops
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send ops health alert email:", err);
+  }
+}
+
+/**
  * Alert the label owner when a purchase fails to record.
  * Best-effort — if Resend is not configured, falls back to console.error only.
  */
