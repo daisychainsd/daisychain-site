@@ -428,18 +428,31 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const cartTracksRaw = session.metadata?.cartTracks;
+  // Reassemble chunked metadata: cartTracks, cartTracks2, cartTracks3, ...
+  let cartTracksRaw = session.metadata?.cartTracks ?? "";
+  for (let i = 2; session.metadata?.[`cartTracks${i}`]; i++) {
+    cartTracksRaw += `,${session.metadata[`cartTracks${i}`]}`;
+  }
   if (!cartTracksRaw) {
     console.error("No cartTracks in cart session metadata");
     return;
   }
 
   let items: { slug: string; trackKey?: string; trackTitle?: string }[];
-  try {
-    items = JSON.parse(cartTracksRaw);
-  } catch {
-    console.error("Failed to parse cartTracks metadata:", cartTracksRaw);
-    return;
+  if (cartTracksRaw.startsWith("[")) {
+    // Legacy JSON format — sessions created before the compact encoding
+    try {
+      items = JSON.parse(cartTracksRaw);
+    } catch {
+      console.error("Failed to parse cartTracks metadata:", cartTracksRaw);
+      return;
+    }
+  } else {
+    // Compact "slug~trackKey" entries, comma-separated
+    items = cartTracksRaw.split(",").map((entry) => {
+      const [slug, trackKey] = entry.split("~");
+      return trackKey ? { slug, trackKey } : { slug };
+    });
   }
 
   const supabase = createAdminClient();
@@ -475,11 +488,19 @@ async function handleCartPurchase(session: Stripe.Checkout.Session) {
     });
   }
 
-  // Send confirmation email for cart purchases
+  // Send confirmation email for cart purchases — titles come from the
+  // session's line items (compact metadata no longer carries trackTitle)
   const email = session.customer_details?.email;
   if (email) {
-    const cartItems = items.map((item) => ({
-      title: item.trackTitle || item.slug,
+    let lineItemNames: string[] = [];
+    try {
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 });
+      lineItemNames = lineItems.data.map((li) => li.description || "");
+    } catch (err) {
+      console.error("Failed to fetch line items for cart email:", err);
+    }
+    const cartItems = items.map((item, i) => ({
+      title: item.trackTitle || lineItemNames[i] || item.slug,
     }));
     await sendOrderConfirmationEmail({
       to: email,
