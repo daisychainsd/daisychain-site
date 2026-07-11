@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (format === "wav") {
-    return NextResponse.json({ url: url + "?dl=", direct: true });
+    // Named `dl` param makes Sanity set Content-Disposition with a real
+    // filename instead of the asset hash
+    const dl = filename ? encodeURIComponent(`${sanitizeFilename(filename)}.wav`) : "";
+    return NextResponse.json({ url: `${url}?dl=${dl}`, direct: true });
   }
 
   const config = FORMAT_CONFIG[format];

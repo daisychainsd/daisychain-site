@@ -19,10 +19,11 @@ local work  →  push to dev  →  dev.daisychainsd.com auto-builds  →  review
 - **Collaborator workflow**: Niko pushes to `dev` (or a feature branch → PR into `dev`). Review at **`dev.daisychainsd.com`** before merging to `main`.
 - **Local dev server**: `npm run dev` (Turbopack, localhost:3000)
 - **Before merging to main**: run `npm run build` locally to catch TypeScript/build errors before Vercel sees them
-- **Merging to main** (only when ready to go live):
+- **Merging to main** (only when ready to go live): open a PR from `dev` to `main` — never push `main` directly (branch protection requires PRs now that the repo has collaborators):
   ```bash
-  git checkout main && git merge dev && git push origin main && git checkout dev
+  gh pr create --base main --head dev --title "..." --body "..."
   ```
+  PD reviews and merges the PR on GitHub (or asks Claude to merge it).
 - **Vercel env vars**: All keys from `.env.local` must also exist in Vercel → Project → Settings → Environment Variables with **Production + Preview + Development** checked (Preview covers `dev`). Use "Import .env File" to bulk-add.
 - **Sanity CDN**: `useCdn` is `false` in dev (live API, instant Studio updates) and `true` in production (cached, faster). Homepage has **`export const revalidate = 60`** so Studio edits to `homepageSettings.upcoming` show up on Vercel within ~60s without a rebuild.
 - **Stale build cache gotcha**: Occasionally Vercel ships a prerendered homepage with empty Sanity data even though Sanity has content (likely an intermittent fetch during build). Nuclear fix: **`git commit --allow-empty -m "rebuild" && git push origin dev`** — a fresh build regenerates the HTML correctly.
