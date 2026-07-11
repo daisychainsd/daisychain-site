@@ -91,8 +91,9 @@ export default function AccountClient({
 
     if (format === "wav") {
       const a = document.createElement("a");
-      a.href = track.audioUrl + "?dl=";
-      a.download = `${baseName}.wav`;
+      // Filename goes in the dl param — `a.download` is ignored cross-origin,
+      // so Sanity's Content-Disposition decides the saved name
+      a.href = `${track.audioUrl}?dl=${encodeURIComponent(`${baseName}.wav`)}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
