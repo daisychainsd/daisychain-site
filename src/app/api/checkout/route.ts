@@ -228,14 +228,27 @@ async function handleCartCheckout(
 
   const origin = req.nextUrl.origin;
 
-  // Store item list as JSON in metadata for the webhook
-  const tracksMeta = JSON.stringify(
-    validItems.map((item) => ({
-      slug: item.slug,
-      ...(item.trackKey ? { trackKey: item.trackKey } : {}),
-      trackTitle: item.trackTitle || "",
-    })),
+  // Store item list in metadata for the webhook as compact "slug~trackKey"
+  // entries (trackTitle omitted — the webhook reads titles off the session's
+  // line items). Stripe caps metadata values at 500 chars, so chunk across
+  // cartTracks, cartTracks2, ... at item boundaries.
+  const entries = validItems.map((item) =>
+    item.trackKey ? `${item.slug}~${item.trackKey}` : item.slug,
   );
+  const cartMeta: Record<string, string> = {};
+  let chunk = "";
+  let chunkIndex = 1;
+  for (const entry of entries) {
+    const next = chunk ? `${chunk},${entry}` : entry;
+    if (next.length > 500) {
+      cartMeta[chunkIndex === 1 ? "cartTracks" : `cartTracks${chunkIndex}`] = chunk;
+      chunkIndex++;
+      chunk = entry;
+    } else {
+      chunk = next;
+    }
+  }
+  cartMeta[chunkIndex === 1 ? "cartTracks" : `cartTracks${chunkIndex}`] = chunk;
 
   let session;
   try {
@@ -249,7 +262,7 @@ async function handleCartCheckout(
       metadata: {
         userId: user.id,
         type: "cart",
-        cartTracks: tracksMeta,
+        ...cartMeta,
       },
     });
   } catch (err) {
