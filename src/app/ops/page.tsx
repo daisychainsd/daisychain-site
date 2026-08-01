@@ -7,6 +7,7 @@ import {
 } from "@/lib/ops-health";
 import { client as sanityClient, sanityFetch } from "@/sanity/client";
 import { DC_TIMEZONE } from "@/lib/dates";
+import { SOP_AREAS, sopCounts, type SopStatus } from "@/lib/sops";
 
 export const dynamic = "force-dynamic";
 
@@ -151,6 +152,51 @@ function HealthTile({ check }: { check: HealthCheck }) {
         {check.ms}ms
       </div>
     </div>
+  );
+}
+
+const SOP_STATUS_STYLE: Record<
+  SopStatus,
+  { label: string; color: string; bg: string; border: string }
+> = {
+  live: {
+    label: "Live",
+    color: GREEN,
+    bg: "rgba(95,191,119,0.12)",
+    border: "rgba(95,191,119,0.25)",
+  },
+  draft: {
+    label: "Draft",
+    color: "var(--color-blue-300, #7CB9E8)",
+    bg: "rgba(124,185,232,0.12)",
+    border: "rgba(124,185,232,0.25)",
+  },
+  todo: {
+    label: "To build",
+    color: "var(--color-text-muted)",
+    bg: "rgba(255,255,255,0.05)",
+    border: "rgba(255,255,255,0.12)",
+  },
+};
+
+function SopStatusPill({ status }: { status: SopStatus }) {
+  const s = SOP_STATUS_STYLE[status];
+  return (
+    <span
+      className="uppercase shrink-0 rounded-full px-2.5 py-0.5"
+      style={{
+        fontFamily: "var(--font-heading), system-ui, sans-serif",
+        fontSize: 9,
+        letterSpacing: "0.1em",
+        color: s.color,
+        background: s.bg,
+        border: `1px solid ${s.border}`,
+        minWidth: 64,
+        textAlign: "center",
+      }}
+    >
+      {s.label}
+    </span>
   );
 }
 
@@ -470,6 +516,100 @@ export default async function OpsPage() {
               ))}
             </ul>
           )}
+        </Panel>
+
+        <Panel
+          title="SOPs"
+          right={
+            <span
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: 12,
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              {(() => {
+                const c = sopCounts();
+                return (
+                  <>
+                    <span style={{ color: GREEN }}>{c.live} live</span>
+                    {" · "}
+                    <span className="text-blue-300">{c.draft} draft</span>
+                    {" · "}
+                    {c.todo} to build
+                  </>
+                );
+              })()}
+            </span>
+          }
+        >
+          <div className="grid gap-5">
+            {SOP_AREAS.map((area) => (
+              <div key={area.area}>
+                <div
+                  className="uppercase mb-1"
+                  style={{
+                    fontFamily: "var(--font-heading), system-ui, sans-serif",
+                    fontSize: 10,
+                    letterSpacing: "0.1em",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  {area.area}
+                </div>
+                <ul className="m-0 p-0 list-none">
+                  {area.sops.map((sop) => (
+                    <li
+                      key={sop.name}
+                      className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 py-2.5 border-t border-white/[0.06] first:border-t-0"
+                    >
+                      <SopStatusPill status={sop.status} />
+                      <span className="text-text-primary text-sm shrink-0">
+                        {sop.name}
+                      </span>
+                      <span
+                        className="shrink-0"
+                        style={{
+                          fontFamily: "var(--font-mono), monospace",
+                          fontSize: 11,
+                          color: "var(--color-text-secondary)",
+                        }}
+                      >
+                        {sop.owner}
+                      </span>
+                      {sop.note && (
+                        <span
+                          className="min-w-0 flex-1 truncate"
+                          style={{
+                            fontFamily: "var(--font-mono), monospace",
+                            fontSize: 11,
+                            color: "var(--color-text-muted)",
+                          }}
+                        >
+                          {sop.note}
+                        </span>
+                      )}
+                      {sop.links?.map((link) => (
+                        <a
+                          key={link.href + link.label}
+                          href={link.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 text-blue-300 hover:underline"
+                          style={{
+                            fontFamily: "var(--font-mono), monospace",
+                            fontSize: 11,
+                          }}
+                        >
+                          {link.label} →
+                        </a>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </Panel>
       </div>
     </div>
