@@ -83,6 +83,36 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
   ]);
 }
 
+/**
+ * Cart sessions carry the purchased tracks in cartTracks metadata (chunked
+ * across cartTracks, cartTracks2, ... — same encoding the Stripe webhook
+ * parses). Two formats exist: legacy JSON array of {slug, trackTitle} and
+ * compact comma-separated "slug~trackKey" entries.
+ */
+function describeCartTracks(m: Record<string, string>): string {
+  let raw = m.cartTracks ?? "";
+  for (let i = 2; m[`cartTracks${i}`]; i++) raw += `,${m[`cartTracks${i}`]}`;
+  if (!raw) return "Cart purchase";
+
+  let names: string[];
+  if (raw.startsWith("[")) {
+    try {
+      const items = JSON.parse(raw) as { slug: string; trackTitle?: string }[];
+      names = items.map((it) => it.trackTitle || prettySlug(it.slug));
+    } catch {
+      return "Cart purchase";
+    }
+  } else {
+    names = raw.split(",").map((entry) => prettySlug(entry.split("~")[0]));
+  }
+  return `Cart: ${names.filter(Boolean).join(", ")}`;
+}
+
+/** "dcr18-cocky" → "cocky" — release title as encoded in the slug. */
+function prettySlug(slug: string): string {
+  return slug.replace(/^dcr[\d.]+-/, "").replace(/-/g, " ");
+}
+
 export async function runHealthChecks(): Promise<OpsHealth> {
   let email: EmailApiStatus | null = null;
   let orders: OrderRow[] = [];
@@ -126,7 +156,7 @@ export async function runHealthChecks(): Promise<OpsHealth> {
           (m.type === "physical"
             ? "Physical order"
             : m.type === "cart"
-              ? "Cart purchase"
+              ? describeCartTracks(m)
               : m.type === "unlimited_pass"
                 ? "Unlimited Pass"
                 : null);
