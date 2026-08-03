@@ -86,6 +86,7 @@ export default async function DownloadPage({
       <DownloadPanel
         tracks={release.tracks || []}
         releaseArtist={release.artist || releaseArtist}
+        releaseTitle={releaseTitle}
         preVerified
         purchasedTrackKey={access.trackKey}
       />

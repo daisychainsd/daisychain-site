@@ -86,18 +86,21 @@ export default function CartDrawer() {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — `invisible` when closed so the full-screen backdrop-blur
+          layer isn't composited on every page (Brave/Chromium can glitch it
+          into a blank cover over the whole viewport). visibility transitions
+          discretely, so the fade in/out still plays. */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity ease-in-out ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-[opacity,visibility] ease-in-out ${
+          isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
       />
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-bg-surface border-l border-blue-300/10 shadow-2xl transition-transform ease-in-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-bg-surface border-l border-blue-300/10 shadow-2xl transition-[transform,visibility] ease-in-out ${
+          isOpen ? "translate-x-0 visible" : "translate-x-full invisible"
         }`}
       >
         <div className="flex flex-col h-full">

@@ -589,6 +589,19 @@ export default async function OpsPage() {
                           {sop.note}
                         </span>
                       )}
+                      {sop.slug && sop.docId && (
+                        <a
+                          href={`/ops/sops/${sop.slug}`}
+                          className="shrink-0 text-blue-300 hover:underline"
+                          style={{
+                            fontFamily: "var(--font-mono), monospace",
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          View SOP →
+                        </a>
+                      )}
                       {sop.links?.map((link) => (
                         <a
                           key={link.href + link.label}

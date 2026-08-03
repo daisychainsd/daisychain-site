@@ -362,7 +362,23 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - Laylo phone-number capture in LeadGen form (Laylo's `subscribeToUser` GraphQL mutation already accepts an optional `phoneNumber` variable, and `/api/newsletter` already forwards `body.phoneNumber` through to Laylo when present). Just needs a phone-input UI on the LeadGen card and a `phone` column migration on Supabase if we want to also persist it locally.
 - **Auto preview gen** — Sanity webhook → `/api/webhooks/sanity/preview-gen` auto-converts WAV→MP3 on track upload. Code written (uncommitted on dev), needs: push to main, add `SANITY_WEBHOOK_SECRET` env var to Vercel, create Sanity webhook in sanity.io/manage
 - **Scroll glitchiness** — site is glitchy when scrolling, needs investigation (reported 2026-05-20)
-- Parcel Sound API integration (future, low priority)
+- Parcel Sound API integration (future, low priority) — see "Payout Math" section below for the fee-allocation spec
+
+## Payout Math — Stripe → Parcel (spec for future integration, decided 2026-08-01)
+
+When the Stripe → Parcel Sound revenue pipeline gets built, per-track net sales are computed like this. Nothing needs to be built now — all data is retroactively reconstructible from Stripe back to the first sale.
+
+**Where the data lives:**
+
+- **Which tracks were bought**: every checkout session's metadata. Single/EP purchases have `title` + `artist`; cart purchases have `cartTracks` (chunked across `cartTracks`, `cartTracks2`, ... — legacy JSON array of `{slug, trackKey, trackTitle}` or compact comma-separated `slug~trackKey` entries). Canonical parser lives in `/api/webhooks/stripe` (`handleCartPurchase`); the ops dashboard has a display-only copy (`describeCartTracks` in `src/lib/ops-health.ts`).
+- **Exact fee + net per order**: `session → payment_intent → latest_charge → balance_transaction` (expand it in one API call). `balance_transaction.fee` / `.net` are authoritative — **never estimate 2.9% + 30¢**; actual fees vary by card type/country.
+
+**Allocation rules:**
+
+1. Allocate each order's fee across its tracks **proportionally to price**, not per-head. Identical to an even split when all tracks are $2, but stays correct for mixed-price carts.
+2. Round fractional cents with **largest-remainder** so per-track nets sum exactly to the order's net. Verified real example: $12.00 six-track cart, fee $0.65, net $11.35 → five tracks at $1.89 + one at $1.90.
+3. The per-track net is the "sales" figure Parcel splits between label and artist.
+4. **Refunds**: subtract a refund's balance transaction against the same tracks as the original order. Stripe does not return the original processing fee on refund.
 
 ## What's Done
 
