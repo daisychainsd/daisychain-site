@@ -12,6 +12,10 @@ export type Sop = {
   owner: string;
   note?: string;
   links?: SopLink[];
+  /** URL slug for the /ops/sops/[slug] viewer page. Required when docId is set. */
+  slug?: string;
+  /** Google Doc ID — the editable SOP document, embedded on the viewer page. */
+  docId?: string;
 };
 
 export type SopArea = { area: string; sops: Sop[] };
@@ -39,6 +43,8 @@ export const SOP_AREAS: SopArea[] = [
         status: "draft",
         owner: "Niko runs, PD gates",
         note: "24 steps, 6 phases — 4 open items left to resolve",
+        slug: "label-release-rollout",
+        docId: "1XbBwUeDOqk4ubYUW8QjT8fEXt4q-NSzt9km7F6esb3c",
         links: [
           { label: "Asana template", href: RELEASE_ROLLOUT_ASANA },
           { label: "Checklist sheet", href: RELEASE_CHECKLIST_SHEET },
@@ -177,6 +183,10 @@ export const SOP_AREAS: SopArea[] = [
     ],
   },
 ];
+
+export function findSopBySlug(slug: string): Sop | undefined {
+  return SOP_AREAS.flatMap((a) => a.sops).find((s) => s.slug === slug);
+}
 
 export function sopCounts(): { live: number; draft: number; todo: number } {
   const all = SOP_AREAS.flatMap((a) => a.sops);
