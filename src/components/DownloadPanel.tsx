@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Track } from "@/lib/types";
+import { downloadTracksAsZip } from "@/lib/downloadZip";
 
 type Format = "wav" | "flac" | "aiff" | "mp3";
 const FORMATS: { id: Format; label: string }[] = [
@@ -14,11 +15,13 @@ const FORMATS: { id: Format; label: string }[] = [
 export default function DownloadPanel({
   tracks,
   releaseArtist,
+  releaseTitle = "",
   preVerified = false,
   purchasedTrackKey = null,
 }: {
   tracks: Track[];
   releaseArtist: string;
+  releaseTitle?: string;
   /**
    * Set by the server page once entitlement is verified. When true, the panel
    * trusts the server and renders downloads directly — the audio URLs in
@@ -29,6 +32,7 @@ export default function DownloadPanel({
 }) {
   const [format, setFormat] = useState<Format>("wav");
   const [converting, setConverting] = useState<string | null>(null);
+  const [zipProgress, setZipProgress] = useState<string | null>(null);
 
   if (!preVerified) {
     return (
@@ -93,10 +97,29 @@ export default function DownloadPanel({
     }
   }
 
+  // One zip per album — browsers block loops of programmatic downloads
+  // (Brave silently dropped half the tracks), a single save always works.
   async function downloadAll() {
-    for (const track of downloadableTracks) {
-      await downloadTrack(track);
-      await new Promise((r) => setTimeout(r, format === "wav" ? 500 : 1000));
+    if (downloadableTracks.length === 1) {
+      return downloadTrack(downloadableTracks[0]);
+    }
+    setZipProgress(`0/${downloadableTracks.length}`);
+    try {
+      await downloadTracksAsZip(
+        downloadableTracks.map((t, i) => ({
+          audioUrl: t.audioUrl!,
+          baseName: `${String(t.trackNumber || i + 1).padStart(2, "0")} ${
+            t.trackArtists?.map((a) => a.name).join(", ") || t.trackArtist || releaseArtist
+          } - ${t.title}`,
+        })),
+        format,
+        `${releaseArtist} - ${releaseTitle || "Release"} (${format.toUpperCase()})`,
+        (done, total) => setZipProgress(`${done}/${total}`)
+      );
+    } catch {
+      alert("Download failed. Please try again.");
+    } finally {
+      setZipProgress(null);
     }
   }
 
@@ -134,8 +157,9 @@ export default function DownloadPanel({
       )}
 
       <button
-        onClick={downloadAll}
-        className="inline-flex items-center gap-2 px-8 py-3 bg-blue-300 text-bg-deep font-bold text-base container-pill-r hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors mb-8"
+        onClick={() => !zipProgress && downloadAll()}
+        disabled={!!zipProgress}
+        className="inline-flex items-center gap-2 px-8 py-3 bg-blue-300 text-bg-deep font-bold text-base container-pill-r hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)] transition-colors mb-8 disabled:opacity-60"
       >
         <svg
           width="20"
@@ -147,9 +171,11 @@ export default function DownloadPanel({
         >
           <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
         </svg>
-        {downloadableTracks.length > 1
-          ? `Download All ${downloadableTracks.length} Tracks (${format.toUpperCase()})`
-          : `Download ${format.toUpperCase()}`}
+        {zipProgress
+          ? `Preparing zip… ${zipProgress}`
+          : downloadableTracks.length > 1
+            ? `Download All ${downloadableTracks.length} Tracks (${format.toUpperCase()})`
+            : `Download ${format.toUpperCase()}`}
       </button>
 
       <div className="border border-blue-300/10 rounded-sm overflow-hidden text-left max-w-md mx-auto">

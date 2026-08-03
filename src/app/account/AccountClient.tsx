@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/components/CartProvider";
 import UnlimitedPassInfo from "@/components/UnlimitedPassInfo";
+import { downloadTracksAsZip } from "@/lib/downloadZip";
 
 type Format = "wav" | "flac" | "aiff" | "mp3";
 const FORMATS: { id: Format; label: string }[] = [
@@ -47,6 +48,7 @@ export default function AccountClient({
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
   const [format, setFormat] = useState<Format>("wav");
   const [converting, setConverting] = useState<string | null>(null);
+  const [zipping, setZipping] = useState<string | null>(null);
 
   // Landing here with ?purchased=... means a digital checkout succeeded. Clear
   // only the digital items now (post-payment) — the cart is no longer cleared
@@ -130,11 +132,32 @@ export default function AccountClient({
     }
   }
 
+  // One zip per album — browsers block loops of programmatic downloads
+  // (Brave silently dropped half the tracks), a single save always works.
   async function handleDownloadAll(release: DownloadRelease) {
-    const downloadable = release.tracks?.filter((t) => t.audioUrl) ?? [];
-    for (const track of downloadable) {
-      await handleDownloadTrack(track, release.artist);
-      await new Promise((r) => setTimeout(r, format === "wav" ? 500 : 1000));
+    const downloadable = (release.tracks?.filter((t) => t.audioUrl) ?? []).sort(
+      (a, b) => (a.trackNumber || 0) - (b.trackNumber || 0)
+    );
+    if (downloadable.length === 1) {
+      return handleDownloadTrack(downloadable[0], release.artist);
+    }
+    setZipping(`${release.slug}|0/${downloadable.length}`);
+    try {
+      await downloadTracksAsZip(
+        downloadable.map((t, i) => ({
+          audioUrl: t.audioUrl!,
+          baseName: `${String(t.trackNumber || i + 1).padStart(2, "0")} ${
+            t.trackArtists?.map((a) => a.name).join(", ") || t.trackArtist || release.artist
+          } - ${t.title}`,
+        })),
+        format,
+        `${release.artist} - ${release.title} (${format.toUpperCase()})`,
+        (done, total) => setZipping(`${release.slug}|${done}/${total}`)
+      );
+    } catch {
+      alert("Download failed. Please try again.");
+    } finally {
+      setZipping(null);
     }
   }
 
@@ -357,9 +380,10 @@ export default function AccountClient({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDownloadAll(release);
+                                if (!zipping) handleDownloadAll(release);
                               }}
-                              className="container-pill-r flex items-center gap-2 px-5 py-2 bg-blue-300 text-bg-deep font-medium text-xs hover:bg-blue-200 transition-colors"
+                              disabled={!!zipping}
+                              className="container-pill-r flex items-center gap-2 px-5 py-2 bg-blue-300 text-bg-deep font-medium text-xs hover:bg-blue-200 transition-colors disabled:opacity-60"
                             >
                               <svg
                                 width="14"
@@ -371,8 +395,9 @@ export default function AccountClient({
                               >
                                 <path d="M8 2v8m0 0l-3-3m3 3l3-3M3 12h10" />
                               </svg>
-                              Download All as {format.toUpperCase()} (
-                              {downloadable.length} tracks)
+                              {zipping?.startsWith(`${release.slug}|`)
+                                ? `Preparing zip… ${zipping.split("|")[1]}`
+                                : `Download All as ${format.toUpperCase()} (${downloadable.length} tracks)`}
                             </button>
                           </div>
                         )}
