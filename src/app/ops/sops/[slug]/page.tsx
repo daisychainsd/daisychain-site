@@ -8,13 +8,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function SopPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const sop = findSopBySlug(slug);
+  const sop = await findSopBySlug(slug);
   if (!sop || !sop.docId) notFound();
 
   const previewUrl = `https://docs.google.com/document/d/${sop.docId}/preview`;
