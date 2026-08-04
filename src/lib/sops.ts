@@ -42,7 +42,7 @@ export const SOP_AREAS: SopArea[] = [
         name: "Pre-Release Rollout",
         status: "draft",
         owner: "Niko runs, PD gates",
-        note: "24 steps, 6 phases — 4 open items left to resolve",
+        note: "26 steps, 6 phases — 3 open items left to resolve",
         slug: "label-release-rollout",
         docId: "1XbBwUeDOqk4ubYUW8QjT8fEXt4q-NSzt9km7F6esb3c",
         links: [
