@@ -34,6 +34,18 @@ export default defineConfig({
               ),
             S.documentTypeListItem("artist").title("Artists"),
             S.documentTypeListItem("event").title("Events"),
+            S.divider(),
+            S.listItem()
+              .title("SOPs")
+              .schemaType("sop")
+              .child(
+                S.documentTypeList("sop")
+                  .title("SOPs")
+                  .defaultOrdering([
+                    { field: "area", direction: "asc" },
+                    { field: "order", direction: "asc" },
+                  ])
+              ),
           ]),
     }),
     visionTool(),

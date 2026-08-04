@@ -7,7 +7,7 @@ import {
 } from "@/lib/ops-health";
 import { client as sanityClient, sanityFetch } from "@/sanity/client";
 import { DC_TIMEZONE } from "@/lib/dates";
-import { SOP_AREAS, sopCounts, type SopStatus } from "@/lib/sops";
+import { getSopAreas, sopCounts, type SopStatus } from "@/lib/sops";
 
 export const dynamic = "force-dynamic";
 
@@ -229,11 +229,12 @@ function StatRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 export default async function OpsPage() {
-  const [health, revenue, events, releases] = await Promise.all([
+  const [health, revenue, events, releases, sopAreas] = await Promise.all([
     runHealthChecks(),
     get30DayRevenue(),
     sanityFetch<UpcomingEvent>(UPCOMING_EVENTS_QUERY),
     sanityFetch<UpcomingRelease>(UPCOMING_RELEASES_QUERY),
+    getSopAreas(),
   ]);
 
   const failingCount = health.checks.filter((c) => !c.ok).length;
@@ -529,7 +530,7 @@ export default async function OpsPage() {
               }}
             >
               {(() => {
-                const c = sopCounts();
+                const c = sopCounts(sopAreas);
                 return (
                   <>
                     <span style={{ color: GREEN }}>{c.live} live</span>
@@ -544,7 +545,7 @@ export default async function OpsPage() {
           }
         >
           <div className="grid gap-5">
-            {SOP_AREAS.map((area) => (
+            {sopAreas.map((area) => (
               <div key={area.area}>
                 <div
                   className="uppercase mb-1"
