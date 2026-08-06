@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { getVariantsByIds } from "@/lib/shopify";
 
+/**
+ * Only these two fields are trusted from the browser. Price, title and image
+ * come from Shopify — the cart lives in localStorage, so anything else the
+ * client sends is attacker-controlled (a forged price used to charge $0.01
+ * for a real vinyl and still cut a full draft order).
+ */
 interface CartLineItem {
   variantId: string;
-  title: string;
-  variantTitle: string;
-  price: number;
   quantity: number;
-  imageUrl?: string;
 }
+
+const MAX_LINES = 20;
+const MAX_QTY_PER_LINE = 10;
 
 export async function POST(req: NextRequest) {
   let items: CartLineItem[];
@@ -19,26 +25,62 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (!items || items.length === 0) {
+  if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+  }
+  if (items.length > MAX_LINES) {
+    return NextResponse.json({ error: "Too many items in cart" }, { status: 400 });
+  }
+
+  // Normalize quantities before anything else touches them.
+  const requested: { variantId: string; quantity: number }[] = [];
+  for (const item of items) {
+    const qty = Number(item?.quantity);
+    if (
+      typeof item?.variantId !== "string" ||
+      !item.variantId.startsWith("gid://shopify/ProductVariant/") ||
+      !Number.isInteger(qty) ||
+      qty < 1 ||
+      qty > MAX_QTY_PER_LINE
+    ) {
+      return NextResponse.json({ error: "Invalid cart item" }, { status: 400 });
+    }
+    requested.push({ variantId: item.variantId, quantity: qty });
   }
 
   try {
-  const lineItems = items.map((item) => ({
-    price_data: {
-      currency: "usd",
-      product_data: {
-        name: item.title,
-        description:
-          item.variantTitle !== "Default Title" ? item.variantTitle : undefined,
-        ...(item.imageUrl ? { images: [item.imageUrl] } : {}),
-      },
-      unit_amount: Math.round(item.price * 100),
-    },
-    quantity: item.quantity,
-  }));
+  const resolved = await getVariantsByIds(requested.map((i) => i.variantId));
 
-  const variantMap = items.map((i) => ({
+  const lineItems = [];
+  for (const item of requested) {
+    const v = resolved.get(item.variantId);
+    if (!v) {
+      return NextResponse.json(
+        { error: "One of these items is no longer available. Please refresh your cart." },
+        { status: 409 },
+      );
+    }
+    if (!v.availableForSale) {
+      return NextResponse.json(
+        { error: `${v.productTitle} just sold out.` },
+        { status: 409 },
+      );
+    }
+    lineItems.push({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: v.productTitle,
+          description: v.title !== "Default Title" ? v.title : undefined,
+          ...(v.imageUrl ? { images: [v.imageUrl] } : {}),
+        },
+        unit_amount: Math.round(v.amount * 100),
+      },
+      quantity: item.quantity,
+    });
+  }
+
+  const variantMap = requested.map((i) => ({
     vid: i.variantId,
     qty: i.quantity,
   }));

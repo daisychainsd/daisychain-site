@@ -1,6 +1,9 @@
 import { stripe } from "@/lib/stripe";
 import { validateDownloadToken } from "@/lib/download-tokens";
 
+/** Session-redirect access window, matching the emailed token's 7-day expiry. */
+const SESSION_ACCESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 export type DownloadAccess =
   | { status: "valid"; trackKey: string | null }
   | { status: "invalid" }
@@ -42,12 +45,38 @@ export async function verifyDownloadAccess({
   }
 
   // Session-based (Stripe redirect). Carries trackKey in metadata.
+  //
+  // A session grants access to exactly ONE release: the one named in its
+  // metadata.slug. Only single-release digital checkouts set that field —
+  // cart, physical and unlimited_pass sessions do not, and must never satisfy
+  // this check (a physical session id is handed to the buyer in the shop
+  // return_url, so treating "no slug" as "any slug" made every paid order a
+  // master key to the whole catalog). Compare affirmatively: undefined never
+  // equals a real slug, so unknown session shapes fail closed.
   if (sessionId) {
     try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ["payment_intent.latest_charge"],
+      });
       if (session.payment_status !== "paid") return { status: "invalid" };
-      const purchasedSlug = session.metadata?.slug;
-      if (purchasedSlug && purchasedSlug !== slug) return { status: "invalid" };
+      if (session.metadata?.slug !== slug) return { status: "invalid" };
+
+      // Refunds/chargebacks do not change a session's payment_status, so check
+      // the charge directly — otherwise a refunded buyer keeps downloading.
+      const pi = session.payment_intent;
+      const charge =
+        pi && typeof pi !== "string" ? pi.latest_charge : null;
+      if (charge && typeof charge !== "string") {
+        if (charge.refunded || (charge.amount_refunded ?? 0) > 0) {
+          return { status: "invalid" };
+        }
+      }
+
+      // Redirect links are permanent otherwise — Stripe sessions stay
+      // retrievable forever. Match the emailed token's 7-day window.
+      const ageMs = Date.now() - session.created * 1000;
+      if (ageMs > SESSION_ACCESS_WINDOW_MS) return { status: "invalid" };
+
       return { status: "valid", trackKey: session.metadata?.trackKey || null };
     } catch {
       return { status: "error" };

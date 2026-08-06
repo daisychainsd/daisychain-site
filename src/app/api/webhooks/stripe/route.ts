@@ -88,6 +88,26 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const purchaseType = session.metadata?.type;
 
+      // `completed` does not mean `paid` for delayed-notification methods
+      // (Klarna, Cash App, ACH…). Physical checkout doesn't pin card-only, so
+      // enabling one of those in the Stripe dashboard would otherwise ship
+      // goods before the money lands. Success arrives later as
+      // async_payment_succeeded, handled below.
+      if (session.payment_status !== "paid") {
+        return NextResponse.json({ received: true, pending: true });
+      }
+
+      if (purchaseType === "physical") {
+        await handlePhysicalOrder(session);
+      } else if (purchaseType === "cart") {
+        await handleCartPurchase(session);
+      } else {
+        await handleDigitalPurchase(session);
+      }
+    } else if (event.type === "checkout.session.async_payment_succeeded") {
+      // Delayed-notification method cleared — now fulfil.
+      const session = event.data.object as Stripe.Checkout.Session;
+      const purchaseType = session.metadata?.type;
       if (purchaseType === "physical") {
         await handlePhysicalOrder(session);
       } else if (purchaseType === "cart") {
@@ -130,12 +150,32 @@ async function handleRefundOrDispute(event: Stripe.Event) {
       ? (event.data.object as Stripe.Dispute)
       : null;
 
+  // `charge.refunded` fires on ANY refund, including partial. Revoking on a
+  // partial would strip every entitlement in the order — refund $2 of a $12
+  // six-track cart and the buyer loses all six. Only full refunds (and
+  // disputes) revoke; partials alert only.
+  if (charge && !charge.refunded) {
+    await sendPurchaseFailureAlert({
+      email: charge.billing_details?.email || "unknown",
+      slug: "(partial refund)",
+      sessionId: (charge.payment_intent as string) || charge.id,
+      error: `Partial refund on charge ${charge.id} (${charge.amount_refunded} of ${charge.amount} refunded). Access was NOT revoked — revoke manually if that was intended.`,
+    });
+    return;
+  }
+
   const paymentIntent = (charge?.payment_intent || dispute?.payment_intent) as
     | string
     | null
     | undefined;
   if (!paymentIntent) {
     console.error("Refund/dispute with no payment_intent:", event.id);
+    await sendPurchaseFailureAlert({
+      email: "unknown",
+      slug: "(refund/dispute)",
+      sessionId: event.id,
+      error: `Refund/dispute event ${event.id} had no payment_intent — could not map it to a session, so access was NOT revoked.`,
+    });
     return;
   }
 
@@ -162,6 +202,20 @@ async function handleRefundOrDispute(event: Stripe.Event) {
       .delete()
       .eq("stripe_session_id", sid);
     if (gErr) console.error("Failed to delete guest_purchases on refund:", gErr);
+
+    // Deleting purchase rows revokes nothing a guest actually uses — the
+    // emailed link is a download_tokens row, valid for its full 7 days
+    // regardless. Kill those too, or a refunded buyer keeps downloading.
+    const refundEmail = session.customer_details?.email || session.metadata?.guestEmail;
+    const refundSlug = session.metadata?.slug;
+    if (refundEmail && refundSlug) {
+      const { error: tErr } = await supabase
+        .from("download_tokens")
+        .delete()
+        .eq("email", refundEmail)
+        .eq("slug", refundSlug);
+      if (tErr) console.error("Failed to delete download_tokens on refund:", tErr);
+    }
 
     // Deactivate an unlimited pass if this session bought one.
     if (session.metadata?.type === "unlimited_pass" && session.metadata?.userId) {

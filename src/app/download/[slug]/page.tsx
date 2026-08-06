@@ -75,6 +75,14 @@ export default async function DownloadPage({
 
   if (!release) notFound();
 
+  // Restrict to the purchased track BEFORE the array crosses into the client
+  // component. DownloadPanel also filters, but that is UI only — anything
+  // passed as a prop is serialized into the page payload and readable, so a
+  // single-track buyer would otherwise receive every track's master URL.
+  const entitledTracks = access.trackKey
+    ? (release.tracks || []).filter((t) => t._key === access.trackKey)
+    : release.tracks || [];
+
   return (
     <Shell coverArt={meta.coverArt} title={releaseTitle}>
       <h1 className="text-headline mb-2">Thank you!</h1>
@@ -84,7 +92,7 @@ export default async function DownloadPage({
       </p>
 
       <DownloadPanel
-        tracks={release.tracks || []}
+        tracks={entitledTracks}
         releaseArtist={release.artist || releaseArtist}
         releaseTitle={releaseTitle}
         preVerified

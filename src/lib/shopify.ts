@@ -128,6 +128,71 @@ export async function getProducts(): Promise<ShopifyProduct[]> {
   }
 }
 
+/** A variant resolved from Shopify — the authoritative price/title/stock. */
+export interface ResolvedVariant {
+  id: string;
+  title: string;
+  productTitle: string;
+  availableForSale: boolean;
+  amount: number;
+  imageUrl: string | null;
+}
+
+/**
+ * Look up variants by id. Checkout MUST price from this, never from the
+ * browser — the cart lives in localStorage and is trivially edited.
+ * Returns only variants Shopify actually resolved; unknown ids are dropped so
+ * the caller can reject the order.
+ */
+export async function getVariantsByIds(
+  ids: string[],
+): Promise<Map<string, ResolvedVariant>> {
+  const out = new Map<string, ResolvedVariant>();
+  if (ids.length === 0) return out;
+  try {
+    const data = await shopifyFetch<{
+      nodes: ({
+        id: string;
+        title: string;
+        availableForSale: boolean;
+        price: { amount: string };
+        image: { url: string } | null;
+        product: { title: string; featuredImage: { url: string } | null };
+      } | null)[];
+    }>({
+      query: `query GetVariants($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on ProductVariant {
+            id
+            title
+            availableForSale
+            price { amount }
+            image { url }
+            product { title featuredImage { url } }
+          }
+        }
+      }`,
+      variables: { ids },
+    });
+    for (const n of data.nodes ?? []) {
+      if (!n?.id) continue;
+      const amount = Number(n.price?.amount);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      out.set(n.id, {
+        id: n.id,
+        title: n.title,
+        productTitle: n.product?.title ?? n.title,
+        availableForSale: n.availableForSale,
+        amount,
+        imageUrl: n.image?.url ?? n.product?.featuredImage?.url ?? null,
+      });
+    }
+  } catch {
+    return new Map();
+  }
+  return out;
+}
+
 export async function getProductByHandle(
   handle: string,
 ): Promise<ShopifyProduct | null> {

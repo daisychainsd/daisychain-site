@@ -55,10 +55,10 @@ export const RELEASE_DETAIL = `
       trackNumber,
       youtubeUrl,
       comingSoon,
-      "audioUrl": select(
-        ^.status == "upcoming" || comingSoon == true => null,
-        audioFile.asset->url
-      ),
+      // Public page: never emit the master audio URL. This query feeds a client
+      // component, so anything here is serialized into the page HTML and is
+      // readable without a purchase. Streaming uses previewUrl only.
+      "audioUrl": null,
       "previewUrl": select(
         ^.status == "upcoming" || comingSoon == true => null,
         previewFile.asset->url
@@ -68,7 +68,7 @@ export const RELEASE_DETAIL = `
 `;
 
 export const RELEASE_DOWNLOAD = `
-  *[_type == "release" && slug.current == $slug][0] {
+  *[_type == "release" && slug.current == $slug && hidden != true && status != "upcoming"][0] {
     title,
     "slug": slug.current,
     displayArtist,
@@ -150,7 +150,7 @@ export const ALL_RELEASES_DOWNLOAD = `
 
 // Pass holders: all live releases + upcoming releases within 7 days of releaseDate
 export const ALL_RELEASES_DOWNLOAD_WITH_EARLY = `
-  *[_type == "release" && (
+  *[_type == "release" && hidden != true && (
     status != "upcoming" ||
     (status == "upcoming" && releaseDate <= $earlyAccessDate)
   )] | order(releaseDate desc) {
@@ -196,10 +196,8 @@ export const LATEST_RELEASE = `
       duration,
       comingSoon,
       youtubeUrl,
-      "audioUrl": select(
-        ^.status == "upcoming" || comingSoon == true => null,
-        audioFile.asset->url
-      ),
+      // Public surface — no master audio URL (see RELEASE_DETAIL note).
+      "audioUrl": null,
       "previewUrl": select(
         ^.status == "upcoming" || comingSoon == true => null,
         previewFile.asset->url
@@ -247,10 +245,8 @@ export const HOMEPAGE_SETTINGS = `
         duration,
         comingSoon,
         youtubeUrl,
-        "audioUrl": select(
-          ^.status == "upcoming" || comingSoon == true => null,
-          audioFile.asset->url
-        ),
+        // Public surface — no master audio URL (see RELEASE_DETAIL note).
+        "audioUrl": null,
         "previewUrl": select(
           ^.status == "upcoming" || comingSoon == true => null,
           previewFile.asset->url
