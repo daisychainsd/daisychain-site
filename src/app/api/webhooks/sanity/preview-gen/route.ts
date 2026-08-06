@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { execFile } from "child_process";
 import { writeFile, readFile, unlink, rmdir, mkdtemp } from "fs/promises";
-import { createReadStream } from "fs";
 import { createHmac, timingSafeEqual } from "crypto";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -67,7 +66,9 @@ async function convertTrack(
     });
 
     const safeName = (track.title || "track").replace(/[^a-zA-Z0-9]/g, "_") + "_preview.mp3";
-    const asset = await client.assets.upload("file", createReadStream(outputPath), {
+    // Buffer, not a stream — Node fetch rejects stream bodies without `duplex`
+    const mp3 = await readFile(outputPath);
+    const asset = await client.assets.upload("file", mp3, {
       filename: safeName,
       contentType: "audio/mpeg",
     });
@@ -82,7 +83,6 @@ async function convertTrack(
       })
       .commit();
 
-    const mp3Size = (await readFile(outputPath)).length;
     return { title: track.title, ok: true, error: undefined };
   } catch (err) {
     return { title: track.title, ok: false, error: err instanceof Error ? err.message : String(err) };
