@@ -7,8 +7,18 @@ import ffmpegPath from "ffmpeg-static";
 
 export const maxDuration = 60;
 
-/** Only allow fetching audio from the Sanity CDN — prevents SSRF. */
-const ALLOWED_HOSTS = ["cdn.sanity.io"];
+/**
+ * Only allow fetching audio from THIS project's Sanity dataset. Pinning the
+ * host alone was not enough: cdn.sanity.io serves every Sanity customer, so
+ * any large public asset anywhere on the CDN was a free lever on our compute
+ * and Sanity's egress bill.
+ */
+const ALLOWED_URL_PREFIX = `https://cdn.sanity.io/files/${
+  process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? ""
+}/${process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production"}/`;
+
+/** Refuse anything larger than a long lossless master. */
+const MAX_INPUT_BYTES = 200 * 1024 * 1024;
 
 const FORMAT_CONFIG: Record<
   string,
@@ -51,7 +61,11 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
-  if (!ALLOWED_HOSTS.includes(parsed.hostname)) {
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname !== "cdn.sanity.io" ||
+    !url.startsWith(ALLOWED_URL_PREFIX)
+  ) {
     return NextResponse.json({ error: "URL not allowed" }, { status: 403 });
   }
 
@@ -69,16 +83,41 @@ export async function POST(req: NextRequest) {
   const outputPath = join(dir, `output.${config.ext}`);
 
   try {
-    const response = await fetch(url);
+    // redirect: "manual" — the allowlist is checked once, before the request.
+    // Following a redirect would let a future CDN change land us somewhere the
+    // allowlist never approved.
+    const response = await fetch(url, { redirect: "manual" });
     if (!response.ok) throw new Error("Failed to fetch source audio");
 
+    const declaredLength = Number(response.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_INPUT_BYTES) {
+      return NextResponse.json({ error: "Source audio too large" }, { status: 413 });
+    }
+
     const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength > MAX_INPUT_BYTES) {
+      return NextResponse.json({ error: "Source audio too large" }, { status: 413 });
+    }
     await writeFile(inputPath, buffer);
 
     await new Promise<void>((resolve, reject) => {
       execFile(
         ffmpegPath!,
-        ["-i", inputPath, ...config.args, "-y", outputPath],
+        [
+          // Force the WAV demuxer and deny every protocol but local file
+          // reads. Input is always a Sanity WAV in the real flow, so this
+          // costs nothing and removes ffmpeg's demuxer/protocol attack
+          // surface (HLS/concat playlists referencing file:// paths).
+          "-f",
+          "wav",
+          "-protocol_whitelist",
+          "file",
+          "-i",
+          inputPath,
+          ...config.args,
+          "-y",
+          outputPath,
+        ],
         { timeout: 55000 },
         (error) => {
           if (error) reject(error);

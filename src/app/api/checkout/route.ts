@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   // Server-side price lookup — never trust client-supplied price.
   const release = sanityClient
     ? await sanityClient.fetch<{ title: string; artist: string; price: number | null } | null>(
-        `*[_type == "release" && slug.current == $slug][0] {
+        `*[_type == "release" && slug.current == $slug && hidden != true && status != "upcoming"][0] {
           title,
           "artist": coalesce(artists[0]->name, displayArtist, artist->name),
           price
@@ -172,7 +172,7 @@ async function handleCartCheckout(
   const slugs = [...new Set(validItems.map((i) => i.slug))];
   const releases = sanityClient
     ? await sanityClient.fetch<{ slug: string; title: string; artist: string; price: number | null }[]>(
-        `*[_type == "release" && slug.current in $slugs] {
+        `*[_type == "release" && slug.current in $slugs && hidden != true && status != "upcoming"] {
           "slug": slug.current,
           title,
           "artist": coalesce(artists[0]->name, displayArtist, artist->name),

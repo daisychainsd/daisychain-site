@@ -34,6 +34,25 @@ export async function proxy(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
 
+  // Protect /studio — HTTP basic auth gate. Runs BEFORE the Supabase early
+  // return below (and fails closed like /ops): a deploy missing either the
+  // Supabase env vars or STUDIO_PASSWORD used to serve the admin surface to
+  // the internet.
+  if (pathname.startsWith("/studio")) {
+    const studioPassword = process.env.STUDIO_PASSWORD;
+    if (!studioPassword) {
+      return new NextResponse("Not found", { status: 404 });
+    }
+    const auth = request.headers.get("authorization");
+    const expected = "Basic " + btoa("admin:" + studioPassword);
+    if (auth !== expected) {
+      return new NextResponse("Authentication required", {
+        status: 401,
+        headers: { "WWW-Authenticate": 'Basic realm="Daisy Chain Studio"' },
+      });
+    }
+  }
+
   if (!supabaseUrl || !supabaseKey) {
     return supabaseResponse;
   }
@@ -59,20 +78,6 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /studio — HTTP basic auth gate
-  if (request.nextUrl.pathname.startsWith("/studio")) {
-    const studioPassword = process.env.STUDIO_PASSWORD;
-    if (studioPassword) {
-      const auth = request.headers.get("authorization");
-      const expected = "Basic " + btoa("admin:" + studioPassword);
-      if (auth !== expected) {
-        return new NextResponse("Authentication required", {
-          status: 401,
-          headers: { "WWW-Authenticate": 'Basic realm="Daisy Chain Studio"' },
-        });
-      }
-    }
-  }
 
   // Protect /account — redirect to /login if not authenticated
   if (!user && request.nextUrl.pathname.startsWith("/account")) {

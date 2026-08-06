@@ -22,13 +22,11 @@ export default function CheckoutPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        // Only variant + quantity. The server prices from Shopify; sending a
+        // price from here would be advisory at best and forgeable at worst.
         items: items.map((i) => ({
           variantId: i.variantId,
-          title: i.title,
-          variantTitle: i.variantTitle,
-          price: i.price,
           quantity: i.quantity,
-          imageUrl: i.imageUrl,
         })),
       }),
     });
