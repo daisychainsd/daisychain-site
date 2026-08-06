@@ -68,7 +68,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **WAV files** are the master/purchase format, stored in Sanity as `audioFile` on each track
 - **MP3 preview files** (128kbps) are stored in Sanity as `previewFile` on each track — used for in-browser streaming/waveform playback
 - Preview MP3s were generated via `scripts/generate-previews.mjs` — converts WAV → 128k MP3 via ffmpeg, uploads to Sanity, patches `previewFile` field
-- **When adding new releases**: upload the WAV as `audioFile`, then either run `scripts/generate-previews.mjs` to auto-generate the MP3 preview, or manually upload an MP3 as `previewFile` in Sanity Studio
+- **When adding new releases**: upload the WAV as `audioFile` — the Preview Gen Sanity webhook auto-generates the MP3 preview within minutes (fallback: `scripts/generate-previews.mjs` or manual MP3 upload)
 - TrackList uses `previewUrl` (falls back to `audioUrl`) for wavesurfer playback — real waveforms from actual audio data
 - `/api/convert` route handles on-demand format conversion (WAV → MP3/FLAC/AIFF) for purchased downloads
 
@@ -105,7 +105,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/api/convert` | Server-side audio format conversion (WAV → MP3/FLAC/AIFF via ffmpeg) |
 | `/api/shopify-product` | GET endpoint returning Shopify product data by handle (used by ReleaseInteractive for physical format display) |
 | `/api/webhooks/stripe` | Stripe webhook — handles `checkout.session.completed`. Records purchase in Supabase for logged-in users; sends download email via Resend for guests; auto-subscribes all purchase emails to beehiiv. Requires `STRIPE_WEBHOOK_SECRET`. |
-| `/api/webhooks/sanity/preview-gen` | Sanity webhook handler — auto-generates 128k MP3 preview files for tracks with `audioFile` but no `previewFile`. Auth via `SANITY_WEBHOOK_SECRET`. **Not yet deployed** — code written, needs Sanity webhook creation + env var. |
+| `/api/webhooks/sanity/preview-gen` | Sanity webhook handler — auto-generates 128k MP3 preview files for tracks with `audioFile` but no `previewFile`. Auth: Sanity `t=/v1=` HMAC signature with `SANITY_WEBHOOK_SECRET`. **LIVE since 2026-08-06** — Sanity webhook "Preview Gen" (id `v0jM3fNyHxICjXPQ`) fires on release create/update when any track has `audioFile` but no `previewFile`. |
 | `/api/newsletter` | POST endpoint — subscribes email to beehiiv newsletter (Daisy Chain Mail) with dynamic `campaign` parameter for UTM tracking |
 
 ## Components
@@ -361,7 +361,6 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - Missing artist photos for 7 artists
 - Resend domain verification (daisychainsd.com DNS records) — until verified, guest download emails silently skip
 - Laylo phone-number capture in LeadGen form (Laylo's `subscribeToUser` GraphQL mutation already accepts an optional `phoneNumber` variable, and `/api/newsletter` already forwards `body.phoneNumber` through to Laylo when present). Just needs a phone-input UI on the LeadGen card and a `phone` column migration on Supabase if we want to also persist it locally.
-- **Auto preview gen** — Sanity webhook → `/api/webhooks/sanity/preview-gen` auto-converts WAV→MP3 on track upload. Code written (uncommitted on dev), needs: push to main, add `SANITY_WEBHOOK_SECRET` env var to Vercel, create Sanity webhook in sanity.io/manage
 - **Scroll glitchiness** — site is glitchy when scrolling, needs investigation (reported 2026-05-20)
 - Parcel Sound API integration (future, low priority) — see "Payout Math" section below for the fee-allocation spec
 
