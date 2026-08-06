@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { execFile } from "child_process";
 import { writeFile, readFile, unlink, rmdir, mkdtemp } from "fs/promises";
 import { createReadStream } from "fs";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { tmpdir } from "os";
 import { join } from "path";
 import ffmpegPath from "ffmpeg-static";
@@ -105,12 +105,19 @@ export async function POST(req: NextRequest) {
   }
 
   const rawBody = await req.text();
+  // Sanity signs webhooks as "t=<timestamp>,v1=<base64url hmac of `${timestamp}.${body}`>"
   const signature = req.headers.get("sanity-webhook-signature");
-  if (!signature) {
+  const t = signature ? /(?:^|,)t=(\d+)/.exec(signature)?.[1] : null;
+  const v1 = signature ? /(?:^|,)v1=([^,]+)/.exec(signature)?.[1] : null;
+  if (!t || !v1) {
     return NextResponse.json({ error: "Missing signature" }, { status: 401 });
   }
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  if (signature !== expected) {
+  const expected = createHmac("sha256", secret)
+    .update(`${t}.${rawBody}`)
+    .digest("base64url");
+  const a = Buffer.from(v1);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
