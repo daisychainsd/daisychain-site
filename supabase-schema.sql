@@ -117,3 +117,18 @@ create policy "Service role full access on processed_stripe_events"
 -- create a second guest_purchases row / download token / email (added 2026-06-12).
 create unique index if not exists guest_purchases_session_track
   on public.guest_purchases (stripe_session_id, coalesce(track_key, '__full__'));
+
+-- ─── 2026-08-06 audit: RLS remediation ───────────────────────────────────
+-- The "Service role …" policies below/above have no TO clause, so they applied
+-- to PUBLIC (including the browser-shipped anon key) rather than to the service
+-- role, which bypasses RLS anyway. Dropped here so a fresh run of this file
+-- does not recreate the leak. See scripts/fix-rls-2026-08-06.sql.
+drop policy if exists "Service role can update profiles"                    on public.profiles;
+drop policy if exists "Service role can insert profiles"                    on public.profiles;
+drop policy if exists "Service role can insert purchases"                   on public.purchases;
+drop policy if exists "Service role full access"                            on public.download_tokens;
+drop policy if exists "Service role full access on guest_purchases"         on public.guest_purchases;
+drop policy if exists "Service role full access on processed_stripe_events" on public.processed_stripe_events;
+revoke all on public.download_tokens         from anon, authenticated;
+revoke all on public.guest_purchases         from anon, authenticated;
+revoke all on public.processed_stripe_events from anon, authenticated;
