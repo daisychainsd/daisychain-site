@@ -49,7 +49,10 @@ Daisy Chain SD is an independent electronic music label based in San Diego, run 
 ### Sanity CMS
 Sanity is **strictly for managing frontend website content** (releases, artists, events). The label's business operations (revenue tracking, payouts, contracts, legal, accounting) are handled separately by **Parcel Sound** — do not build management/admin features that overlap with Parcel Sound.
 
-- `src/sanity/client.ts` — gracefully handles missing config (exports `null` client + `sanityFetch` wrapper that returns empty arrays)
+- **The `production` dataset is PRIVATE** (since 2026-08-06). It was public, which meant one unauthenticated GROQ query to `02wrtovm.apicdn.sanity.io` returned every master WAV URL in the catalog, bypassing every `hidden != true` filter in the codebase. All reads now require a token.
+  - **Order of operations if this is ever changed again:** add the token to every environment and deploy the token-using code FIRST, then flip `aclMode`. Flipping first = instant sitewide outage. Flip via `PATCH https://api.sanity.io/v2021-06-07/projects/02wrtovm/datasets/production` with `{"aclMode":"private"|"public"}` and the user token from `~/.config/sanity/config.json` (the editor robot token can't manage project settings).
+  - **Dataset privacy does NOT make assets private.** `cdn.sanity.io` file/image URLs still resolve for anyone who has them (they must, or site images break), and Sanity asset URLs are permanent and unrevocable. Privacy stops bulk *discovery*, not replay of a known URL. A true fix is proxied/signed downloads — still open.
+- `src/sanity/client.ts` — reads via `SANITY_READ_TOKEN`; gracefully handles missing config (exports `null` client + `sanityFetch` wrapper that returns empty arrays)
 - `src/sanity/image.ts` — `urlFor()` helper for Sanity image CDN
 - `src/sanity/schemas/` — release, artist, event, blockContent
 - `sanity.config.ts` — uses relative imports (`./src/sanity/schemas`), NOT `@/` aliases
@@ -607,6 +610,27 @@ A long session covering schema cleanup, an audience-channels rebuild, the releas
 - **SOP registry moved from hardcoded `src/lib/sops.ts` to Sanity** (PR #6, on prod): `sop` schema + Studio "SOPs" list; 19 SOPs seeded. PD's ask: team adds reference links (tools/sheets) per SOP in Studio without touching code. `sops.ts` is now just the data layer. Team members need Sanity accounts (sanity.io/manage) to edit.
 - **Release Day merged into the rollout system** (Aug 4): Emily's Release Day Checklist tab → 6 "Release day:" tasks in the Asana template (🌙 RELEASE NIGHT section — the Asana MCP can't create sections) + Phase 7 in the SOP Google Doc + steps 27–32 in `~/Projects/daisychain-ops/SOP-label-release.md`. Sanity SOP row renamed "Pre-Release Rollout + Release Day"; separate "Release Day" row deleted.
 
+### Session 11 (2026-08-06) — Full security audit, fixes shipped to main, Sanity dataset locked down
+
+Plan and findings both adversarially reviewed by Codex (it **blocked** the first plan for allowing production writes). Six parallel reviewers, each self-refuting, then live verification. Report: `AUDIT-2026-08-06.md`. Plan: `AUDIT-PLAN-2026-08-06.md`. Shipped as PRs #10 and #11.
+
+**Four criticals, all closed and verified on production:**
+
+1. **Master WAVs were published in public page HTML.** `RELEASE_DETAIL` / `LATEST_RELEASE` / `HOMEPAGE_SETTINGS` resolved `audioUrl` into a *client* component, so the URLs serialized into the RSC payload — a 28 MB master downloaded with no purchase. These three queries now emit `"audioUrl": null`; only the entitlement-gated queries (`RELEASE_DOWNLOAD`, `RELEASES_BY_SLUGS`, `ALL_RELEASES_DOWNLOAD_WITH_EARLY`) carry it. **Never add `audioUrl` to a query that feeds a client component.**
+2. **`/api/checkout-physical` charged a client-supplied price** — `unit_amount` came straight from the request body, so $0.01 bought a real vinyl and still cut a full Shopify draft order. Now resolves variants server-side via `getVariantsByIds()` (`src/lib/shopify.ts`); the client sends only `variantId` + `quantity`; adds `availableForSale` check and qty/line caps.
+3. **Any paid Stripe session unlocked the entire catalog.** `verify-download.ts` skipped its slug check whenever `metadata.slug` was absent — true of cart, physical AND unlimited-pass sessions, and the shop `return_url` hands the buyer their session id. Now compares affirmatively (`metadata?.slug !== slug` → invalid), rejects refunded charges, and expires session links after 7 days.
+4. **Supabase RLS was wide open to the public anon key.** Policies named "Service role …" had no `TO service_role`, so they defaulted to PUBLIC. Verified live: anon could read `download_tokens`, `guest_purchases`, `processed_stripe_events` (customer emails + live tokens), insert `purchases`, and self-grant the $99 pass via an unrestricted own-row `profiles` UPDATE. SQL in `scripts/fix-rls-2026-08-06.sql`, folded into `supabase-schema.sql`. End state: only `profiles` / `purchases` SELECT-own policies remain.
+
+**Also fixed:** server-side track filtering on the download page (single-track buyers were sent every master URL in the payload); hidden/upcoming releases unbuyable and undownloadable; refunds delete download tokens; partial refunds alert instead of revoking the whole order; `payment_status` guard + `checkout.session.async_payment_succeeded` (added to the Stripe endpoint); next 16.2.1 → 16.3.0 (middleware-bypass advisories); `/studio` fails closed and is checked before the Supabase early return; CSP + frame/referrer/permissions/nosniff headers; deleted the dead unauthenticated `/api/verify-purchase`.
+
+**Gotchas worth remembering:**
+- **`/api/convert` now forces `-f wav`**, so it 500s on non-WAV input. Both callers (`DownloadPanel`, `downloadZip`) send `track.audioUrl` only — safe. Don't point it at a `previewFile` MP3.
+- **`next.config.ts` carries both** the ffmpeg bundling config (`serverExternalPackages` + `outputFileTracingIncludes`) and the security headers. A careless merge that drops the ffmpeg half re-breaks paid downloads in production.
+- **dev/preview shares Supabase, Sanity, Shopify, beehiiv, Laylo and Resend with PRODUCTION.** Only Stripe is separated (preview is `sk_test`). A test purchase on dev writes real customer rows and cuts real draft orders. `.env.local` holds a **live** Stripe key.
+- Vercel CLI: preview env vars scoped to a branch use a positional arg — `vercel env add NAME preview dev --value X`, not `--git-branch`.
+
+**Still open** (documented in `AUDIT-2026-08-06.md`, not yet fixed): guest checkout charges the wrong item/price when the cart isn't a single full release; no durable record if fulfilment *and* its alert both fail; webhook claims the event id before processing (a mid-handler crash loses the order silently); pass double-buy; success-page/webhook race; guest cart not cleared after purchase; **no rate limiting anywhere** — `/api/laylo-subscribe` sends SMS to arbitrary numbers, which is TCPA exposure; CMS-fragility crashes (a half-created artist doc 500s `/artists`).
+
 ## Layout & Styling Rules
 
 These conventions must be followed when adding any new page or component.
@@ -692,11 +716,12 @@ Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). An
 
 ## Environment
 
-- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_APP_CLIENT_ID`, `SHOPIFY_APP_CLIENT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`, `LAYLO_API_KEY`, `RESEND_API_KEY`
+- `.env.local` has: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`, `SANITY_API_TOKEN`, `SANITY_READ_TOKEN`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`, `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`, `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (server-only duplicates to bypass Turbopack caching), `SHOPIFY_APP_CLIENT_ID`, `SHOPIFY_APP_CLIENT_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `BEEHIIV_API_KEY`, `CRON_SECRET`, `LAYLO_API_KEY`, `RESEND_API_KEY`
 - **`LAYLO_API_KEY`** (optional) — generated at laylo.com → Settings → Integrations → API Keyring. When set, every newsletter signup is pushed to the Daisy Chain Laylo drop CRM in parallel with beehiiv. When missing, Laylo push is silently skipped. Add to Vercel env vars (Production + Preview) when ready to go live.
 - **`STRIPE_WEBHOOK_SECRET`** — signing secret for the Stripe webhook endpoint (`we_1TS9rnLSuqhEd0bb9AW3F5vo`). Required for `/api/webhooks/stripe` to verify incoming events. Set in Vercel env vars (Production + Preview).
 - **`RESEND_API_KEY`** (optional) — Resend API key for sending guest download emails. When missing, email delivery silently skips — guests still get downloads via the Stripe success redirect. Requires domain verification at resend.com before emails can send from `noreply@daisychainsd.com`.
 - **`CRON_SECRET`** authenticates the daily release-day cron route ([`/api/cron/release-day`](src/app/api/cron/release-day/route.ts)). Generate with `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`. Must be added to Vercel env vars (Production + Preview) for the cron to actually fire on the live site — Vercel Cron sends `Authorization: Bearer ${CRON_SECRET}` automatically when the env var is set.
+- **`SANITY_READ_TOKEN`** (REQUIRED) — viewer-role, read-only token used by `src/sanity/client.ts` for all public-site queries. **The production dataset is private**, so without this every query 401s and the whole site renders empty. Deliberately separate from `SANITY_API_TOKEN`: the client module is imported by page renders and must never carry write rights. Server-only (no `NEXT_PUBLIC_` prefix). Set in all four Vercel environments.
 - Sanity API token is an Editor-level token (needed for mutations/uploads)
 - Supabase keys are from the Supabase dashboard (project settings → API)
 - Google Workspace metadata accessible via `gws` CLI (see gdrive skill)
