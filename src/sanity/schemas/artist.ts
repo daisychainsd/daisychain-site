@@ -50,7 +50,7 @@ export const artist = defineType({
       title: "Role",
       type: "string",
       description:
-        "Short descriptor — e.g. 'Producer · DJ', 'Vocalist', 'Live act'. Shown on the roster card.",
+        "Short descriptor — e.g. 'Producer · DJ', 'Vocalist', 'Live act'. Not currently shown anywhere on the site.",
     }),
     defineField({
       name: "hometown",

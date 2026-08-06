@@ -105,9 +105,6 @@ function ArtistCard({ artist }: { artist: Artist }) {
               {artist.hometown}
             </p>
           )}
-          {artist.role && (
-            <p className="text-text-muted text-[13px] m-0 mt-1.5">{artist.role}</p>
-          )}
         </div>
       </div>
     </Link>
