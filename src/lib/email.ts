@@ -334,6 +334,11 @@ export async function sendCatalogAuditReport({
       html: `
         <div style="font-family: monospace; padding: 24px; color: #e8e4df; background: #0f0e0c;">
           <h2 style="color: ${broken.length ? "#e85c5c" : "#7cb9e8"}; margin: 0 0 8px;">Weekly Catalog Audit</h2>
+          <div style="margin: 0 0 16px;">
+            <a href="https://www.daisychainsd.com/ops" style="display: inline-block; background: #7cb9e8; color: #0f0e0c; font-weight: 600; font-size: 13px; padding: 10px 24px; border-radius: 0 24px 24px 24px; text-decoration: none;">
+              View on the Ops Dashboard
+            </a>
+          </div>
           <p style="font-size: 13px; color: #a8a299; margin: 0 0 4px;">
             Checked ${counts.releases} release pages, ${counts.dspLinks} DSP links, ${counts.files} audio files, ${counts.artists} roster artists.
           </p>
