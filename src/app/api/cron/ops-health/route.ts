@@ -14,6 +14,7 @@ import { sendOpsHealthAlert } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const expected = process.env.CRON_SECRET;
@@ -25,7 +26,19 @@ export async function GET(req: NextRequest) {
   }
 
   const health = await runHealthChecks();
-  const failing = health.checks.filter((c) => !c.ok);
+  let failing = health.checks.filter((c) => !c.ok);
+  let retried = false;
+
+  // Cold starts (dc-email-api especially) can blow the 5s probe timeout on the
+  // first hit of the morning, and a one-off flake shouldn't email anyone.
+  // Re-check once after a pause; alert only on checks that fail BOTH runs.
+  if (failing.length > 0) {
+    retried = true;
+    await new Promise((r) => setTimeout(r, 5000));
+    const firstFail = new Set(failing.map((c) => c.name));
+    const recheck = await runHealthChecks();
+    failing = recheck.checks.filter((c) => !c.ok && firstFail.has(c.name));
+  }
 
   if (failing.length > 0) {
     await sendOpsHealthAlert(failing);
@@ -34,6 +47,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: failing.length === 0,
     alerted: failing.length > 0,
+    retried,
     failing: failing.map((f) => f.name),
     checks: health.checks,
     checkedAt: health.checkedAt,
