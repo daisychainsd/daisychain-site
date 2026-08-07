@@ -284,6 +284,74 @@ export async function sendOpsHealthAlert(
 }
 
 /**
+ * Weekly catalog audit report. Unlike the ops-health alert, this ALWAYS sends —
+ * the Monday email (even an all-clear) is the anchor for the weekly review
+ * ritual. Best-effort — if Resend is not configured, logs to console only.
+ */
+export async function sendCatalogAuditReport({
+  findings,
+  counts,
+}: {
+  findings: { kind: "broken" | "unverifiable" | "missing"; where: string; what: string }[];
+  counts: { releases: number; dspLinks: number; files: number; artists: number };
+}) {
+  const alertTo = process.env.ALERT_EMAIL || "playerdave@daisychainsd.com";
+  const broken = findings.filter((f) => f.kind === "broken");
+  const unverifiable = findings.filter((f) => f.kind === "unverifiable");
+  const missing = findings.filter((f) => f.kind === "missing");
+
+  const subject =
+    broken.length > 0
+      ? `[OPS] Weekly catalog audit — ${broken.length} broken`
+      : `[OPS] Weekly catalog audit — all clear${missing.length ? ` (${missing.length} known gaps)` : ""}`;
+
+  console.log(
+    `CATALOG AUDIT — broken: ${broken.length}, unverifiable: ${unverifiable.length}, missing: ${missing.length}`
+  );
+
+  const resend = getResend();
+  if (!resend) return;
+
+  const section = (title: string, color: string, rows: typeof findings, blurb: string) =>
+    rows.length === 0
+      ? ""
+      : `
+        <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: ${color}; margin: 24px 0 4px;">${title} (${rows.length})</p>
+        <p style="font-size: 12px; color: #6b6560; margin: 0 0 12px;">${blurb}</p>
+        ${rows
+          .map(
+            (f) =>
+              `<p style="margin: 0 0 8px; font-size: 13px;"><strong style="color: #e8e4df;">${esc(f.where)}</strong><br /><span style="color: #a8a299;">${esc(f.what)}</span></p>`
+          )
+          .join("")}`;
+
+  try {
+    await resend.emails.send({
+      from: "Daisy Chain Recordings <noreply@daisychainsd.com>",
+      to: alertTo,
+      subject,
+      html: `
+        <div style="font-family: monospace; padding: 24px; color: #e8e4df; background: #0f0e0c;">
+          <h2 style="color: ${broken.length ? "#e85c5c" : "#7cb9e8"}; margin: 0 0 8px;">Weekly Catalog Audit</h2>
+          <p style="font-size: 13px; color: #a8a299; margin: 0 0 4px;">
+            Checked ${counts.releases} release pages, ${counts.dspLinks} DSP links, ${counts.files} audio files, ${counts.artists} roster artists.
+          </p>
+          ${broken.length === 0 ? `<p style="font-size: 13px; color: #7cb9e8; margin: 0;">Nothing broken.</p>` : ""}
+          ${section("Broken — fix this week", "#e85c5c", broken, "Customer-facing failures. Fix in Sanity Studio or re-upload the file.")}
+          ${section("Unverifiable", "#e8c95c", unverifiable, "The platform blocked the check (not necessarily broken). Spot-check by hand if the same link repeats next week.")}
+          ${section("Known gaps", "#a8a299", missing, "Missing data, not breakage. Chip away when there's freelancer budget / assets arrive.")}
+          <p style="margin-top: 24px; font-size: 12px; color: #6b6560;">
+            Weekly review SOP: https://www.daisychainsd.com/ops
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("Failed to send catalog audit report email:", err);
+  }
+}
+
+/**
  * Alert the label owner when a purchase fails to record.
  * Best-effort — if Resend is not configured, falls back to console.error only.
  */
