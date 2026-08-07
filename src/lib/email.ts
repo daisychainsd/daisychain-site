@@ -295,9 +295,8 @@ export async function sendCatalogAuditReport({
   findings: { kind: "broken" | "unverifiable" | "missing"; where: string; what: string }[];
   counts: { releases: number; dspLinks: number; files: number; artists: number };
 }) {
-  // Niko runs the weekly review ritual (W3) — the report goes to him, not the
-  // ALERT_EMAIL failure inbox.
-  const alertTo = "niko@daisychainsd.com";
+  // Niko runs the weekly review ritual (W3); PD gets a copy.
+  const alertTo = ["niko@daisychainsd.com", "playerdave@daisychainsd.com"];
   const broken = findings.filter((f) => f.kind === "broken");
   const unverifiable = findings.filter((f) => f.kind === "unverifiable");
   const missing = findings.filter((f) => f.kind === "missing");
