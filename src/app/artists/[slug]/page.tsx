@@ -47,27 +47,22 @@ export default async function ArtistPage({
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      {/* Artist bio card */}
-      <div className="container-organic p-3 sm:p-4 mb-16">
-        <div className="flex flex-col sm:flex-row gap-6">
+      {/* Artist identity — photo + name + links, floating on the page background */}
+      <div className="mb-16">
+        <div className="flex flex-col items-center text-center gap-6 py-4">
           {artist.photo && (
-            <div className="container-inset w-40 h-40 shrink-0 relative">
+            <div className="container-inset w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 shrink-0 relative">
               <img
-                src={urlFor(artist.photo).width(400).url()}
+                src={urlFor(artist.photo).width(1000).url()}
                 alt={artist.name}
                 className="w-full h-full object-cover"
               />
             </div>
           )}
-          <div className="flex flex-col justify-center py-2">
+          <div className="flex flex-col items-center">
             <h1 className="text-headline mb-3">{artist.name}</h1>
-            {artist.bio && (
-              <p className="text-text-secondary max-w-lg mb-4 whitespace-pre-line">
-                {artist.bio}
-              </p>
-            )}
             {artist.links && (
-              <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex flex-wrap gap-2 items-center justify-center">
                 {artist.links.instagram && (
                   <IconSocialLink
                     href={artist.links.instagram}
@@ -144,6 +139,16 @@ export default async function ArtistPage({
         </div>
       ) : (
         <p className="text-text-muted">No releases yet.</p>
+      )}
+
+      {/* Bio card — at the bottom, sizes to the text */}
+      {artist.bio && (
+        <div className="container-organic p-6 sm:p-8 mt-16">
+          <p className="text-label mb-3">About</p>
+          <p className="text-text-secondary whitespace-pre-line max-w-3xl">
+            {artist.bio}
+          </p>
+        </div>
       )}
     </div>
   );
