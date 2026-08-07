@@ -23,11 +23,14 @@ type AuditRelease = {
   slug: string;
   catalogNumber?: string;
   hasCover: boolean;
+  hasDescription: boolean;
   links?: Record<string, string | undefined>;
   tracks?: { title?: string; audioUrl?: string; previewUrl?: string }[];
 };
 
-type AuditArtist = { name: string; hasPhoto: boolean };
+type AuditArtist = { name: string; hasPhoto: boolean; hasBio: boolean; hasLinks: boolean };
+
+type AuditEvent = { title: string };
 
 export type AuditFinding = {
   kind: "broken" | "unverifiable" | "missing";
@@ -49,11 +52,19 @@ const RELEASES_QUERY = `*[_type == "release" && hidden != true && status != "upc
   "slug": slug.current,
   catalogNumber,
   "hasCover": defined(coverArt),
+  "hasDescription": defined(description),
   links,
   tracks[]{ title, "audioUrl": audioFile.asset->url, "previewUrl": previewFile.asset->url }
 }`;
 
-const ARTISTS_QUERY = `*[_type == "artist" && rosterTier != "side"] { name, "hasPhoto": defined(photo) }`;
+const ARTISTS_QUERY = `*[_type == "artist" && rosterTier != "side"] {
+  name,
+  "hasPhoto": defined(photo),
+  "hasBio": defined(bio),
+  "hasLinks": defined(coalesce(links.website, links.instagram, links.spotify, links.soundcloud))
+}`;
+
+const EVENTS_NO_FLYER_QUERY = `*[_type == "event" && hidden != true && !defined(flyer)] { title }`;
 
 type UrlResult = { ok: boolean; status: number | null };
 
@@ -155,9 +166,10 @@ export async function runCatalogAudit(): Promise<{
   findings: AuditFinding[];
   counts: AuditCounts;
 }> {
-  const [releases, artists] = await Promise.all([
+  const [releases, artists, eventsNoFlyer] = await Promise.all([
     sanityFetch<AuditRelease>(RELEASES_QUERY),
     sanityFetch<AuditArtist>(ARTISTS_QUERY),
+    sanityFetch<AuditEvent>(EVENTS_NO_FLYER_QUERY),
   ]);
 
   const findings: AuditFinding[] = [];
@@ -223,10 +235,21 @@ export async function runCatalogAudit(): Promise<{
     }
 
     if (!rel.hasCover) push("missing", where, "no cover art");
+    if (!rel.hasDescription) push("missing", where, "no description");
+    const linkCount = Object.values(rel.links || {}).filter(
+      (v) => typeof v === "string" && v.startsWith("http")
+    ).length;
+    if (linkCount === 0) push("missing", where, "no streaming links at all");
   }
 
   for (const artist of artists) {
     if (!artist.hasPhoto) push("missing", artist.name, "no artist photo");
+    if (!artist.hasBio) push("missing", artist.name, "no bio");
+    if (!artist.hasLinks) push("missing", artist.name, "no links (website/IG/Spotify/SoundCloud)");
+  }
+
+  for (const ev of eventsNoFlyer) {
+    push("missing", ev.title, "no event flyer");
   }
 
   await inBatches(tasks);
