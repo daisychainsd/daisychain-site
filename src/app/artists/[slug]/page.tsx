@@ -47,13 +47,13 @@ export default async function ArtistPage({
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      {/* Artist bio card */}
-      <div className="container-organic p-3 sm:p-4 mb-16">
-        <div className="flex flex-col sm:flex-row gap-6">
+      {/* Artist identity card — photo + name + links */}
+      <div className={`container-organic p-3 sm:p-4 ${artist.bio ? "mb-6" : "mb-16"}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           {artist.photo && (
-            <div className="container-inset w-40 h-40 sm:w-64 sm:h-64 md:w-72 md:h-72 shrink-0 relative">
+            <div className="container-inset w-40 h-40 sm:w-48 sm:h-48 shrink-0 relative">
               <img
-                src={urlFor(artist.photo).width(800).url()}
+                src={urlFor(artist.photo).width(500).url()}
                 alt={artist.name}
                 className="w-full h-full object-cover"
               />
@@ -61,11 +61,6 @@ export default async function ArtistPage({
           )}
           <div className="flex flex-col justify-center py-2">
             <h1 className="text-headline mb-3">{artist.name}</h1>
-            {artist.bio && (
-              <p className="text-text-secondary max-w-lg mb-4 whitespace-pre-line">
-                {artist.bio}
-              </p>
-            )}
             {artist.links && (
               <div className="flex flex-wrap gap-2 items-center">
                 {artist.links.instagram && (
@@ -121,6 +116,16 @@ export default async function ArtistPage({
           </div>
         </div>
       </div>
+
+      {/* Bio card — its own cell, sizes to the text */}
+      {artist.bio && (
+        <div className="container-organic p-6 sm:p-8 mb-16">
+          <p className="text-label mb-3">About</p>
+          <p className="text-text-secondary whitespace-pre-line max-w-3xl">
+            {artist.bio}
+          </p>
+        </div>
+      )}
 
       {/* Divider before discography */}
       <div className="divider-glow mb-12" />
