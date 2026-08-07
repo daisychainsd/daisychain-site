@@ -51,9 +51,9 @@ export default async function ArtistPage({
       <div className="container-organic p-3 sm:p-4 mb-16">
         <div className="flex flex-col sm:flex-row gap-6">
           {artist.photo && (
-            <div className="container-inset w-40 h-40 shrink-0 relative">
+            <div className="container-inset w-40 h-40 sm:w-64 sm:h-64 md:w-72 md:h-72 shrink-0 relative">
               <img
-                src={urlFor(artist.photo).width(400).url()}
+                src={urlFor(artist.photo).width(800).url()}
                 alt={artist.name}
                 className="w-full h-full object-cover"
               />
