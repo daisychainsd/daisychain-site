@@ -1,4 +1,3 @@
-import type { PortableTextBlock } from "@portabletext/react";
 import { client } from "@/sanity/client";
 import { urlFor } from "@/sanity/image";
 import { eventFlyerUrl } from "@/lib/eventFlyerUrl";
@@ -59,7 +58,6 @@ interface LatestReleaseData {
   releaseType?: string;
   releaseDate?: string;
   price?: number;
-  description?: PortableTextBlock[] | string;
   tracks?: { title: string; trackArtist?: string; trackArtists?: { name: string; slug: string }[]; trackNumber?: number; duration?: string }[];
   links?: { spotify?: string; appleMusic?: string; bandcamp?: string; soundcloud?: string; youtube?: string };
 }

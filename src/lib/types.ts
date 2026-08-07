@@ -40,7 +40,6 @@ export interface Release {
     soundcloud?: string;
     youtube?: string;
   };
-  description?: any;
   tracks?: Track[];
 }
 
