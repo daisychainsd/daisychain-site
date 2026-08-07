@@ -4,7 +4,7 @@ import { sendCatalogAuditReport } from "@/lib/email";
 
 /**
  * Weekly catalog audit cron — see src/lib/catalog-audit.ts for what it checks.
- * Always emails ALERT_EMAIL a report (even when all clear) — the email is the
+ * Always emails niko@daisychainsd.com a report (even when all clear) — the email is the
  * anchor for the W3 weekly review ritual.
  *
  * Schedule (vercel.json): `0 14 * * 1` UTC (Mondays ~7am PT).
