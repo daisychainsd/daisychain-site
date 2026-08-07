@@ -121,7 +121,7 @@ export default async function ArtistPage({
       <div className="divider-glow mb-12" />
 
       {/* Artist's Releases */}
-      <div className="mb-8">
+      <div className="mb-8 text-center">
         <p className="text-label mb-2">Discography</p>
         <h2 className="text-title text-text-primary">Releases</h2>
       </div>
