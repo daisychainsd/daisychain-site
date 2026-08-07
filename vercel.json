@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/ops-health",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/catalog-audit",
+      "schedule": "0 14 * * 1"
     }
   ]
 }
