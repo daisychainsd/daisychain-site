@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runCatalogAudit } from "@/lib/catalog-audit";
+import { runCatalogAudit, saveAuditResult } from "@/lib/catalog-audit";
 import { sendCatalogAuditReport } from "@/lib/email";
 
 /**
@@ -26,7 +26,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { findings, counts } = await runCatalogAudit();
-  await sendCatalogAuditReport({ findings, counts });
+  await Promise.all([
+    sendCatalogAuditReport({ findings, counts }),
+    saveAuditResult(findings, counts),
+  ]);
 
   return NextResponse.json({
     ok: findings.filter((f) => f.kind === "broken").length === 0,

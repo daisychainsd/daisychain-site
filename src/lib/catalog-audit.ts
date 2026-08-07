@@ -101,6 +101,56 @@ function describe(r: UrlResult): string {
   return r.status === null ? "no response" : `HTTP ${r.status}`;
 }
 
+export type AuditResult = {
+  checkedAt: string;
+  counts: AuditCounts;
+  findings: AuditFinding[];
+};
+
+const PROJECT_ID = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "02wrtovm";
+const DATASET = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
+
+/**
+ * Persist the latest audit result as a singleton Sanity doc so the /ops
+ * dashboard can show it without re-running the ~40s crawl on page load.
+ * Best-effort — the emailed report is the primary output.
+ */
+export async function saveAuditResult(findings: AuditFinding[], counts: AuditCounts): Promise<void> {
+  const token = process.env.SANITY_API_TOKEN;
+  if (!token) {
+    console.warn("SANITY_API_TOKEN not set — skipping audit result save");
+    return;
+  }
+  const res = await fetch(`https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/${DATASET}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mutations: [
+        {
+          createOrReplace: {
+            _id: "catalogAuditResult",
+            _type: "catalogAuditResult",
+            checkedAt: new Date().toISOString(),
+            counts,
+            findings: findings.map((f, i) => ({ _key: String(i), ...f })),
+          },
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    console.error(`Failed to save audit result: ${res.status} ${await res.text()}`);
+  }
+}
+
+/** Latest stored audit result, or null if the cron has never run. */
+export async function getLatestAuditResult(): Promise<AuditResult | null> {
+  const rows = await sanityFetch<AuditResult>(
+    `*[_id == "catalogAuditResult"][0...1]{ checkedAt, counts, findings[]{ kind, where, what } }`
+  );
+  return rows[0] ?? null;
+}
+
 export async function runCatalogAudit(): Promise<{
   findings: AuditFinding[];
   counts: AuditCounts;
