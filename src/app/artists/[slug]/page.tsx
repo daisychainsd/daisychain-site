@@ -47,8 +47,8 @@ export default async function ArtistPage({
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      {/* Artist identity card — photo + name + links */}
-      <div className={`container-organic p-3 sm:p-4 ${artist.bio ? "mb-6" : "mb-16"}`}>
+      {/* Artist identity — photo + name + links, floating on the page background */}
+      <div className="mb-16">
         <div className="flex flex-col items-center text-center gap-6 py-4">
           {artist.photo && (
             <div className="container-inset w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 shrink-0 relative">
@@ -117,16 +117,6 @@ export default async function ArtistPage({
         </div>
       </div>
 
-      {/* Bio card — its own cell, sizes to the text */}
-      {artist.bio && (
-        <div className="container-organic p-6 sm:p-8 mb-16">
-          <p className="text-label mb-3">About</p>
-          <p className="text-text-secondary whitespace-pre-line max-w-3xl">
-            {artist.bio}
-          </p>
-        </div>
-      )}
-
       {/* Divider before discography */}
       <div className="divider-glow mb-12" />
 
@@ -149,6 +139,16 @@ export default async function ArtistPage({
         </div>
       ) : (
         <p className="text-text-muted">No releases yet.</p>
+      )}
+
+      {/* Bio card — at the bottom, sizes to the text */}
+      {artist.bio && (
+        <div className="container-organic p-6 sm:p-8 mt-16">
+          <p className="text-label mb-3">About</p>
+          <p className="text-text-secondary whitespace-pre-line max-w-3xl">
+            {artist.bio}
+          </p>
+        </div>
       )}
     </div>
   );
