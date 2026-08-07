@@ -49,20 +49,20 @@ export default async function ArtistPage({
     <div className="max-w-5xl mx-auto px-6 py-12">
       {/* Artist identity card — photo + name + links */}
       <div className={`container-organic p-3 sm:p-4 ${artist.bio ? "mb-6" : "mb-16"}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+        <div className="flex flex-col items-center text-center gap-6 py-4">
           {artist.photo && (
-            <div className="container-inset w-40 h-40 sm:w-48 sm:h-48 shrink-0 relative">
+            <div className="container-inset w-48 h-48 sm:w-56 sm:h-56 shrink-0 relative">
               <img
-                src={urlFor(artist.photo).width(500).url()}
+                src={urlFor(artist.photo).width(600).url()}
                 alt={artist.name}
                 className="w-full h-full object-cover"
               />
             </div>
           )}
-          <div className="flex flex-col justify-center py-2">
+          <div className="flex flex-col items-center">
             <h1 className="text-headline mb-3">{artist.name}</h1>
             {artist.links && (
-              <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex flex-wrap gap-2 items-center justify-center">
                 {artist.links.instagram && (
                   <IconSocialLink
                     href={artist.links.instagram}
