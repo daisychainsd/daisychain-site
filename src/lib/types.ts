@@ -66,6 +66,8 @@ export interface Artist {
     website?: string;
     instagram?: string;
     spotify?: string;
+    appleMusic?: string;
+    beatport?: string;
     youtube?: string;
     soundcloud?: string;
   };

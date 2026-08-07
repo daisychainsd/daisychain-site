@@ -23,7 +23,6 @@ type AuditRelease = {
   slug: string;
   catalogNumber?: string;
   hasCover: boolean;
-  hasDescription: boolean;
   links?: Record<string, string | undefined>;
   tracks?: { title?: string; audioUrl?: string; previewUrl?: string }[];
 };
@@ -52,7 +51,6 @@ const RELEASES_QUERY = `*[_type == "release" && hidden != true && status != "upc
   "slug": slug.current,
   catalogNumber,
   "hasCover": defined(coverArt),
-  "hasDescription": defined(description),
   links,
   tracks[]{ title, "audioUrl": audioFile.asset->url, "previewUrl": previewFile.asset->url }
 }`;
@@ -235,7 +233,7 @@ export async function runCatalogAudit(): Promise<{
     }
 
     if (!rel.hasCover) push("missing", where, "no cover art");
-    if (!rel.hasDescription) push("missing", where, "no description");
+    // ponytail: no description check — DCR never writes release descriptions (PD, Aug 7 2026)
     const linkCount = Object.values(rel.links || {}).filter(
       (v) => typeof v === "string" && v.startsWith("http")
     ).length;

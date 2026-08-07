@@ -8,6 +8,8 @@ import ReleaseCard from "@/components/ReleaseCard";
 import {
   siInstagram,
   siSpotify,
+  siApplemusic,
+  siBeatport,
   siYoutube,
   siSoundcloud,
 } from "simple-icons";
@@ -60,7 +62,9 @@ export default async function ArtistPage({
           <div className="flex flex-col justify-center py-2">
             <h1 className="text-headline mb-3">{artist.name}</h1>
             {artist.bio && (
-              <p className="text-text-secondary max-w-lg mb-4">{artist.bio}</p>
+              <p className="text-text-secondary max-w-lg mb-4 whitespace-pre-line">
+                {artist.bio}
+              </p>
             )}
             {artist.links && (
               <div className="flex flex-wrap gap-2 items-center">
@@ -77,6 +81,22 @@ export default async function ArtistPage({
                     href={artist.links.spotify}
                     label="Spotify"
                     icon={siSpotify}
+                    className={artistIconLinkClass}
+                  />
+                )}
+                {artist.links.appleMusic && (
+                  <IconSocialLink
+                    href={artist.links.appleMusic}
+                    label="Apple Music"
+                    icon={siApplemusic}
+                    className={artistIconLinkClass}
+                  />
+                )}
+                {artist.links.beatport && (
+                  <IconSocialLink
+                    href={artist.links.beatport}
+                    label="Beatport"
+                    icon={siBeatport}
                     className={artistIconLinkClass}
                   />
                 )}
