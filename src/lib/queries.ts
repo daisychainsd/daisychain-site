@@ -45,7 +45,6 @@ export const RELEASE_DETAIL = `
     presaveUrl,
     embedUrl,
     links,
-    description,
     tracks[] {
       _key,
       title,
@@ -184,7 +183,6 @@ export const LATEST_RELEASE = `
     releaseType,
     releaseDate,
     price,
-    description,
     status,
     links,
     tracks[0...4] {
@@ -233,7 +231,6 @@ export const HOMEPAGE_SETTINGS = `
       releaseType,
       releaseDate,
       price,
-      description,
       status,
       links,
       tracks[0...4] {
