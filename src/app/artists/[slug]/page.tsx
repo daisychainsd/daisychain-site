@@ -8,6 +8,7 @@ import ReleaseCard from "@/components/ReleaseCard";
 import {
   siInstagram,
   siSpotify,
+  siApplemusic,
   siYoutube,
   siSoundcloud,
 } from "simple-icons";
@@ -77,6 +78,14 @@ export default async function ArtistPage({
                     href={artist.links.spotify}
                     label="Spotify"
                     icon={siSpotify}
+                    className={artistIconLinkClass}
+                  />
+                )}
+                {artist.links.appleMusic && (
+                  <IconSocialLink
+                    href={artist.links.appleMusic}
+                    label="Apple Music"
+                    icon={siApplemusic}
                     className={artistIconLinkClass}
                   />
                 )}
