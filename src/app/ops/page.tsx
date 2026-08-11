@@ -8,6 +8,7 @@ import {
 import { client as sanityClient, sanityFetch } from "@/sanity/client";
 import { DC_TIMEZONE } from "@/lib/dates";
 import { getSopAreas, sopCounts, type SopStatus } from "@/lib/sops";
+import { getLatestAuditResult, type AuditFinding } from "@/lib/catalog-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -228,16 +229,75 @@ function StatRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+const AUDIT_KIND_STYLE: Record<
+  AuditFinding["kind"],
+  { label: string; color: string }
+> = {
+  broken: { label: "Broken", color: RED },
+  unverifiable: { label: "Unverifiable", color: "#E8C95C" },
+  missing: { label: "Known gaps", color: "var(--color-text-muted)" },
+};
+
+function AuditFindingsGroup({
+  kind,
+  findings,
+}: {
+  kind: AuditFinding["kind"];
+  findings: AuditFinding[];
+}) {
+  const rows = findings.filter((f) => f.kind === kind);
+  if (rows.length === 0) return null;
+  const s = AUDIT_KIND_STYLE[kind];
+  return (
+    <div className="mt-3">
+      <div
+        className="uppercase mb-1"
+        style={{
+          fontFamily: "var(--font-heading), system-ui, sans-serif",
+          fontSize: 10,
+          letterSpacing: "0.1em",
+          color: s.color,
+        }}
+      >
+        {s.label} · {rows.length}
+      </div>
+      <ul className="m-0 p-0 list-none">
+        {rows.map((f, i) => (
+          <li
+            key={i}
+            className="flex flex-wrap items-baseline gap-x-3 py-1.5 border-t border-white/[0.06] first:border-t-0"
+          >
+            <span className="text-text-primary text-sm shrink-0">{f.where}</span>
+            <span
+              className="min-w-0 flex-1 break-words"
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: 11,
+                color: kind === "broken" ? RED : "var(--color-text-secondary)",
+              }}
+            >
+              {f.what}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default async function OpsPage() {
-  const [health, revenue, events, releases, sopAreas] = await Promise.all([
+  const [health, revenue, events, releases, sopAreas, audit] = await Promise.all([
     runHealthChecks(),
     get30DayRevenue(),
     sanityFetch<UpcomingEvent>(UPCOMING_EVENTS_QUERY),
     sanityFetch<UpcomingRelease>(UPCOMING_RELEASES_QUERY),
     getSopAreas(),
+    getLatestAuditResult(),
   ]);
 
-  const failingCount = health.checks.filter((c) => !c.ok).length;
+  const failingChecks = health.checks.filter((c) => !c.ok).length;
+  const brokenAudit = audit?.findings.filter((f) => f.kind === "broken").length ?? 0;
+  const failingCount = failingChecks + brokenAudit;
 
   const upcoming: UpcomingItem[] = [
     ...events.map((e): UpcomingItem => {
@@ -299,7 +359,7 @@ export default async function OpsPage() {
           >
             {failingCount === 0
               ? "all systems green"
-              : `${failingCount} system${failingCount === 1 ? "" : "s"} failing`}
+              : `${failingCount} issue${failingCount === 1 ? "" : "s"}`}
             {" · checked "}
             {new Date(health.checkedAt).toLocaleTimeString("en-US", {
               timeZone: DC_TIMEZONE,
@@ -312,16 +372,110 @@ export default async function OpsPage() {
       </div>
 
       <div className="grid gap-6">
-        <Panel title="Health">
-          <div
-            className="grid gap-3"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
+        {/* Health: collapsed behind a green bar when everything is fine; the bar
+            turns red and the section auto-expands when anything is failing. */}
+        <details className="container-organic group overflow-hidden" open={failingCount > 0}>
+          <summary
+            className="flex flex-wrap items-center gap-3 p-6 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden rounded-[inherit]"
+            style={{
+              background:
+                failingCount === 0 ? "rgba(95,191,119,0.08)" : "rgba(232,92,92,0.08)",
+            }}
           >
-            {health.checks.map((check) => (
-              <HealthTile key={check.name} check={check} />
-            ))}
+            <StatusDot ok={failingCount === 0} />
+            <h2
+              className="uppercase m-0 text-text-primary"
+              style={{
+                fontFamily: "var(--font-heading), system-ui, sans-serif",
+                fontWeight: 900,
+                fontSize: 14,
+                letterSpacing: "0.08em",
+              }}
+            >
+              Health
+            </h2>
+            <span
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: 12,
+                color: failingCount === 0 ? GREEN : RED,
+              }}
+            >
+              {failingCount === 0
+                ? "all clear"
+                : [
+                    failingChecks > 0 ? `${failingChecks} system${failingChecks === 1 ? "" : "s"} failing` : null,
+                    brokenAudit > 0 ? `${brokenAudit} broken in catalog` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+            </span>
+            <svg
+              aria-hidden
+              className="ml-auto shrink-0 transition-[transform] group-open:rotate-180"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              <path d="M4 6l4 4 4-4" />
+            </svg>
+          </summary>
+
+          <div className="p-6 pt-4">
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
+            >
+              {health.checks.map((check) => (
+                <HealthTile key={check.name} check={check} />
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-3 mb-1">
+                <span
+                  className="uppercase text-text-primary"
+                  style={{
+                    fontFamily: "var(--font-heading), system-ui, sans-serif",
+                    fontSize: 11,
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  Catalog audit
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono), monospace",
+                    fontSize: 11,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  {audit
+                    ? `last run ${fmtDate(new Date(audit.checkedAt))} · ${audit.counts.releases} releases · ${audit.counts.dspLinks} links · ${audit.counts.files} files`
+                    : "no run yet — Mondays 7am PT"}
+                </span>
+              </div>
+              {audit && audit.findings.length === 0 && (
+                <p className="text-sm m-0" style={{ color: GREEN }}>
+                  Nothing broken, nothing missing.
+                </p>
+              )}
+              {audit && (
+                <>
+                  <AuditFindingsGroup kind="broken" findings={audit.findings} />
+                  <AuditFindingsGroup kind="unverifiable" findings={audit.findings} />
+                  <AuditFindingsGroup kind="missing" findings={audit.findings} />
+                </>
+              )}
+            </div>
           </div>
-        </Panel>
+        </details>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel

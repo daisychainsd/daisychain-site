@@ -275,11 +275,6 @@ export const release = defineType({
       ],
       options: { collapsible: true, collapsed: true },
     }),
-    defineField({
-      name: "description",
-      title: "Description",
-      type: "blockContent",
-    }),
   ],
   orderings: [
     {

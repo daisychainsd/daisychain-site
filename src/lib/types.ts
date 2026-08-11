@@ -40,7 +40,6 @@ export interface Release {
     soundcloud?: string;
     youtube?: string;
   };
-  description?: any;
   tracks?: Track[];
 }
 
@@ -67,6 +66,7 @@ export interface Artist {
     instagram?: string;
     spotify?: string;
     appleMusic?: string;
+    beatport?: string;
     youtube?: string;
     soundcloud?: string;
   };

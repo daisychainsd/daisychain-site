@@ -67,6 +67,7 @@ export const artist = defineType({
         defineField({ name: "instagram", type: "url", title: "Instagram" }),
         defineField({ name: "spotify", type: "url", title: "Spotify" }),
         defineField({ name: "appleMusic", type: "url", title: "Apple Music" }),
+        defineField({ name: "beatport", type: "url", title: "Beatport" }),
         defineField({ name: "youtube", type: "url", title: "YouTube" }),
         defineField({ name: "soundcloud", type: "url", title: "SoundCloud" }),
       ],

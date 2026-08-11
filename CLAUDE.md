@@ -631,6 +631,16 @@ Plan and findings both adversarially reviewed by Codex (it **blocked** the first
 
 **Still open** (documented in `AUDIT-2026-08-06.md`, not yet fixed): guest checkout charges the wrong item/price when the cart isn't a single full release; no durable record if fulfilment *and* its alert both fail; webhook claims the event id before processing (a mid-handler crash loses the order silently); pass double-buy; success-page/webhook race; guest cart not cleared after purchase; **no rate limiting anywhere** — `/api/laylo-subscribe` sends SMS to arbitrary numbers, which is TCPA exposure; CMS-fragility crashes (a half-created artist doc 500s `/artists`).
 
+### Session 12 (2026-08-06) — Weekly catalog audit cron + collapsible /ops health (PR #12)
+
+- **Weekly catalog audit** (`/api/cron/catalog-audit`, Mondays 14:00 UTC ≈ 7am PT; logic in `src/lib/catalog-audit.ts`): crawls every live release (`status != "upcoming"` — NOT `== "live"`, older docs predate the status field) and checks release pages, all DSP links, every master WAV + preview MP3 asset on the Sanity CDN, cover art, release descriptions, releases with zero streaming links, roster-artist photos/bios/links, and event flyers. Findings are three kinds: `broken` (fix this week), `unverifiable` (403/429 bot-blocking — not treated as broken to avoid false alarms), `missing` (data gaps). One retry on network error/timeout. Same `CRON_SECRET` auth as the other crons.
+- **Report email ALWAYS sends** (`sendCatalogAuditReport` in `src/lib/email.ts`) — to **niko@daisychainsd.com + playerdave@daisychainsd.com** (hardcoded, deliberately not ALERT_EMAIL). An all-clear Monday still emails; no email = the bot itself broke. The email anchors the W3 weekly review SOP (Google Doc on /ops, slug `weekly-site-store-review`; working archive `~/Projects/daisychain-ops/SOP-weekly-review.md`).
+- **Latest result persisted to Sanity** as singleton `catalogAuditResult` (`saveAuditResult` / `getLatestAuditResult`) so /ops shows it without re-running the ~40s crawl. No Studio schema for it — API-only doc type.
+- **/ops Health panel is now a native `<details>`** (no JS): collapsed green summary bar when all clear, red + auto-`open` when any system check fails or the audit has broken items. Header count = failing checks + audit brokens ("N issues"). Audit findings render inside grouped Broken/Unverifiable/Known gaps.
+- **Never report master WAV URLs in audit findings/emails** — track titles only (the lib fetches `audioUrl` for HEAD checks; it's a server-only module).
+- **Apple Music links: entire catalog re-ingested by Apple** (~Aug 2026) — all 15 pre-DCR23 links 404'd (old collection IDs dead in iTunes lookup). Fixed by searching `itunes.apple.com/search` per release and patching `links.appleMusic` in Sanity. If Apple links break en masse again, that's the pattern.
+- **W2 SOP row deleted from the Sanity registry** (it's automation, not a process); **W3 renamed "Weekly site & store review"**, status live, owner Niko.
+
 ## Layout & Styling Rules
 
 These conventions must be followed when adding any new page or component.
@@ -741,6 +751,8 @@ Streaming / DSP links (Spotify, Apple Music, YouTube, SoundCloud, Bandcamp) are 
 Defined in [`vercel.json`](vercel.json):
 
 - **`/api/cron/release-day`** — **hourly** at `0 * * * *` UTC. Finds releases with `status: "upcoming"` whose `goLiveAt` datetime has passed (or, if no `goLiveAt`, whose `releaseDate` date has arrived), flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Hourly schedule supports time-specific releases via `goLiveAt` (e.g. "go live at 9 AM PST on Friday"). Streaming links are NOT auto-populated — fill those in Studio when adding the release. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://www.daisychainsd.com/api/cron/release-day`. Idempotent — running multiple times re-promotes nothing because the GROQ filter excludes anything already `status: live`. **Important:** hit `www.daisychainsd.com` (not bare domain) to avoid a 307 redirect that strips the auth header.
+- **`/api/cron/ops-health`** — daily at `0 14 * * *` UTC (~7am PT). Runs the /ops health checks; emails ALERT_EMAIL via Resend only when something is failing.
+- **`/api/cron/catalog-audit`** — weekly, Mondays `0 14 * * 1` UTC (~7am PT). Full catalog crawl (see Session 12 notes); ALWAYS emails the report to niko@ + playerdave@ and stores the result as the `catalogAuditResult` Sanity singleton for the /ops Health panel. Manual trigger works but sends the team a real email — prefer reading the stored result.
 
 <!-- VERCEL BEST PRACTICES START -->
 ## Best practices for developing on Vercel
