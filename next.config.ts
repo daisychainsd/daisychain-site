@@ -7,6 +7,16 @@ import type { NextConfig } from "next";
 //
 // 'unsafe-eval' is required by Sanity Studio at /studio. It is scoped to that
 // path below so the rest of the site runs without it.
+// `next dev` serves over plain http://localhost. Two of the production
+// headers below actively break that, so they are gated to production:
+//   - upgrade-insecure-requests rewrites every http:// subresource to
+//     https://. The document navigation is not upgraded, so the page loads
+//     and every CSS/JS chunk it references 404s against a port with no TLS —
+//     the site renders as unstyled HTML with no hydration.
+//   - Strict-Transport-Security pins the *whole* localhost host to https for
+//     two years, which would break every other local dev server too.
+const isProd = process.env.NODE_ENV === "production";
+
 const baseCsp = [
   "default-src 'self'",
   "style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net",
@@ -20,7 +30,7 @@ const baseCsp = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-  "upgrade-insecure-requests",
+  ...(isProd ? ["upgrade-insecure-requests"] : []),
 ];
 
 const siteCsp = [
