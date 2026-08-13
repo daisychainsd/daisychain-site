@@ -23,6 +23,14 @@ export default defineConfig({
                   .schemaType("homepageSettings")
                   .documentId("homepageSettings")
               ),
+            S.listItem()
+              .title("Listen Page")
+              .id("listenPage")
+              .child(
+                S.document()
+                  .schemaType("listenPage")
+                  .documentId("listenPage")
+              ),
             S.divider(),
             S.listItem()
               .title("Releases")

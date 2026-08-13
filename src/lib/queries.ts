@@ -266,6 +266,14 @@ export const ABOUT_STATS = `
   }
 `;
 
+export const LISTEN_PAGE = `
+  *[_type == "listenPage"][0] {
+    spotifyUrl,
+    soundcloudUrl,
+    youtubeUrl
+  }
+`;
+
 export const EVENTS_LIST = `
   *[_type == "event" && hidden != true] | order(date desc) {
     title,
