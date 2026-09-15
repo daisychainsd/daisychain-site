@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getProducts, type ShopifyProduct } from "@/lib/shopify";
+import { getProducts } from "@/lib/merch/storefront";
+import type { MerchProduct } from "@/lib/merch/types";
 import SectionHeader from "@/components/SectionHeader";
 
 function formatPrice(amount: string) {
@@ -26,7 +27,7 @@ function shopifyImg(url: string, width: number) {
 }
 
 export default async function ShopStrip({ limit = 4 }: { limit?: number }) {
-  let products: ShopifyProduct[] = [];
+  let products: MerchProduct[] = [];
   try {
     products = await getProducts();
   } catch {

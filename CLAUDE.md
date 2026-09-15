@@ -154,6 +154,21 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **Webhook** (`/api/webhooks/stripe`): handles `checkout.session.completed` — records digital purchases to Supabase, creates Shopify draft orders for physical purchases
 - Test card: `4242 4242 4242 4242`
 
+## Merch Ops replacement (2026-09-14, rollout pending)
+
+- Implementation plan: `MERCH-IMPLEMENTATION-PLAN.md`; rollout instructions: `MERCH-ROLLOUT.md`.
+- `/ops/merch` manages paid physical orders, Pirate Ship CSV export, fulfillment/tracking, products/images and stock adjustments. It has no auto-refresh that could wipe forms.
+- `MERCH_BACKEND=supabase` selects Supabase catalog/checkout/order persistence. Unset retains legacy Shopify behavior for staged rollout. Both storefront adapters live behind `src/lib/merch/storefront.ts`.
+- `scripts/merch-schema-2026-09-14.sql` and `scripts/merch-storage-2026-09-14.sql` are additive migrations, also included in `supabase-schema.sql`. Apply them before enabling the backend; never rerun the full existing schema against production.
+- `node --env-file=.env.local scripts/merch-import.mjs` is a read-only Shopify export to gitignored `.merch-import/`. `--apply` writes products/images into Supabase; run it only as part of reviewed rollout. New variants start at zero; count stock through Ops before cutover.
+- Stable Shopify handles and IDs intentionally survive migration for release links and saved carts. `/api/shopify-product` remains a compatibility URL but uses the selected backend.
+- Physical webhook processing is before legacy event claiming. Order/stock changes use one session-idempotent transaction. Do not move it below `processed_stripe_events` or return 2xx on a failed durable write.
+- V1 does not reserve checkout carts. Quantity validation is server-side; a paid stock shortage is kept on hold in Ops. Refunds/disputes also hold unshipped orders, and inventory returns are manual. Partial refunds can be explicitly released by staff.
+- Test orders never decrement inventory or export; use isolated test fixtures anyway, since dev shares production services. New physical confirmation emails use Resend idempotency keys and only send for live orders. Pirate Ship handles shipping emails; saving tracking in Ops does not send one.
+- Every `/api/ops/merch/*` handler checks Basic auth directly, rejects cross-origin writes and returns no-store. The public anon/authenticated Supabase roles have no direct access to merch tables/RPCs.
+- `npm run test:merch` runs real PostgreSQL transaction tests via in-memory PGlite plus route/CSV/pricing checks. It does not load `.env.local` or call live services.
+- Existing shipping prices/countries are preserved; the old unsupported "free US shipping over $50" claim has been removed. Shipping policy changes remain separate.
+
 ## Shopify Integration (Physical Products)
 
 - **Storefront API** (`src/lib/shopify.ts`): fetches products, variants, images, inventory for the shop pages. Read-only, public token. Also used by release pages to fetch product photos for physical formats via `getProductByHandle()`.

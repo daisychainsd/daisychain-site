@@ -45,3 +45,6 @@ design-md/
 
 # track-artists migration script artifact
 track-artists-migration-preview.json
+
+# Local merch migration snapshot (never credentials/customer data)
+.merch-import/

@@ -21,7 +21,7 @@ const baseCsp = [
   "default-src 'self'",
   "style-src 'self' 'unsafe-inline' https://use.typekit.net https://p.typekit.net",
   "font-src 'self' data: https://use.typekit.net https://p.typekit.net",
-  "img-src 'self' data: blob: https://cdn.sanity.io https://*.sanity.io https://cdn.shopify.com https://p.typekit.net",
+  "img-src 'self' data: blob: https://cdn.sanity.io https://*.sanity.io https://cdn.shopify.com https://*.supabase.co https://p.typekit.net",
   "media-src 'self' blob: https://cdn.sanity.io",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sanity.io https://api.stripe.com https://*.myshopify.com https://use.typekit.net https://p.typekit.net",
   "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://docs.google.com https://bandcamp.com https://*.bandcamp.com https://w.soundcloud.com https://open.spotify.com https://www.youtube.com https://laylo.com https://*.laylo.com",

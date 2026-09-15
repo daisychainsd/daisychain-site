@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
-import type { ShopifyProduct } from "@/lib/shopify";
+import type { MerchProduct } from "@/lib/merch/types";
 
-export default function ProductDetail({ product }: { product: ShopifyProduct }) {
+export default function ProductDetail({ product }: { product: MerchProduct }) {
   const { addItem } = useCart();
 
   const images = product.images.edges.map((e) => e.node);
@@ -26,7 +26,7 @@ export default function ProductDetail({ product }: { product: ShopifyProduct }) 
 
   const selectedVariant = variants.find((v) =>
     v.selectedOptions.every((opt) => selectedOptions[opt.name] === opt.value),
-  ) || variants[0];
+  );
 
   const price = parseFloat(selectedVariant?.price.amount || "0");
   const isAvailable = selectedVariant?.availableForSale ?? false;
@@ -114,7 +114,7 @@ export default function ProductDetail({ product }: { product: ShopifyProduct }) 
               <h1 className="text-headline mb-2">{product.title}</h1>
 
               <p className="text-2xl text-blue-300 font-semibold mb-6">
-                ${price.toFixed(2)}
+                {selectedVariant ? `$${price.toFixed(2)}` : "Unavailable"}
               </p>
 
               {/* Variant Options */}

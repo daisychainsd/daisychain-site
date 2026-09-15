@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProductByHandle } from "@/lib/shopify";
+import { getProductByHandle } from "@/lib/merch/storefront";
 
 export async function GET(req: NextRequest) {
   const handle = req.nextUrl.searchParams.get("handle");
