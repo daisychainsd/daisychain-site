@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:merch": "node --import tsx --test tests/merch.test.ts"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.3",
@@ -36,6 +37,7 @@
     "@sanity/cli-core": "1.3.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/postcss": "^4",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/node": "^20",
@@ -44,6 +46,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

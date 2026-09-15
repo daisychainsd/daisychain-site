@@ -11,7 +11,7 @@ import { useCart } from "./CartProvider";
 import UnlimitedPassInfo from "./UnlimitedPassInfo";
 import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/lib/types";
-import type { ShopifyProduct } from "@/lib/shopify";
+import type { MerchProduct } from "@/lib/merch/types";
 
 interface DspLinks {
   spotify?: string;
@@ -84,7 +84,7 @@ export default function ReleaseInteractive({
   );
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [hasPass, setHasPass] = useState(false);
-  const [shopifyProduct, setShopifyProduct] = useState<ShopifyProduct | null>(null);
+  const [shopifyProduct, setMerchProduct] = useState<MerchProduct | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [buyingPass, setBuyingPass] = useState(false);
@@ -114,7 +114,7 @@ export default function ReleaseInteractive({
     if (!shopifyHandle) return;
     fetch(`/api/shopify-product?handle=${shopifyHandle}`)
       .then((r) => r.json())
-      .then((data) => { if (data.product) setShopifyProduct(data.product); })
+      .then((data) => { if (data.product) setMerchProduct(data.product); })
       .catch(() => {});
   }, [shopifyHandle]);
 
@@ -188,7 +188,7 @@ export default function ReleaseInteractive({
   function handleAddPhysicalToCart() {
     if (!shopifyProduct) return;
     const variant = shopifyProduct.variants.edges[0]?.node;
-    if (!variant) return;
+    if (!variant?.availableForSale) return;
     const image = shopifyProduct.images.edges[0]?.node;
     addItem({
       variantId: variant.id,
@@ -417,7 +417,7 @@ export default function ReleaseInteractive({
             <LayloModal />
           </div>
         </div>
-      ) : physical && !physicalPrice && !shopifyProduct ? (
+      ) : physical && !shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">
           <p className="text-label mb-1">Tracks</p>
           <p className="text-text-muted text-sm uppercase tracking-wider">Soon</p>
@@ -429,6 +429,7 @@ export default function ReleaseInteractive({
             <h2 className="text-title text-text-primary">Tracklist</h2>
           </div>
           <button
+            disabled={!shopifyProduct.variants.edges[0]?.node.availableForSale}
             onClick={handleAddPhysicalToCart}
             className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-colors ${
               addedToCart
@@ -436,7 +437,7 @@ export default function ReleaseInteractive({
                 : "bg-blue-300 text-bg-deep hover:bg-blue-200 hover:shadow-[0_0_20px_rgba(124,185,232,0.15)]"
             }`}
           >
-            {addedToCart ? "Added to Cart" : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${parseFloat(shopifyProduct.variants.edges[0]?.node.price.amount || "0").toFixed(2)}`}
+            {!shopifyProduct.variants.edges[0]?.node.availableForSale ? "Sold Out" : addedToCart ? "Added to Cart" : `Buy ${activeFormat.charAt(0).toUpperCase() + activeFormat.slice(1)} — $${parseFloat(shopifyProduct.variants.edges[0]?.node.price.amount || "0").toFixed(2)}`}
           </button>
         </div>
       ) : activePrice && activePrice > 0 ? (() => {

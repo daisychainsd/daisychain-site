@@ -6,6 +6,11 @@ import { sendDownloadEmail, sendOrderConfirmationEmail, sendPurchaseFailureAlert
 import { generateDownloadToken } from "@/lib/download-tokens";
 import { client } from "@/sanity/client";
 import type Stripe from "stripe";
+import { usesMerchBackend } from "@/lib/merch/config";
+import { processMerchEvent } from "@/lib/merch/webhook";
+import { alertMerchIssue, confirmMerchOrder } from "@/lib/merch/email";
+import { notifyMerchEvent } from "@/lib/merch/notifications";
+import { paidPhysicalSession } from "@/lib/merch/orders";
 
 const BEEHIIV_PUB_ID = "pub_c63c3433-d698-4e9b-b9cc-de4a2af0b2ed";
 
@@ -56,6 +61,33 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Webhook signature verification failed:", message);
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  // New physical orders use session-level transactional idempotency. This must
+  // run BEFORE the old event claim, otherwise a failed write cannot be retried.
+  const isNewMerchSession = (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") &&
+    (event.data.object as Stripe.Checkout.Session).metadata?.fulfillment_backend === "supabase";
+  if (usesMerchBackend() || isNewMerchSession || event.type === "charge.refunded" || event.type === "charge.dispute.created") {
+    try {
+      if (await processMerchEvent(event)) {
+        await notifyMerchEvent(event, { confirm: confirmMerchOrder, alert: alertMerchIssue });
+        if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+          const session = event.data.object as Stripe.Checkout.Session;
+          if (paidPhysicalSession(session)) {
+            if (session.livemode && session.customer_details?.email) await subscribeToBeehiiv(session.customer_details.email, "physical_purchase");
+          }
+        }
+        return NextResponse.json({ received: true });
+      }
+    } catch (error) {
+      console.error("Merch webhook requires retry:", error);
+      if (event.livemode) {
+        try {
+          await alertMerchIssue(`processing-${event.id}`, `Stripe event ${event.id} (${event.type}) could not be processed. Stripe will retry. Check the payment and server logs, reconcile any legacy product mapping, and resend the event after fixing it. Do not ship until the paid order is recorded in Ops.`);
+        } catch (alertError) { console.error("Merch processing alert failed:", alertError); }
+      }
+      return NextResponse.json({ error: "Order processing unavailable; retry required" }, { status: 503 });
+    }
   }
 
   // Event-level idempotency. Stripe delivers at-least-once, so the same event

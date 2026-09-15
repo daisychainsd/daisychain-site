@@ -2,6 +2,7 @@ import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { client as sanityClient } from "@/sanity/client";
 import { shopifyFetch } from "@/lib/shopify";
+import { usesMerchBackend } from "@/lib/merch/config";
 
 /**
  * Shared health checks for the /ops dashboard and the /api/cron/ops-health
@@ -117,7 +118,7 @@ export async function runHealthChecks(): Promise<OpsHealth> {
   let email: EmailApiStatus | null = null;
   let orders: OrderRow[] = [];
 
-  const checkNames = ["dc-email-api", "Stripe", "Supabase", "Sanity", "Shopify"];
+  const checkNames = ["dc-email-api", "Stripe", "Supabase", "Sanity", usesMerchBackend() ? "Merch" : "Shopify"];
 
   const settled = await Promise.allSettled([
     timed("dc-email-api", async () => {
@@ -202,7 +203,18 @@ export async function runHealthChecks(): Promise<OpsHealth> {
       return `${n} releases`;
     }),
 
-    timed("Shopify", async () => {
+    timed(usesMerchBackend() ? "Merch" : "Shopify", async () => {
+      if (usesMerchBackend()) {
+        const db = createAdminClient();
+        const [products, held] = await Promise.all([
+          db.from("merch_products").select("id", { count: "exact", head: true }).eq("active", true).abortSignal(AbortSignal.timeout(TIMEOUT_MS)),
+          db.from("merch_orders").select("id", { count: "exact", head: true }).eq("livemode", true).eq("fulfillment_status", "on_hold").abortSignal(AbortSignal.timeout(TIMEOUT_MS)),
+        ]);
+        if (products.error || held.error) throw new Error("Merch tables unavailable");
+        if (!products.count) throw new Error("Merch catalog is empty");
+        if (held.count) throw new Error(`${held.count} merch orders need review in Ops`);
+        return `${products.count} products; no orders on hold`;
+      }
       const data = await withTimeout(
         shopifyFetch<{ shop: { name: string } }>({ query: "{ shop { name } }" })
       );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   runHealthChecks,
@@ -371,6 +372,10 @@ export default async function OpsPage() {
         </div>
       </div>
 
+      <Link href="/ops/merch" className="container-organic flex flex-wrap items-center justify-between gap-4 p-6 mb-6 hover:text-blue-300 transition-colors">
+        <div><h2 className="uppercase text-title m-0">Merch</h2><p className="text-text-secondary text-sm mt-2 mb-0">Orders, shipping exports, products and inventory.</p></div>
+        <span className="text-blue-300">Manage merch →</span>
+      </Link>
       <div className="grid gap-6">
         {/* Health: collapsed behind a green bar when everything is fine; the bar
             turns red and the section auto-expands when anything is failing. */}

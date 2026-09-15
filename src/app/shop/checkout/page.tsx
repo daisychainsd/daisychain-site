@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   EmbeddedCheckoutProvider,
@@ -14,7 +14,10 @@ const stripePromise = loadStripe(
 );
 
 export default function CheckoutPage() {
-  const { items, subtotal, itemCount } = useCart();
+  const { items: allItems } = useCart();
+  const items = useMemo(() => allItems.filter((i) => i.type !== "digital"), [allItems]);
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const [error, setError] = useState<string | null>(null);
 
   const fetchClientSecret = useCallback(async () => {
@@ -22,7 +25,7 @@ export default function CheckoutPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Only variant + quantity. The server prices from Shopify; sending a
+        // Only variant + quantity. The server prices from the catalog; sending a
         // price from here would be advisory at best and forgeable at worst.
         items: items.map((i) => ({
           variantId: i.variantId,
@@ -33,23 +36,13 @@ export default function CheckoutPage() {
 
     if (!res.ok) {
       const data = await res.json();
+      setError(data.error || "Failed to create checkout session");
       throw new Error(data.error || "Failed to create checkout session");
     }
 
     const data = await res.json();
     return data.clientSecret;
   }, [items]);
-
-  // Note: CartProvider hydrates items from localStorage AFTER mount, so the
-  // first run sees an empty cart. Clear the error once items appear instead of
-  // dead-ending anyone who reloads or deep-links into checkout.
-  useEffect(() => {
-    if (items.length === 0) {
-      setError("Your cart is empty. Add items before checking out.");
-    } else {
-      setError(null);
-    }
-  }, [items.length]);
 
   if (error || items.length === 0) {
     return (

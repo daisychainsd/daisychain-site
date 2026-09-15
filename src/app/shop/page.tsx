@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getProducts } from "@/lib/shopify";
+import { getProducts } from "@/lib/merch/storefront";
 
 export const metadata: Metadata = { title: "Shop" };
-import type { ShopifyProduct } from "@/lib/shopify";
+export const revalidate = 60;
+import type { MerchProduct } from "@/lib/merch/types";
 import SectionHeader from "@/components/SectionHeader";
 
 function shopifyImg(url: string, width: number) {
@@ -19,7 +20,7 @@ function shopifyImg(url: string, width: number) {
   }
 }
 
-function ProductCard({ product, isNew = false }: { product: ShopifyProduct; isNew?: boolean }) {
+function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?: boolean }) {
   const image = product.images.edges[0]?.node;
   const price = parseFloat(product.priceRange.minVariantPrice.amount);
   const maxPrice = parseFloat(product.priceRange.maxVariantPrice.amount);
@@ -158,7 +159,7 @@ export default async function ShopPage() {
           className="text-text-muted"
           style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13 }}
         >
-          {products.length} {products.length === 1 ? "item" : "items"} · free US shipping over $50
+          {products.length} {products.length === 1 ? "item" : "items"} · shipping calculated at checkout
         </span>
       </div>
 

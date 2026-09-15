@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductByHandle, getProducts } from "@/lib/shopify";
+import { getProductByHandle } from "@/lib/merch/storefront";
 import ProductDetail from "./ProductDetail";
 
 export async function generateMetadata({
@@ -14,10 +14,7 @@ export async function generateMetadata({
   return { title: product.title };
 }
 
-export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.map((p) => ({ handle: p.handle }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function ProductPage({
   params,

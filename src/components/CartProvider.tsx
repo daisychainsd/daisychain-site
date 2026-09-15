@@ -27,6 +27,7 @@ export interface CartItem {
 
 interface CartContextValue {
   items: CartItem[];
+  hydrated: boolean;
   itemCount: number;
   subtotal: number;
   isOpen: boolean;
@@ -35,6 +36,7 @@ interface CartContextValue {
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
+  clearPhysicalItems: () => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -65,6 +67,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // The server cannot read localStorage; hydrate the persisted cart after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(loadCart());
     setHydrated(true);
   }, []);
@@ -109,6 +113,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = useCallback(() => setItems([]), []);
 
+  const clearPhysicalItems = useCallback(() => setItems((prev) => prev.filter((i) => i.type === "digital")), []);
+
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -116,6 +122,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         items,
+        hydrated,
         itemCount,
         subtotal,
         isOpen,
@@ -124,6 +131,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeItem,
         updateQuantity,
         clearCart,
+        clearPhysicalItems,
       }}
     >
       {children}

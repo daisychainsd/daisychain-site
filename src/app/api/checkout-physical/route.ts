@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getVariantsByIds } from "@/lib/shopify";
+import { usesMerchBackend } from "@/lib/merch/config";
+import { getCatalog } from "@/lib/merch/catalog";
+import { normalizeCart, priceCart, MerchInputError } from "@/lib/merch/checkout";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Only these two fields are trusted from the browser. Price, title and image
- * come from Shopify — the cart lives in localStorage, so anything else the
+ * come from the server catalog — the cart lives in localStorage, so anything else the
  * client sends is attacker-controlled (a forged price used to charge $0.01
  * for a real vinyl and still cut a full draft order).
  */
@@ -12,9 +16,6 @@ interface CartLineItem {
   variantId: string;
   quantity: number;
 }
-
-const MAX_LINES = 20;
-const MAX_QTY_PER_LINE = 10;
 
 export async function POST(req: NextRequest) {
   let items: CartLineItem[];
@@ -25,65 +26,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
-  }
-  if (items.length > MAX_LINES) {
-    return NextResponse.json({ error: "Too many items in cart" }, { status: 400 });
-  }
-
-  // Normalize quantities before anything else touches them.
-  const requested: { variantId: string; quantity: number }[] = [];
-  for (const item of items) {
-    const qty = Number(item?.quantity);
-    if (
-      typeof item?.variantId !== "string" ||
-      !item.variantId.startsWith("gid://shopify/ProductVariant/") ||
-      !Number.isInteger(qty) ||
-      qty < 1 ||
-      qty > MAX_QTY_PER_LINE
-    ) {
-      return NextResponse.json({ error: "Invalid cart item" }, { status: 400 });
-    }
-    requested.push({ variantId: item.variantId, quantity: qty });
-  }
-
   try {
-  const resolved = await getVariantsByIds(requested.map((i) => i.variantId));
-
-  const lineItems = [];
-  for (const item of requested) {
-    const v = resolved.get(item.variantId);
-    if (!v) {
-      return NextResponse.json(
-        { error: "One of these items is no longer available. Please refresh your cart." },
-        { status: 409 },
-      );
-    }
-    if (!v.availableForSale) {
-      return NextResponse.json(
-        { error: `${v.productTitle} just sold out.` },
-        { status: 409 },
-      );
-    }
-    lineItems.push({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: v.productTitle,
-          description: v.title !== "Default Title" ? v.title : undefined,
-          ...(v.imageUrl ? { images: [v.imageUrl] } : {}),
-        },
-        unit_amount: Math.round(v.amount * 100),
-      },
-      quantity: item.quantity,
+  const requested = normalizeCart(items);
+  let checkoutId: string | undefined;
+  let metadata: Record<string, string>;
+  let lineItems;
+  if (usesMerchBackend()) {
+    const products = await getCatalog();
+    const snapshot = priceCart(requested, products);
+    const { data, error } = await createAdminClient().from("merch_checkouts").insert({
+      items: snapshot,
+      livemode: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") || process.env.STRIPE_SECRET_KEY?.startsWith("rk_live_") || false,
+    }).select("id").single();
+    if (error || !data) throw new Error("Could not save checkout");
+    checkoutId = data.id;
+    metadata = { type: "physical", merch_checkout_id: data.id, fulfillment_backend: "supabase" };
+    lineItems = snapshot.map((i) => ({
+      price_data: { currency: "usd", unit_amount: i.unit_price_cents,
+        product_data: { name: i.title, description: i.variant_title === "Default Title" ? undefined : i.variant_title } },
+      quantity: i.quantity,
+    }));
+  } else {
+    const resolved = await getVariantsByIds(requested.map((i) => i.variantId));
+    lineItems = requested.map((item) => {
+      const v = resolved.get(item.variantId);
+      if (!v?.availableForSale) throw new MerchInputError("An item is unavailable. Please update your cart.");
+      return { price_data: { currency: "usd", unit_amount: Math.round(v.amount * 100),
+        product_data: { name: v.productTitle, description: v.title === "Default Title" ? undefined : v.title } }, quantity: item.quantity };
     });
+    const variants = JSON.stringify(requested.map((i) => ({vid: i.variantId, qty: i.quantity})));
+    if (variants.length > 500) throw new MerchInputError("Please split this purchase into smaller orders.");
+    metadata = { type: "physical", variants };
   }
-
-  const variantMap = requested.map((i) => ({
-    vid: i.variantId,
-    qty: i.quantity,
-  }));
 
   const session = await stripe.checkout.sessions.create({
     ui_mode: "embedded_page",
@@ -141,15 +115,13 @@ export async function POST(req: NextRequest) {
         },
       },
     ],
-    metadata: {
-      type: "physical",
-      variants: JSON.stringify(variantMap),
-    },
+    metadata,
     return_url: `${req.nextUrl.origin}/shop/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-  });
+  }, checkoutId ? { idempotencyKey: `merch-checkout-${checkoutId}` } : undefined);
 
   return NextResponse.json({ clientSecret: session.client_secret });
   } catch (err) {
+    if (err instanceof MerchInputError) return NextResponse.json({ error: err.message }, { status: 409 });
     console.error("Checkout physical error:", err);
     return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });
   }
