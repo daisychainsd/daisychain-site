@@ -44,7 +44,7 @@ const FORMAT_CONFIG: Record<
     args: ["-codec:a", "flac", "-compression_level", "5"],
     mime: "audio/flac",
   },
-  // Codec is chosen per file (see aiffCodec) so 24-bit masters stay 24-bit.
+  // AIFF is always 16-bit so it plays on every CDJ (see aiffCodec).
   // AIFF only carries tags/artwork when the ID3 chunk is switched on.
   aiff: {
     ext: "aiff",
@@ -59,8 +59,10 @@ function wavBitDepth(buf: Buffer): number {
   return i > 0 && i + 24 <= buf.length ? buf.readUInt16LE(i + 22) : 16;
 }
 
+/** Always 16-bit. Deeper masters are dithered down instead of truncated. */
 function aiffCodec(buf: Buffer): string[] {
-  return ["-codec:a", wavBitDepth(buf) > 16 ? "pcm_s24be" : "pcm_s16be"];
+  const dither = wavBitDepth(buf) > 16 ? ["-af", "aresample=osf=s16:dither_method=triangular"] : [];
+  return [...dither, "-codec:a", "pcm_s16be"];
 }
 
 /** Best effort — a missing cover never blocks the download. */
