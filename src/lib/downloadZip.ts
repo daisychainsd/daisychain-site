@@ -11,7 +11,8 @@ export const FORMATS: { id: ZipFormat; label: string }[] = [
   { id: "mp3", label: "MP3" },
 ];
 export const FORMAT_NOTES: Record<ZipFormat, string> = {
-  aiff: "Lossless, with artwork and track info built in",
+  // Leads with "Recommended" because the inline label is hidden on phones
+  aiff: "Recommended. Lossless, with artwork and track info built in",
   wav: "Original master. No artwork or track info",
   flac: "Lossless, converted from the WAV master",
   mp3: "320 kbps, converted from the WAV master",

@@ -162,7 +162,7 @@ export default function DownloadPanel({
             >
               {f.label}
               {f.id === DEFAULT_FORMAT && (
-                <span className="ml-1 text-[10px] normal-case tracking-normal opacity-70">
+                <span className="ml-1 hidden sm:inline text-[10px] normal-case tracking-normal opacity-70">
                   (recommended)
                 </span>
               )}

@@ -233,7 +233,7 @@ export default function AccountClient({
         {releases.length > 0 ? (
           <>
             {/* Format picker */}
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6">
               <span className="text-text-muted text-xs uppercase tracking-wider" data-label>
                 Format
               </span>
@@ -250,7 +250,7 @@ export default function AccountClient({
                   >
                     {f.label}
                     {f.id === DEFAULT_FORMAT && (
-                      <span className="ml-1 text-[10px] normal-case tracking-normal opacity-70">
+                      <span className="ml-1 hidden sm:inline text-[10px] normal-case tracking-normal opacity-70">
                         (recommended)
                       </span>
                     )}
