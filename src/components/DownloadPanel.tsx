@@ -2,26 +2,28 @@
 
 import { useState } from "react";
 import type { Track } from "@/lib/types";
-import { downloadTracksAsZip } from "@/lib/downloadZip";
-
-type Format = "wav" | "flac" | "aiff" | "mp3";
-const FORMATS: { id: Format; label: string }[] = [
-  { id: "wav", label: "WAV" },
-  { id: "flac", label: "FLAC" },
-  { id: "aiff", label: "AIFF" },
-  { id: "mp3", label: "MP3" },
-];
+import {
+  downloadTracksAsZip,
+  DEFAULT_FORMAT,
+  FORMATS,
+  FORMAT_NOTES,
+  type TrackTags,
+  type ZipFormat as Format,
+} from "@/lib/downloadZip";
 
 export default function DownloadPanel({
   tracks,
   releaseArtist,
   releaseTitle = "",
+  coverUrl,
   preVerified = false,
   purchasedTrackKey = null,
 }: {
   tracks: Track[];
   releaseArtist: string;
   releaseTitle?: string;
+  /** Embedded into converted files as artwork */
+  coverUrl?: string;
   /**
    * Set by the server page once entitlement is verified. When true, the panel
    * trusts the server and renders downloads directly — the audio URLs in
@@ -30,7 +32,7 @@ export default function DownloadPanel({
   preVerified?: boolean;
   purchasedTrackKey?: string | null;
 }) {
-  const [format, setFormat] = useState<Format>("wav");
+  const [format, setFormat] = useState<Format>(DEFAULT_FORMAT);
   const [converting, setConverting] = useState<string | null>(null);
   const [zipProgress, setZipProgress] = useState<string | null>(null);
 
@@ -47,13 +49,25 @@ export default function DownloadPanel({
     .filter((t) => !purchasedTrackKey || t._key === purchasedTrackKey)
     .sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0));
 
+  const creditFor = (t: Track) =>
+    t.trackArtists?.map((a) => a.name).join(", ") || t.trackArtist || releaseArtist;
+
+  function tagsFor(t: Track): TrackTags {
+    const n = t.trackNumber || downloadableTracks.indexOf(t) + 1;
+    return {
+      title: t.title,
+      artist: creditFor(t),
+      album: releaseTitle,
+      album_artist: releaseArtist,
+      // A single-track purchase only sees its own track, so no "of N"
+      track: purchasedTrackKey ? `${n}` : `${n}/${downloadableTracks.length}`,
+    };
+  }
+
   async function downloadTrack(track: Track) {
     if (!track.audioUrl) return;
 
-    const credit =
-      track.trackArtists?.map((a) => a.name).join(", ") ||
-      track.trackArtist ||
-      releaseArtist;
+    const credit = creditFor(track);
     const baseName = `${credit} - ${track.title}`;
     const trackKey = `${track.audioUrl}-${track.title}`;
 
@@ -77,6 +91,8 @@ export default function DownloadPanel({
           url: track.audioUrl,
           format,
           filename: baseName,
+          coverUrl,
+          meta: tagsFor(track),
         }),
       });
       if (!res.ok) throw new Error("Conversion failed");
@@ -108,13 +124,13 @@ export default function DownloadPanel({
       await downloadTracksAsZip(
         downloadableTracks.map((t, i) => ({
           audioUrl: t.audioUrl!,
-          baseName: `${String(t.trackNumber || i + 1).padStart(2, "0")} ${
-            t.trackArtists?.map((a) => a.name).join(", ") || t.trackArtist || releaseArtist
-          } - ${t.title}`,
+          baseName: `${String(t.trackNumber || i + 1).padStart(2, "0")} ${creditFor(t)} - ${t.title}`,
+          tags: tagsFor(t),
         })),
         format,
         `${releaseArtist} - ${releaseTitle || "Release"} (${format.toUpperCase()})`,
-        (done, total) => setZipProgress(`${done}/${total}`)
+        (done, total) => setZipProgress(`${done}/${total}`),
+        coverUrl
       );
     } catch {
       alert("Download failed. Please try again.");
@@ -145,16 +161,17 @@ export default function DownloadPanel({
               }`}
             >
               {f.label}
+              {f.id === DEFAULT_FORMAT && (
+                <span className="ml-1 text-[10px] normal-case tracking-normal opacity-70">
+                  (recommended)
+                </span>
+              )}
             </button>
           ))}
         </div>
       </div>
 
-      {format !== "wav" && (
-        <p className="text-text-muted text-xs text-center mb-6">
-          Converted from lossless WAV
-        </p>
-      )}
+      <p className="text-text-muted text-xs text-center mb-6">{FORMAT_NOTES[format]}</p>
 
       <button
         onClick={() => !zipProgress && downloadAll()}
