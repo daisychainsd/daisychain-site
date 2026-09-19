@@ -95,6 +95,7 @@ export default async function DownloadPage({
         tracks={entitledTracks}
         releaseArtist={release.artist || releaseArtist}
         releaseTitle={releaseTitle}
+        coverUrl={meta.coverArt ? urlFor(meta.coverArt).url() : undefined}
         preVerified
         purchasedTrackKey={access.trackKey}
       />

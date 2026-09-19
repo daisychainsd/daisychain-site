@@ -5,15 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/components/CartProvider";
 import UnlimitedPassInfo from "@/components/UnlimitedPassInfo";
-import { downloadTracksAsZip } from "@/lib/downloadZip";
-
-type Format = "wav" | "flac" | "aiff" | "mp3";
-const FORMATS: { id: Format; label: string }[] = [
-  { id: "wav", label: "WAV" },
-  { id: "flac", label: "FLAC" },
-  { id: "aiff", label: "AIFF" },
-  { id: "mp3", label: "MP3" },
-];
+import {
+  downloadTracksAsZip,
+  DEFAULT_FORMAT,
+  FORMATS,
+  FORMAT_NOTES,
+  type TrackTags,
+  type ZipFormat as Format,
+} from "@/lib/downloadZip";
 
 interface Track {
   title: string;
@@ -46,7 +45,7 @@ export default function AccountClient({
   const { items, removeItem } = useCart();
   const [buyingPass, setBuyingPass] = useState(false);
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null);
-  const [format, setFormat] = useState<Format>("wav");
+  const [format, setFormat] = useState<Format>(DEFAULT_FORMAT);
   const [converting, setConverting] = useState<string | null>(null);
   const [zipping, setZipping] = useState<string | null>(null);
 
@@ -84,10 +83,24 @@ export default function AccountClient({
     }
   }
 
-  async function handleDownloadTrack(track: Track, artist: string) {
+  const creditFor = (t: Track, release: DownloadRelease) =>
+    t.trackArtists?.map((a) => a.name).join(", ") || t.trackArtist || release.artist;
+
+  function tagsFor(t: Track, release: DownloadRelease): TrackTags {
+    const all = release.tracks ?? [];
+    return {
+      title: t.title,
+      artist: creditFor(t, release),
+      album: release.title,
+      album_artist: release.artist,
+      track: `${t.trackNumber || all.indexOf(t) + 1}/${all.length}`,
+    };
+  }
+
+  async function handleDownloadTrack(track: Track, release: DownloadRelease) {
     if (!track.audioUrl) return;
 
-    const credit = track.trackArtists?.map((a) => a.name).join(", ") || track.trackArtist || artist;
+    const credit = creditFor(track, release);
     const baseName = `${credit} - ${track.title}`;
     const trackKey = `${track.audioUrl}-${track.title}`;
 
@@ -111,6 +124,8 @@ export default function AccountClient({
           url: track.audioUrl,
           format,
           filename: baseName,
+          coverUrl: release.coverUrl,
+          meta: tagsFor(track, release),
         }),
       });
 
@@ -139,20 +154,20 @@ export default function AccountClient({
       (a, b) => (a.trackNumber || 0) - (b.trackNumber || 0)
     );
     if (downloadable.length === 1) {
-      return handleDownloadTrack(downloadable[0], release.artist);
+      return handleDownloadTrack(downloadable[0], release);
     }
     setZipping(`${release.slug}|0/${downloadable.length}`);
     try {
       await downloadTracksAsZip(
         downloadable.map((t, i) => ({
           audioUrl: t.audioUrl!,
-          baseName: `${String(t.trackNumber || i + 1).padStart(2, "0")} ${
-            t.trackArtists?.map((a) => a.name).join(", ") || t.trackArtist || release.artist
-          } - ${t.title}`,
+          baseName: `${String(t.trackNumber || i + 1).padStart(2, "0")} ${creditFor(t, release)} - ${t.title}`,
+          tags: tagsFor(t, release),
         })),
         format,
         `${release.artist} - ${release.title} (${format.toUpperCase()})`,
-        (done, total) => setZipping(`${release.slug}|${done}/${total}`)
+        (done, total) => setZipping(`${release.slug}|${done}/${total}`),
+        release.coverUrl
       );
     } catch {
       alert("Download failed. Please try again.");
@@ -218,7 +233,7 @@ export default function AccountClient({
         {releases.length > 0 ? (
           <>
             {/* Format picker */}
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6">
               <span className="text-text-muted text-xs uppercase tracking-wider" data-label>
                 Format
               </span>
@@ -234,14 +249,15 @@ export default function AccountClient({
                     }`}
                   >
                     {f.label}
+                    {f.id === DEFAULT_FORMAT && (
+                      <span className="ml-1 hidden sm:inline text-[10px] normal-case tracking-normal opacity-70">
+                        (recommended)
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
-              {format !== "wav" && (
-                <span className="text-text-muted text-xs">
-                  Converted from lossless WAV
-                </span>
-              )}
+              <span className="text-text-muted text-xs">{FORMAT_NOTES[format]}</span>
             </div>
 
             <div className="space-y-4">
@@ -342,10 +358,7 @@ export default function AccountClient({
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (!isConverting)
-                                      handleDownloadTrack(
-                                        track,
-                                        release.artist
-                                      );
+                                      handleDownloadTrack(track, release);
                                   }}
                                   disabled={isConverting}
                                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-muted hover:text-blue-300 transition-colors shrink-0 disabled:opacity-50"

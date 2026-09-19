@@ -20,6 +20,15 @@ const ALLOWED_URL_PREFIX = `https://cdn.sanity.io/files/${
 /** Refuse anything larger than a long lossless master. */
 const MAX_INPUT_BYTES = 200 * 1024 * 1024;
 
+/** Cover art embedded into converted files — same project/dataset pin as audio. */
+const ALLOWED_COVER_PREFIX = `https://cdn.sanity.io/images/${
+  process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? ""
+}/${process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production"}/`;
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
+
+/** Tags written into converted files. Keys are ffmpeg metadata names. */
+const TAG_KEYS = ["title", "artist", "album", "album_artist", "track"] as const;
+
 const FORMAT_CONFIG: Record<
   string,
   { ext: string; args: string[]; mime: string }
@@ -35,12 +44,57 @@ const FORMAT_CONFIG: Record<
     args: ["-codec:a", "flac", "-compression_level", "5"],
     mime: "audio/flac",
   },
+  // Codec is chosen per file (see aiffCodec) so 24-bit masters stay 24-bit.
+  // AIFF only carries tags/artwork when the ID3 chunk is switched on.
   aiff: {
     ext: "aiff",
-    args: ["-codec:a", "pcm_s16be"],
+    args: ["-write_id3v2", "1", "-id3v2_version", "3"],
     mime: "audio/aiff",
   },
 };
+
+/** bitsPerSample from the WAV "fmt " chunk; 16 if the header is unreadable. */
+function wavBitDepth(buf: Buffer): number {
+  const i = buf.indexOf("fmt ", 12, "ascii");
+  return i > 0 && i + 24 <= buf.length ? buf.readUInt16LE(i + 22) : 16;
+}
+
+function aiffCodec(buf: Buffer): string[] {
+  return ["-codec:a", wavBitDepth(buf) > 16 ? "pcm_s24be" : "pcm_s16be"];
+}
+
+/** Best effort — a missing cover never blocks the download. */
+async function fetchCover(coverUrl: unknown, dest: string): Promise<boolean> {
+  if (typeof coverUrl !== "string" || !coverUrl.startsWith(ALLOWED_COVER_PREFIX)) return false;
+  try {
+    const { origin, pathname } = new URL(coverUrl);
+    if (origin !== "https://cdn.sanity.io") return false;
+    // Drop caller params; always embed a 1200px JPEG
+    const res = await fetch(`${origin}${pathname}?w=1200&h=1200&fit=crop&fm=jpg&q=88`, {
+      redirect: "manual",
+    });
+    if (!res.ok) return false;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength === 0 || buf.byteLength > MAX_COVER_BYTES) return false;
+    await writeFile(dest, buf);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** execFile passes these as argv (no shell), so this is only hygiene + size. */
+function tagArgs(meta: unknown): string[] {
+  if (!meta || typeof meta !== "object") return [];
+  const out: string[] = [];
+  for (const key of TAG_KEYS) {
+    const v = (meta as Record<string, unknown>)[key];
+    if (typeof v !== "string" || !v.trim()) continue;
+    out.push("-metadata", `${key}=${v.replace(/[\x00-\x1f]/g, "").slice(0, 200)}`);
+  }
+  if (out.length) out.push("-metadata", "publisher=Daisy Chain Recordings");
+  return out;
+}
 
 /** Strip characters that could break Content-Disposition headers. */
 function sanitizeFilename(name: string): string {
@@ -48,7 +102,7 @@ function sanitizeFilename(name: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { url, format, filename } = await req.json();
+  const { url, format, filename, coverUrl, meta } = await req.json();
 
   if (!url || !format || !FORMAT_CONFIG[format]) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -81,6 +135,7 @@ export async function POST(req: NextRequest) {
   const dir = await mkdtemp(join(tmpdir(), "dc-"));
   const inputPath = join(dir, "input.wav");
   const outputPath = join(dir, `output.${config.ext}`);
+  const coverPath = join(dir, "cover.jpg");
 
   try {
     // redirect: "manual" — the allowlist is checked once, before the request.
@@ -100,6 +155,11 @@ export async function POST(req: NextRequest) {
     }
     await writeFile(inputPath, buffer);
 
+    const hasCover = await fetchCover(coverUrl, coverPath);
+    const coverArgs = hasCover
+      ? ["-protocol_whitelist", "file", "-i", coverPath, "-map", "0:a", "-map", "1:v", "-c:v", "copy", "-disposition:v", "attached_pic"]
+      : [];
+
     await new Promise<void>((resolve, reject) => {
       execFile(
         ffmpegPath!,
@@ -114,7 +174,10 @@ export async function POST(req: NextRequest) {
           "file",
           "-i",
           inputPath,
+          ...coverArgs,
+          ...(format === "aiff" ? aiffCodec(buffer) : []),
           ...config.args,
+          ...tagArgs(meta),
           "-y",
           outputPath,
         ],
@@ -147,6 +210,7 @@ export async function POST(req: NextRequest) {
   } finally {
     await unlink(inputPath).catch(() => {});
     await unlink(outputPath).catch(() => {});
+    await unlink(coverPath).catch(() => {});
     await rmdir(dir).catch(() => {});
   }
 }

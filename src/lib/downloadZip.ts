@@ -2,10 +2,30 @@ import { Zip, ZipPassThrough } from "fflate";
 
 export type ZipFormat = "wav" | "flac" | "aiff" | "mp3";
 
+/** AIFF leads: lossless like WAV, but it carries artwork + track info. */
+export const DEFAULT_FORMAT: ZipFormat = "aiff";
+export const FORMATS: { id: ZipFormat; label: string }[] = [
+  { id: "aiff", label: "AIFF" },
+  { id: "wav", label: "WAV" },
+  { id: "flac", label: "FLAC" },
+  { id: "mp3", label: "MP3" },
+];
+export const FORMAT_NOTES: Record<ZipFormat, string> = {
+  // Leads with "Recommended" because the inline label is hidden on phones
+  aiff: "Recommended. Lossless, with artwork and track info built in",
+  wav: "Original master. No artwork or track info",
+  flac: "Lossless, converted from the WAV master",
+  mp3: "320 kbps, converted from the WAV master",
+};
+
+/** Tags /api/convert writes into the file. Keys are ffmpeg metadata names. */
+export type TrackTags = Partial<Record<"title" | "artist" | "album" | "album_artist" | "track", string>>;
+
 export interface ZipTrack {
   audioUrl: string;
   /** Filename inside the zip, without extension — e.g. "01 Artist - Title" */
   baseName: string;
+  tags?: TrackTags;
 }
 
 /**
@@ -22,6 +42,7 @@ export async function downloadTracksAsZip(
   format: ZipFormat,
   zipName: string,
   onProgress?: (done: number, total: number) => void,
+  coverUrl?: string,
 ): Promise<void> {
   const chunks: Uint8Array[] = [];
   let zipError: Error | null = null;
@@ -44,6 +65,8 @@ export async function downloadTracksAsZip(
               url: track.audioUrl,
               format,
               filename: track.baseName,
+              coverUrl,
+              meta: track.tags,
             }),
           });
     if (!res.ok || !res.body) {
