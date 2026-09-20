@@ -44,7 +44,7 @@ const FORMAT_CONFIG: Record<
     args: ["-codec:a", "flac", "-compression_level", "5"],
     mime: "audio/flac",
   },
-  // AIFF is always 16-bit so it plays on every CDJ (see aiffCodec).
+  // AIFF is always 16-bit / 44.1 kHz (see aiffCodec).
   // AIFF only carries tags/artwork when the ID3 chunk is switched on.
   aiff: {
     ext: "aiff",
@@ -53,16 +53,25 @@ const FORMAT_CONFIG: Record<
   },
 };
 
-/** bitsPerSample from the WAV "fmt " chunk; 16 if the header is unreadable. */
-function wavBitDepth(buf: Buffer): number {
+/** Sample rate + bit depth from the WAV "fmt " chunk; 44.1k/16 if unreadable. */
+function wavFormat(buf: Buffer): { rate: number; bits: number } {
   const i = buf.indexOf("fmt ", 12, "ascii");
-  return i > 0 && i + 24 <= buf.length ? buf.readUInt16LE(i + 22) : 16;
+  if (i < 0 || i + 24 > buf.length) return { rate: 44100, bits: 16 };
+  return { rate: buf.readUInt32LE(i + 12), bits: buf.readUInt16LE(i + 22) };
 }
 
-/** Always 16-bit. Deeper masters are dithered down instead of truncated. */
+/**
+ * Always 16-bit / 44.1 kHz so the whole catalog downloads in one format.
+ * Anything else is resampled and dithered down instead of truncated; a master
+ * that already matches is passed through untouched.
+ */
 function aiffCodec(buf: Buffer): string[] {
-  const dither = wavBitDepth(buf) > 16 ? ["-af", "aresample=osf=s16:dither_method=triangular"] : [];
-  return [...dither, "-codec:a", "pcm_s16be"];
+  const { rate, bits } = wavFormat(buf);
+  const convert =
+    bits > 16 || rate !== 44100
+      ? ["-af", "aresample=44100:osf=s16:dither_method=triangular"]
+      : [];
+  return [...convert, "-codec:a", "pcm_s16be"];
 }
 
 /** Best effort — a missing cover never blocks the download. */
