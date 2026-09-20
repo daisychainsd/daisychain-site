@@ -12,7 +12,7 @@ export const FORMATS: { id: ZipFormat; label: string }[] = [
 ];
 export const FORMAT_NOTES: Record<ZipFormat, string> = {
   // Leads with "Recommended" because the inline label is hidden on phones
-  aiff: "Recommended. 16-bit, with artwork and track info built in",
+  aiff: "Recommended. 16-bit 44.1 kHz, with artwork and track info built in",
   wav: "Original master. No artwork or track info",
   flac: "Lossless, converted from the WAV master",
   mp3: "320 kbps, converted from the WAV master",
