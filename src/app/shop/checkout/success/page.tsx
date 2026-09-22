@@ -10,7 +10,7 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
     try {
       const session = await stripe.checkout.sessions.retrieve(session_id);
       paid = paidPhysicalSession(session);
-      if (paid && session.metadata?.fulfillment_backend === "supabase") saved = !!await getOrderBySession(session.id);
+      if (paid) saved = !!await getOrderBySession(session.id);
     } catch { /* Show an unconfirmed state; never clear a cart without payment proof. */ }
   }
   return <SuccessClient paid={paid} saved={saved} />;

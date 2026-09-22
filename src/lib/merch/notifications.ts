@@ -11,6 +11,9 @@ export async function notifyMerchEvent(event: Stripe.Event, deps: Notifications)
   try {
     if (event.type === "charge.dispute.created" && event.livemode) {
       await deps.alert(event.id, `A physical payment was disputed. Review ${event.data.object.id} in Stripe immediately, including any older Shopify order. Check its response deadline and fulfillment status.`);
+    } else if (event.type === "charge.refunded" && event.livemode) {
+      const charge = event.data.object as Stripe.Charge;
+      await deps.alert(event.id, `A physical payment was ${charge.refunded ? "fully" : "partially"} refunded (${charge.id}). Review its payment and shipping status in Merch Ops before shipping or restocking.`);
     } else if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
       if (!paidPhysicalSession(session) || !session.livemode) return;

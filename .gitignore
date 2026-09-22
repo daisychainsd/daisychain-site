@@ -48,3 +48,8 @@ track-artists-migration-preview.json
 
 # Local merch migration snapshot (never credentials/customer data)
 .merch-import/
+
+# Customer recovery exports must never enter Git, regardless of output directory.
+recovered-orders.json
+check-pirate-ship-before-shipping.csv
+setup-ops-orders.sql

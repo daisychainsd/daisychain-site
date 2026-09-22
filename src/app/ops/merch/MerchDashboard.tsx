@@ -15,7 +15,7 @@ const date = (value: string) => new Date(value).toLocaleString("en-US", { timeZo
 export default function MerchDashboard() {
   const [data, setData] = useState<Data | null>(null);
   const [tab, setTab] = useState("orders");
-  const [status, setStatus] = useState("new");
+  const [status, setStatus] = useState("all");
   const [test, setTest] = useState(false);
   const [page, setPage] = useState(0);
   const [selection, setSelection] = useState<string[]>([]);
@@ -78,9 +78,10 @@ export default function MerchDashboard() {
     {message && <p role="status" className="container-organic p-4 text-blue-300">{message}</p>}
     {!data && <p className="text-text-secondary">{error ? "Merch data is unavailable. Refresh once setup is complete." : "Loading merch…"}</p>}
     {data && tab === "orders" && <>
+      <p className="text-text-secondary text-sm">Check older orders against Pirate Ship, then mark shipped or unshipped. Tracking is optional. Exporting a CSV does not mark an order shipped.</p>
       <div className="container-organic p-5 mb-5 flex flex-wrap items-end gap-4">
         <label className="text-sm">Status<select className={input} value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }}>
-          {["new", "exported", "shipped", "on_hold", "all"].map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
+          {["all", "unshipped", "shipped", "new", "exported", "on_hold"].map((s) => <option key={s} value={s}>{s === "new" ? "New / unshipped" : s.replace("_", " ")}</option>)}
         </select></label>
         <label className="flex items-center gap-2 p-3 text-sm"><input type="checkbox" checked={test} onChange={(e) => { setTest(e.target.checked); setPage(0); }} />Test orders</label>
         <button className={button} disabled={busy || !eligible.length} onClick={() => setSelection(eligible.map((o) => o.id))}>Select eligible</button>
@@ -134,10 +135,16 @@ function OrderCard({ order: o, selected, select, save, busy }: { order: MerchOrd
       <div className="text-sm break-words"><strong>{o.customer_name || "Missing recipient name"}</strong><div>{o.email}</div><div>{a.line1 || "Missing shipping address"}</div>{a.line2 && <div>{a.line2}</div>}<div>{[a.city, a.state, a.postal_code].filter(Boolean).join(", ")}</div><div>{a.country} {o.phone}</div></div>
       <ul className="list-none p-0 m-0 text-sm">{o.items.map((i, index) => <li key={index} className="mb-2"><span className="font-mono text-blue-300">{i.quantity} × </span>{i.title}{i.variant_title !== "Default Title" ? ` / ${i.variant_title}` : ""}{i.sku ? ` [${i.sku}]` : ""}<span className="text-text-secondary"> · {money(i.unit_price_cents, o.currency)}</span></li>)}<li className="text-text-secondary">Shipping {money(o.shipping_cents, o.currency)} · Tax {money(o.tax_cents, o.currency)} · Discount {money(o.discount_cents, o.currency)}</li></ul>
     </div>
-    <details><summary className="text-blue-300 cursor-pointer text-sm">Fulfillment and notes</summary>
+    <button className={`${button} mb-4`} disabled={busy || !o.livemode || o.inventory_issue || ["refunded", "disputed"].includes(o.payment_status)}
+      onClick={() => save({ id: o.id, status: o.fulfillment_status === "shipped" ? (o.exported_at ? "on_hold" : "new") : "shipped", tracking: o.tracking_number ?? "", notes: o.notes, resolveStock: false })}>
+      {o.fulfillment_status === "shipped" ? "Mark unshipped" : "Mark shipped"}
+    </button>
+    {o.exported_at && <p className="text-text-secondary text-xs">Already exported: check Pirate Ship before buying another label. Mark unshipped returns this order to On hold for review.</p>}
+    {o.shipped_at && <p className="text-text-secondary text-xs">Marked shipped {date(o.shipped_at)} PT</p>}
+    <details key={`${o.fulfillment_status}:${o.tracking_number}:${o.notes}`}><summary className="text-blue-300 cursor-pointer text-sm">Fulfillment and notes</summary>
       <form className="grid sm:grid-cols-2 gap-4 mt-4" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save({ id: o.id, status: f.get("status"), tracking: f.get("tracking"), notes: f.get("notes"), resolveStock: f.get("resolveStock") === "on" }); }}>
-        <label className="text-sm">Status<select name="status" defaultValue={o.fulfillment_status} className={input}><option value="new">New / ready to ship</option>{o.fulfillment_status === "exported" && <option value="exported">Exported</option>}<option value="on_hold">On hold</option><option value="shipped">Shipped</option></select></label>
-        <label className="text-sm">Tracking number<input name="tracking" defaultValue={o.tracking_number ?? ""} maxLength={200} className={input} /></label>
+        <label className="text-sm">Status<select name="status" defaultValue={o.fulfillment_status} className={input}><option value="new">Unshipped</option>{o.fulfillment_status === "exported" && <option value="exported">Exported</option>}<option value="on_hold">On hold</option><option value="shipped">Shipped</option></select></label>
+        <label className="text-sm">Tracking number (optional)<input name="tracking" defaultValue={o.tracking_number ?? ""} maxLength={200} className={input} /></label>
         <label className="text-sm sm:col-span-2">Internal notes<textarea name="notes" defaultValue={o.notes} maxLength={2000} className={input} /></label>
         {o.inventory_issue && <label className="text-sm flex items-center gap-2"><input type="checkbox" name="resolveStock" />Inventory issue resolved</label>}
         <button className={`${button} justify-self-start`} disabled={busy}>Save fulfillment</button>

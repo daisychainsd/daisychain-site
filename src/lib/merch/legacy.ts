@@ -23,3 +23,19 @@ export function reconcileLegacyItems(requested: { vid: string; qty: number }[], 
       sku: variant.sku, unit_price_cents: line.price?.unit_amount ?? Math.round(line.amount_subtotal / match.qty) };
   });
 }
+
+
+/** Legacy purchases are fulfillment snapshots, independent of today's catalog.
+ * No inferred variant mapping or stock deduction for Shopify-era orders.
+ */
+export function capturedPhysicalItems(lines: Stripe.LineItem[]): OrderItem[] {
+  return lines.map((line) => {
+    const product = line.price?.product;
+    const details = product && typeof product !== "string" && !product.deleted ? product : null;
+    const quantity = line.quantity ?? 0;
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || line.amount_subtotal % quantity !== 0) throw new Error("Invalid physical line item");
+    return { variant_id: null, title: line.description || details?.name || "Physical item",
+      variant_title: details?.description || "Default Title", sku: "", quantity,
+      unit_price_cents: line.amount_subtotal / quantity };
+  });
+}

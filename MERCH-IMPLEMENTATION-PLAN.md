@@ -1,3 +1,5 @@
+> Historical September 14 implementation plan. Current shipping behavior, applied migrations and remaining catalog work are documented in [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) and [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md).
+
 # Daisy Chain merch: implementation and rollout
 
 ## Intended result

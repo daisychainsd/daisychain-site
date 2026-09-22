@@ -1,15 +1,14 @@
 import type Stripe from "stripe";
-import { usesMerchBackend } from "./config";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { orderPayload, paidPhysicalSession } from "./orders";
 import type { OrderItem } from "./types";
-import { reconcileLegacyItems } from "./legacy";
+import { capturedPhysicalItems } from "./legacy";
 
 export interface MerchWebhookDependencies {
   snapshot(id: string, livemode: boolean): Promise<OrderItem[]>;
   legacyItems(session: Stripe.Checkout.Session): Promise<OrderItem[]>;
-  record(payload: ReturnType<typeof orderPayload>): Promise<void>;
+  record(payload: ReturnType<typeof orderPayload>, deductInventory: boolean): Promise<{ created: boolean }>;
   block(intent: string, status: "partially_refunded" | "refunded" | "disputed"): Promise<void>;
   physicalIntent(intent: string): Promise<boolean>;
 }
@@ -21,18 +20,16 @@ export const merchWebhookDependencies: MerchWebhookDependencies = {
     return data.items as OrderItem[];
   },
   async legacyItems(session) {
-    // In-flight sessions from before cutover still have the old variant metadata.
-    const variants: { vid: string; qty: number }[] = JSON.parse(session.metadata?.variants ?? "[]");
-    const lines = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100, expand: ["data.price.product"] });
-    if (lines.has_more || variants.length !== lines.data.length) throw new Error("Legacy order needs reconciliation");
-    const { data, error } = await createAdminClient().from("merch_variants")
-      .select("id, title, sku, merch_products!inner(title)").in("id", variants.map((v) => v.vid));
-    if (error) throw new Error(error.message);
-    return reconcileLegacyItems(variants, lines.data, data as unknown as Parameters<typeof reconcileLegacyItems>[2]);
+    // Stripe's purchased snapshot must survive catalog renames/deletions.
+    const lines: Stripe.LineItem[] = [];
+    for await (const line of stripe.checkout.sessions.listLineItems(session.id, { limit: 100, expand: ["data.price.product"] })) lines.push(line);
+    return capturedPhysicalItems(lines);
   },
-  async record(payload) {
-    const { error } = await createAdminClient().rpc("record_merch_order", { payload });
+  async record(payload, deductInventory) {
+    const { data, error } = await createAdminClient().rpc("record_merch_order", { payload, deduct_inventory: deductInventory });
     if (error) throw new Error(error.message);
+    if (typeof data?.created !== "boolean") throw new Error("Order persistence returned no result");
+    return { created: data.created };
   },
   async block(intent, status) {
     const { error } = await createAdminClient().rpc("block_merch_payment", { intent, new_status: status });
@@ -40,7 +37,7 @@ export const merchWebhookDependencies: MerchWebhookDependencies = {
   },
   async physicalIntent(intent) {
     const sessions = await stripe.checkout.sessions.list({ payment_intent: intent, limit: 10 });
-    return sessions.data.some((s) => s.metadata?.type === "physical" && (usesMerchBackend() || s.metadata.fulfillment_backend === "supabase"));
+    return sessions.data.some((s) => s.metadata?.type === "physical");
   },
 };
 
@@ -53,7 +50,7 @@ export async function processMerchEvent(event: Stripe.Event, deps = merchWebhook
     const items = session.metadata?.merch_checkout_id
       ? await deps.snapshot(session.metadata.merch_checkout_id, session.livemode)
       : await deps.legacyItems(session);
-    await deps.record(orderPayload(session, items));
+    await deps.record(orderPayload(session, items), !!session.metadata?.merch_checkout_id);
     return true;
   }
   if (event.type === "charge.refunded" || event.type === "charge.dispute.created") {

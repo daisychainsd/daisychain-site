@@ -36,12 +36,12 @@ Daisy Chain SD is an independent electronic music label based in San Diego, run 
 - **Next.js 16** (App Router, Turbopack) — `npm run dev` starts on localhost:3000
 - **Sanity CMS v5** — embedded studio at `/studio`, project `02wrtovm`, dataset `production`
 - **Tailwind CSS v4** — uses `@import "tailwindcss"` syntax (not v3 `@tailwind` directives)
-- **Stripe** — test mode, handles checkout + post-purchase download verification
+- **Stripe** — handles checkout + post-purchase download verification; local credentials may be live
 - **Supabase** — email+password auth, profiles + purchases tables, RLS
 - **wavesurfer.js** — real waveform audio player with scrubbing (`@wavesurfer/react`)
 - **ffmpeg-static** — server-side audio format conversion (WAV → MP3/FLAC/AIFF)
 - **Shopify Storefront API** — headless product data/inventory for `/shop`
-- **Shopify Admin API** — creates draft orders after physical purchase (fulfillment via Pirate Ship)
+- **Physical order fulfillment** — Supabase Merch Ops → Pirate Ship CSV; Shopify Admin draft creation is retired by the September 22 recovery
 - **beehiiv** — newsletter email collection via API (publication: "Daisy Chain Mail")
 
 ## Architecture
@@ -145,36 +145,36 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 
 ## Stripe Integration
 
-- Test mode key in `.env.local` as `STRIPE_SECRET_KEY`
+- `.env.local` may contain a live `STRIPE_SECRET_KEY`; inspect mode without printing secrets and use isolated credentials for tests.
 - **Digital checkout**: Buy button → `/api/checkout` → Stripe hosted checkout. Two paths:
   - **Authenticated**: existing flow. Logged-in users land on `/account?purchased={slug}` with the new download in their dashboard. Webhook records the purchase in Supabase `purchases` table.
   - **Guest**: when a logged-out user clicks Buy Digital, `ReleaseInteractive` bounces them to `/login?slug=<slug>&title=...&price=...&...` which renders a value-prop banner ("free, re-download anything you've bought, unlimited pass option") plus a smaller "or, just buy as guest →" link below the Sign In button. Guest flow POSTs to `/api/checkout` with a `guestEmail` field instead of authenticating; Stripe success URL goes to `/download/<slug>?session_id=...` which validates via `/api/verify-purchase` and shows the file downloads. Guest purchases are NOT recorded in Supabase — Stripe is the source of truth, the webhook returns early when `metadata.isGuest === "true"`. Future work: when a guest later creates an account with the same email, reconcile previous purchases (would need a Supabase migration to attach by email).
 - **Physical checkout**: Cart → `/shop/checkout` → Stripe Embedded Checkout (inline on page, collects shipping address) → `/shop/checkout/success`
 - **Unlimited pass**: $100 one-time purchase for all current + future downloads → `/api/checkout-pass`
-- **Webhook** (`/api/webhooks/stripe`): handles `checkout.session.completed` — records digital purchases to Supabase, creates Shopify draft orders for physical purchases
+- **Webhook** (`/api/webhooks/stripe`): paid physical sessions, including delayed-payment success, go to Supabase Merch Ops; digital purchases retain their separate fulfillment path. Physical persistence failure returns 503 for retry.
 - Test card: `4242 4242 4242 4242`
 
-## Merch Ops replacement (2026-09-14, rollout pending)
+## Merch Ops and physical-order recovery (September 22, 2026)
 
-- Implementation plan: `MERCH-IMPLEMENTATION-PLAN.md`; rollout instructions: `MERCH-ROLLOUT.md`.
-- `/ops/merch` manages paid physical orders, Pirate Ship CSV export, fulfillment/tracking, products/images and stock adjustments. It has no auto-refresh that could wipe forms.
-- `MERCH_BACKEND=supabase` selects Supabase catalog/checkout/order persistence. Unset retains legacy Shopify behavior for staged rollout. Both storefront adapters live behind `src/lib/merch/storefront.ts`.
-- `scripts/merch-schema-2026-09-14.sql` and `scripts/merch-storage-2026-09-14.sql` are additive migrations, also included in `supabase-schema.sql`. Apply them before enabling the backend; never rerun the full existing schema against production.
-- `node --env-file=.env.local scripts/merch-import.mjs` is a read-only Shopify export to gitignored `.merch-import/`. `--apply` writes products/images into Supabase; run it only as part of reviewed rollout. New variants start at zero; count stock through Ops before cutover.
-- Stable Shopify handles and IDs intentionally survive migration for release links and saved carts. `/api/shopify-product` remains a compatibility URL but uses the selected backend.
-- Physical webhook processing is before legacy event claiming. Order/stock changes use one session-idempotent transaction. Do not move it below `processed_stripe_events` or return 2xx on a failed durable write.
-- V1 does not reserve checkout carts. Quantity validation is server-side; a paid stock shortage is kept on hold in Ops. Refunds/disputes also hold unshipped orders, and inventory returns are manual. Partial refunds can be explicitly released by staff.
-- Test orders never decrement inventory or export; use isolated test fixtures anyway, since dev shares production services. New physical confirmation emails use Resend idempotency keys and only send for live orders. Pirate Ship handles shipping emails; saving tracking in Ops does not send one.
-- Every `/api/ops/merch/*` handler checks Basic auth directly, rejects cross-origin writes and returns no-store. The public anon/authenticated Supabase roles have no direct access to merch tables/RPCs.
-- `npm run test:merch` runs real PostgreSQL transaction tests via in-memory PGlite plus route/CSV/pricing checks. It does not load `.env.local` or call live services.
-- Existing shipping prices/countries are preserved; the old unsupported "free US shipping over $50" claim has been removed. Shipping policy changes remain separate.
+- Current recovery/deployment evidence: `ORDER-RECOVERY-2026-09-22.md`; daily use and unfinished catalog migration: `MERCH-ROLLOUT.md`. The September 14 implementation plan and review are historical references, not current activation status.
+- **Verified live:** PD applied the merch schema and optional-tracking migration and restored four paid physical website orders. Reconciliation found zero missing orders, zero duplicates and zero failures. Shipping remains unverified until manually checked in Pirate Ship. PR #24 carries the reviewed code; consult the recovery document for deployment status.
+- **Catalog remains Shopify:** `MERCH_BACKEND` is unset. This flag selects catalog/checkout pricing, not whether physical orders persist in Ops. Product/image import, storage setup and opening stock are still pending. Do not enable the flag, treat Ops stock as authoritative, or cancel Shopify as part of order recovery.
+- `/ops/merch` opens on All, offers Unshipped/Shipped filters, CSV export, manual shipped/unshipped controls, optional tracking and notes. Exported means a CSV was downloaded, not that a parcel shipped. No auto-refresh that could wipe forms. Shipping state changes do not email customers or change inventory.
+- Every paid physical checkout is processed before legacy event claiming, using session-idempotent SQL. Never return 2xx on a failed durable write. Shopify-era items come from Stripe snapshots with no inferred catalog mapping or Supabase inventory deduction; Supabase snapshots deduct stock transactionally.
+- `scripts/merch-reconcile.ts` audits full paginated Stripe history; `--apply` recovers missing orders and checks payment blocks. `/api/cron/merch-reconcile` invokes it hourly at minute 15 with `CRON_SECRET`. Reconciliation does not send customer confirmations. Preserve manual shipping decisions across retries.
+- Refunds/disputes hold unshipped orders; a reviewed partial refund can be explicitly released. Stock shortage resolution and returns remain manual. Test orders do not consume stock or export. Pirate Ship handles shipment emails.
+- All `/api/ops/merch/*` routes enforce Basic auth directly, reject cross-origin writes, and return no-store. Supabase anon/authenticated roles cannot access customer order tables or RPCs.
+- **Applied:** `scripts/merch-schema-2026-09-14.sql`, `scripts/merch-shipping-2026-09-22.sql`. Never rerun the create-table migration or full schema against production. **Pending:** `scripts/merch-storage-2026-09-14.sql`, catalog/image import, physical stock count and isolated purchase validation before catalog cutover.
+- Catalog importer dry run: `node --env-file=/path/to/env scripts/merch-import.mjs`; `--apply` imports reviewed products/images. Stable Shopify IDs/handles survive for saved carts and release links. Repeated import preserves stock but can overwrite product edits.
+- Tests: `npm run test:merch` uses isolated PostgreSQL/PGlite and signed-webhook fixtures. Browser setup: `tests/MERCH-BROWSER.md`. Dev shares production services; never test payments against shared live data or send fixture emails.
+- Earlier deployment: PR #20 merged September 14 as `55eed88b09cc8d89de0930343dd6c49efcdf780a`; code deployment did not complete its database/catalog rollout. Its admin override was a one-time authorization, not a branch-policy change.
 
 ## Shopify Integration (Physical Products)
 
 - **Storefront API** (`src/lib/shopify.ts`): fetches products, variants, images, inventory for the shop pages. Read-only, public token. Also used by release pages to fetch product photos for physical formats via `getProductByHandle()`.
-- **Admin API** (`src/lib/shopify-admin.ts`): creates draft orders after Stripe payment. Uses OAuth **client_credentials** flow with `SHOPIFY_APP_CLIENT_ID` + `SHOPIFY_APP_CLIENT_SECRET` to get a fresh 24h access token (cached in memory with 5min expiry buffer). App: `dc-draft-orders` created in Shopify Partners dashboard, installed on daisychainsd store, scope: `write_draft_orders`.
+- **Admin API** (`src/lib/shopify-admin.ts`): retained legacy helper; the physical webhook no longer calls it. Historical drafts may still exist and must be checked against Pirate Ship; they are not the current order source of truth.
 - **Release → Shopify linking**: Releases with physical formats have a `shopifyHandle` field in Sanity that maps to a Shopify product. Currently linked: Dream Disc CD (`dream-disc-cd`), and then i started floating vinyl (`and-then-i-started-floating-vinyl`).
-- **Flow**: Customer browses → adds to cart → Stripe Embedded Checkout (with shipping) → payment → webhook creates Shopify draft order → fulfill via Pirate Ship
+- **Flow**: Customer browses → adds to cart → Stripe Embedded Checkout (with shipping) → payment → webhook saves Supabase order → `/ops/merch` → Pirate Ship CSV → manual shipped status
 - **Shipping tiers**: Standard ($5.99, 5-7 days), Priority ($9.99, 2-3 days), International ($15.99, 7-14 days) — defined in `/api/checkout-physical`
 - Physical checkout does NOT require Supabase auth (guest checkout)
 
@@ -417,11 +417,11 @@ When the Stripe → Parcel Sound revenue pipeline gets built, per-track net sale
 - Buy button UX: shows format + price, positioned below main container; physical buy adds to cart, digital goes to Stripe
 - Clean CSS: removed dead classes, scoped all transitions, consistent font system, `animate-fade-in` keyframe for image transitions
 - Physical merch shop: product grid, detail pages, variant selection, cart, embedded Stripe checkout
-- Shopify Admin API integration for automatic draft order creation after purchase
+- Physical orders persist directly in Supabase Merch Ops; legacy Shopify draft creation is retired
 - Release ↔ Shopify product linking: `shopifyHandle` field on releases connects to Shopify products for physical format purchases
 - Physical format UX on release pages: cover art swaps to Shopify product photos (arrow nav + dots), "All physical purchases include downloadable digital files" note, Buy CD/Vinyl button adds to cart
 - Inline waveform layout: active track shows title/artist at normal size with waveform to the right (not stacked)
-- Stripe webhook handles both digital (records to Supabase) and physical (creates Shopify draft order) purchases
+- Stripe webhook handles digital fulfillment and retryable physical-order persistence in Supabase
 - Shopify Storefront API fully connected with real credentials
 - Newsletter signup (beehiiv integration): email form on homepage, POSTs to `/api/newsletter`, UTM-tracked as `daisychainsd.com / website / homepage_signup`
 - Homepage redesigned: responsive hero (`/public/hero-horizontal.png` ≥1280px, `/public/hero-vertical.png` <1280px), newsletter signup, then CMS-driven Upcoming section
@@ -444,6 +444,8 @@ When the Stripe → Parcel Sound revenue pipeline gets built, per-track net sale
 - "Daisy Chain Records" → "Daisy Chain Recordings" across all site copy, metadata, footer, header aria-label, email sender, studio title.
 - Sanity data fix: `trackArtists` added to DCR#18 "Cocky" (Mirror Maze, Niles) and DCR#18.5 "Cocky (Coido Remix)" (Mirror Maze, Niles, Coido) so per-track credits match release-level credits.
 - Sanity data fix: DCR#21 title corrected from "Sakima EP" to "Sakima / Melted EP".
+
+> The dated session entries below are historical. For current physical-order behavior, use the Merch Ops section and ORDER-RECOVERY-2026-09-22.md; older Shopify-draft notes are superseded.
 
 ### Session 1 (2026-04-22) — Daisy Chain Design System install + Homepage V2 port
 
@@ -641,7 +643,7 @@ Plan and findings both adversarially reviewed by Codex (it **blocked** the first
 **Gotchas worth remembering:**
 - **`/api/convert` now forces `-f wav`**, so it 500s on non-WAV input. Both callers (`DownloadPanel`, `downloadZip`) send `track.audioUrl` only — safe. Don't point it at a `previewFile` MP3.
 - **`next.config.ts` carries both** the ffmpeg bundling config (`serverExternalPackages` + `outputFileTracingIncludes`) and the security headers. A careless merge that drops the ffmpeg half re-breaks paid downloads in production.
-- **dev/preview shares Supabase, Sanity, Shopify, beehiiv, Laylo and Resend with PRODUCTION.** Only Stripe is separated (preview is `sk_test`). A test purchase on dev writes real customer rows and cuts real draft orders. `.env.local` holds a **live** Stripe key.
+- **dev/preview shares Supabase, Sanity, Shopify, beehiiv, Laylo and Resend with PRODUCTION.** Only Stripe is separated (preview is `sk_test`). A test purchase on dev can write shared customer/order rows; use isolated fixtures. `.env.local` holds a **live** Stripe key.
 - Vercel CLI: preview env vars scoped to a branch use a positional arg — `vercel env add NAME preview dev --value X`, not `--git-branch`.
 
 **Still open** (documented in `AUDIT-2026-08-06.md`, not yet fixed): guest checkout charges the wrong item/price when the cart isn't a single full release; no durable record if fulfilment *and* its alert both fail; webhook claims the event id before processing (a mid-handler crash loses the order silently); pass double-buy; success-page/webhook race; guest cart not cleared after purchase; **no rate limiting anywhere** — `/api/laylo-subscribe` sends SMS to arbitrary numbers, which is TCPA exposure; CMS-fragility crashes (a half-created artist doc 500s `/artists`).
@@ -767,6 +769,7 @@ Defined in [`vercel.json`](vercel.json):
 
 - **`/api/cron/release-day`** — **hourly** at `0 * * * *` UTC. Finds releases with `status: "upcoming"` whose `goLiveAt` datetime has passed (or, if no `goLiveAt`, whose `releaseDate` date has arrived), flips them to `status: "live"`, and revalidates `/`, `/releases/[slug]`, `/music` so the new Latest Release appears within seconds. Hourly schedule supports time-specific releases via `goLiveAt` (e.g. "go live at 9 AM PST on Friday"). Streaming links are NOT auto-populated — fill those in Studio when adding the release. Auth is `Authorization: Bearer ${CRON_SECRET}`. Manually testable: `curl -H "Authorization: Bearer $CRON_SECRET" https://www.daisychainsd.com/api/cron/release-day`. Idempotent — running multiple times re-promotes nothing because the GROQ filter excludes anything already `status: live`. **Important:** hit `www.daisychainsd.com` (not bare domain) to avoid a 307 redirect that strips the auth header.
 - **`/api/cron/ops-health`** — daily at `0 14 * * *` UTC (~7am PT). Runs the /ops health checks; emails ALERT_EMAIL via Resend only when something is failing.
+- **`/api/cron/merch-reconcile`** — hourly at `15 * * * *` UTC. Reconciles physical website Stripe Checkout sessions against Ops, preserving manual shipping state and checking refunds/disputes. Requires `CRON_SECRET`; use `www.daisychainsd.com`. Failed sessions return 503 and attempt an owner alert with failing session IDs; no customer confirmations are sent.
 - **`/api/cron/catalog-audit`** — weekly, Mondays `0 14 * * 1` UTC (~7am PT). Full catalog crawl (see Session 12 notes); ALWAYS emails the report to niko@ + playerdave@ and stores the result as the `catalogAuditResult` Sanity singleton for the /ops Health panel. Manual trigger works but sends the team a real email — prefer reading the stored result.
 
 <!-- VERCEL BEST PRACTICES START -->
