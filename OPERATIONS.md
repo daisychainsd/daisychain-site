@@ -28,7 +28,7 @@ checkout, auto release-day promotion, and newsletter/SMS capture.
 
 Legacy/Shopify-era orders use Stripe's purchased line items and address, without decrementing Supabase inventory. Supabase checkout snapshots deduct inventory transactionally. Refunds/disputes hold unshipped physical orders; digital entitlement handling remains separate. A notification outage does not undo a saved physical order.
 
-**September 22 deployment status and evidence:** [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md). The schema and four-order backlog are verified live; the document records when the reviewed code becomes production.
+**September 22 deployment status and evidence:** [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md). The schema, four-order backlog, reviewed code and first scheduled reconciliation are verified live after PR #24.
 
 ## Cron & webhooks
 - `GET /api/cron/release-day` — hourly (Vercel cron, Bearer `CRON_SECRET`).
@@ -100,6 +100,8 @@ purchase flow end-to-end.
 `scripts/fix-rls-guest-tables.sql` — applied 2026-07-03 in Supabase SQL editor;
 dropped permissive RLS policies that let the anon key read guest purchase data.
 Kept for provenance.
+
+**Sensitive environment exports:** Vercel exports sensitive variables such as `CRON_SECRET` as blank. Check Vercel configuration and scheduled execution before diagnosing a missing secret or rotating it.
 
 ## Recover or audit physical orders
 
