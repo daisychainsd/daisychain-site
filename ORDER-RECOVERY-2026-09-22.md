@@ -1,6 +1,6 @@
 # Physical website order recovery
 
-Production diagnosis: Stripe contains four paid physical website Checkout Sessions across the full 55 completed-session history. The `merch_orders` table is absent; the live `/api/ops/merch` endpoint returns 500. The storefront backend flag is unset, so the existing webhook routed physical payments exclusively to Shopify draft creation and never persisted them to Ops. The Shopify Admin token exchange currently returns HTTP 400. No refunds or disputes were present on these four payments at the time of the audit.
+Initial production diagnosis: Stripe contains four paid physical website Checkout Sessions across the full 55 completed-session history. The `merch_orders` table was absent; the live `/api/ops/merch` endpoint returned 500. The storefront backend flag is unset, so the existing webhook routed physical payments exclusively to Shopify draft creation and never persisted them to Ops. The Shopify Admin token exchange returned HTTP 400 during diagnosis. No refunds or disputes were present on these four payments at the time of the audit.
 
 ## Changes
 
@@ -12,7 +12,7 @@ Production diagnosis: Stripe contains four paid physical website Checkout Sessio
 
 ## Activation (required before production code deployment)
 
-1. Run `scripts/merch-schema-2026-09-14.sql` once in the existing Supabase project, followed by `scripts/merch-shipping-2026-09-22.sql`. Do not run the full `supabase-schema.sql`. The local database was confirmed to have none of the merch tables. A combined copy including all four recovered order payloads (customer data; never commit it) is saved in `~/Downloads/Daisy-Chain-Order-Recovery-2026-09-22/setup-ops-orders.sql`.
+1. Run `scripts/merch-schema-2026-09-14.sql` once in the existing Supabase project, followed by `scripts/merch-shipping-2026-09-22.sql`. Do not run the full `supabase-schema.sql`. The production order table was confirmed missing before setup. A combined copy including all four recovered order payloads (customer data; never commit it) is saved in `~/Downloads/Daisy-Chain-Order-Recovery-2026-09-22/setup-ops-orders.sql`.
 2. If using the individual schema files rather than the combined recovery SQL, run `node --env-file=/path/to/production.env --import tsx scripts/merch-reconcile.ts --apply`. Then run reconciliation again: imported should be zero and all four orders must remain present with the same fulfillment state.
 3. Verify the authenticated production API lists all four physical orders with items and addresses. Recovery files with customer data live outside Git under `~/Downloads/Daisy-Chain-Order-Recovery-2026-09-22/`.
 4. Deploy through dev → PR → main. Keep MERCH_BACKEND unset: this repair does not activate the unfinished inventory/catalog migration.
@@ -22,4 +22,8 @@ Production diagnosis: Stripe contains four paid physical website Checkout Sessio
 
 23 automated tests include actual signed webhook handling with the backend flag unset, failed-write retries, duplicate deliveries, legacy address recovery, shipping without tracking and reversal, inventory/refund protections and access control. Production webpack build passes. Browser checks exercise the real built dashboard against isolated fixture API responses; they do not certify live database integration.
 
-Database migration/import and live deployment remain pending until SQL administration access is supplied or the migration is run. Existing local service credentials cannot execute DDL. Do not describe the backlog as imported until the production audit passes.
+## Live recovery checkpoint
+
+PD ran the combined setup/recovery SQL in the production Supabase SQL Editor on September 22. Verified all four orders, item quantities and shipping addresses through the database and the authenticated production API (HTTP 200). Reconciliation then scanned all 55 completed sessions and found four physical orders, zero missing, zero newly imported, and zero failures. All four remain unshipped with the Pirate Ship reconciliation note; no shipping status was inferred.
+
+Code deployment is prepared in PR #24. GitHub requires one approving review on main; administrator override needs PD's authorization. Until the PR merges, the existing fulfillment dropdown is available with the migrated optional-tracking behavior, but the new buttons and hourly reconciliation are only on dev.
