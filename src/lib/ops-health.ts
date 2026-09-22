@@ -207,7 +207,7 @@ export async function runHealthChecks(): Promise<OpsHealth> {
       const { error, count } = await createAdminClient().from("merch_orders")
         .select("id", { count: "exact", head: true }).eq("livemode", true)
         .abortSignal(AbortSignal.timeout(TIMEOUT_MS));
-      if (error) throw new Error("Physical order storage unavailable — paid orders cannot appear in Ops");
+      if (error || count === null) throw new Error("Physical order storage unavailable — paid orders cannot appear in Ops");
       return `${count} physical orders recorded`;
     }),
 
