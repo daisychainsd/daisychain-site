@@ -114,7 +114,7 @@ node --env-file=/path/to/production.env --import tsx scripts/merch-reconcile.ts 
 
 The September 14 merch schema and September 22 optional-tracking migration are already applied in production. Do not rerun the create-table migration or the full `supabase-schema.sql`. The product-image storage migration, catalog import and opening counts are separate remaining work.
 
-The optional `--output=/private/path` writes recovery JSON and a Pirate Ship CSV with customer addresses. Keep them outside Git and reconcile shipping/payment status before using them. Recovery CSV references differ from final Ops order numbers. These commands cover physical **website Stripe Checkout** orders, not independent historical Shopify/Bandcamp/booth sales.
+The optional `--output=/private/path` writes recovery JSON and a Pirate Ship CSV with customer addresses. Keep them outside Git and reconcile shipping/payment status before using them. Recovery CSV references differ from final Ops order numbers. These commands cover physical **website Stripe Checkout** orders, not independent Shopify-native or booth sales. Bandcamp physical orders use the separate reconciliation below.
 
 For daily shipping use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) and the [team fulfillment SOP](https://github.com/daisychainsd/daisychain-ops/blob/main/SOP-merch-fulfillment.md).
 
@@ -126,3 +126,21 @@ Disputes are deliberately not auto-released to shipping. After Stripe shows `won
 - `merch_orders.payment_status`: set the same verified payment state (`paid` when there is no remaining refund/block). Keep an unshipped order on hold and add a note with the dispute ID, outcome and verification date; preserve an already-shipped order's actual shipping state.
 
 Resetting only the order leaves the old disputed payment block behind and can recreate the dispute hold during a later refund. Run reconciliation again, verify the state remains correct, then explicitly release an eligible held order through Ops. Never clear an open/lost dispute or assume a won dispute means the parcel should ship.
+
+
+## Bandcamp physical orders
+
+The physical-only source is Bandcamp `merchorders/4/get_orders`, proxied through `dc-email-api` at `GET /api/internal/bandcamp-merch` using the existing `DC_EMAIL_API_INTERNAL_SECRET`. It reuses that service's Bandcamp OAuth cache; no Bandcamp credentials are copied into this site. Digital sales and the mailing-list cursor are not involved.
+
+`GET /api/cron/bandcamp-orders` runs hourly at `25 * * * *`, protected by `CRON_SECRET`, independently of Stripe reconciliation. The feed reads all history including shipped/refunded orders; v4 reports failed payments correctly. One Ops order groups items by Bandcamp band ID + payment ID; unique source keys and a transactional RPC make replays idempotent. Item amounts use captured line totals, including uneven cent division across quantity. Currency support is currently USD; other currencies fail visibly for developer reconciliation.
+
+```sh
+node --env-file=/path/to/production.env --import tsx scripts/bandcamp-reconcile.ts
+node --env-file=/path/to/production.env --import tsx scripts/bandcamp-reconcile.ts --apply
+```
+
+Read-only audit exits nonzero for missing orders/errors. `--apply` inserts missing records and refreshes payment/source metadata without changing manual shipping state, tracking, notes or inventory. Initial imports carry Bandcamp ship dates; later Bandcamp shipping changes update untouched orders, while explicit manual Ops status changes take priority; partial shipments or suspicious totals/addresses start On hold. Pending/failed/refunded orders cannot ship or export. A later refund holds an unshipped order; a shipped order retains its shipment history. Manual Ops shipping changes do not update Bandcamp or send customer email. If staff also mark shipped in Bandcamp, use its own interface and notification settings.
+
+Changed purchased items, recipient/address or amounts set `source_data.review_needed`, block fulfillment and return a reconciliation failure while retaining the original snapshot and applying any refund status. Ops shows **Review updated Bandcamp details** with the incoming snapshot. PD compares it with the saved order and any existing Pirate Ship label, adds a review note and accepts the update. The RPC verifies that the reviewed snapshot is still current and replaces it atomically. Unshipped orders remain On hold until explicitly released. Never clear a payment block or discard an item merely to make export work. Cron failures alert PD and return 503; successful syncs send no email.
+
+Apply `scripts/merch-bandcamp-2026-09-22.sql` to the existing merch schema before deployment. It is rerunnable, adds explicit source columns, allows null Stripe IDs for Bandcamp, and preserves service-role-only access. Do not rerun the older create-table migration. [Bandcamp deployment record](BANDCAMP-ORDERS-2026-09-22.md) tracks actual activation and the initial eight-order import.

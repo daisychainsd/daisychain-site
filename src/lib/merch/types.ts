@@ -65,12 +65,18 @@ export interface OrderItem {
   sku: string;
   quantity: number;
   unit_price_cents: number;
+  line_total_cents?: number;
 }
 
 export interface MerchOrder {
   id: string;
   order_number: number;
-  stripe_session_id: string;
+  stripe_session_id: string | null;
+  source?: "website" | "bandcamp";
+  source_order_id?: string | null;
+  source_data?: { payment_id?: number; sale_item_ids?: number[]; ship_dates?: (string | null)[]; payment_states?: string[]; review_needed?: boolean;
+    pending?: Pick<MerchOrder, "customer_name" | "email" | "phone" | "shipping_address" | "items" | "total_cents" | "currency"> };
+  fulfillment_manually_updated?: boolean;
   stripe_payment_intent_id: string | null;
   livemode: boolean;
   email: string;
@@ -91,7 +97,7 @@ export interface MerchOrder {
   discount_cents: number;
   tax_cents: number;
   total_cents: number;
-  payment_status: "paid" | "partially_refunded" | "refunded" | "disputed";
+  payment_status: "paid" | "partially_refunded" | "refunded" | "disputed" | "pending" | "failed";
   fulfillment_status: "new" | "exported" | "shipped" | "on_hold";
   inventory_issue: boolean;
   exported_at: string | null;

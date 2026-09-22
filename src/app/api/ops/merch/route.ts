@@ -9,10 +9,12 @@ export async function GET(req: Request) {
     const params = new URL(req.url).searchParams;
     const status = params.get("status") ?? "new";
     const page = Number(params.get("page") ?? 0);
+    const source = params.get("source") ?? "all";
+    if (!["all", "website", "bandcamp"].includes(source)) throw new OpsRequestError("Invalid source");
     if (!["new", "unshipped", "exported", "shipped", "on_hold", "all"].includes(status) || !Number.isInteger(page) || page < 0 || page > 10000) throw new OpsRequestError("Invalid filter");
     const db = createAdminClient();
     const [orders, products, ledger, count] = await Promise.all([
-      listOrders(status, params.get("test") === "true", page), getCatalog(true),
+      listOrders(status, params.get("test") === "true", page, source), getCatalog(true),
       db.from("merch_inventory_adjustments").select("*").order("created_at", { ascending: false }).limit(50),
       db.from("merch_orders").select("id", { count: "exact", head: true }).eq("livemode", true).eq("fulfillment_status", "new"),
     ]);

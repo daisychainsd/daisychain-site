@@ -7,11 +7,13 @@ The public website, music store, and internal Ops dashboard for Daisy Chain Reco
 - Physical orders and shipping: [Merch Ops](https://www.daisychainsd.com/ops/merch) — Ops password required
 - Preview: [dev.daisychainsd.com](https://dev.daisychainsd.com)
 
-## Physical website orders
+## Physical orders: website and Bandcamp
 
 Stripe records the payment; Supabase stores the physical order and its fulfillment state; Pirate Ship creates labels. The September 22 recovery restored four paid physical website orders, with shipping history left unverified for manual reconciliation. See [the incident and deployment checkpoint](ORDER-RECOVERY-2026-09-22.md) for the exact live status of PR #24.
 
 The recovery implementation records physical orders independently of the storefront catalog flag, retries failed writes, and reconciles Stripe history hourly. Merch Ops opens on All, with Unshipped and Shipped filters, manual shipping controls, optional tracking, and CSV export. Check older orders against Pirate Ship before shipping. Downloading a CSV marks Exported, not Shipped. Neither a manual status change nor reconciliation emails customers.
+
+Bandcamp physical orders use a separate merchandise-only feed through `dc-email-api`, reconciled hourly into the same queue. Use Source → Bandcamp to find them; digital song/album sales are excluded. Bandcamp shipping status is copied on first import; later syncs preserve manual Ops fulfillment, tracking and notes. Shipping recorded later in Bandcamp updates orders whose fulfillment has not been manually changed in Ops. See [Bandcamp setup and live verification](BANDCAMP-ORDERS-2026-09-22.md).
 
 Shopify still supplies the storefront catalog. `MERCH_BACKEND` is unset; the Supabase product/image import and opening inventory count remain unfinished. Product and inventory edits in Ops do not change the Shopify-backed storefront. Do not enable the flag or cancel Shopify as part of order recovery.
 
