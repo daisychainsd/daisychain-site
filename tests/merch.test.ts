@@ -331,9 +331,18 @@ test("resolved disputes do not recreate holds while open/lost disputes remain bl
   assert.equal(currentPaymentBlock(charge, []), "disputed");
   assert.equal(currentPaymentBlock({ ...charge, amount_refunded: 500, refunded: true }, [{ status: "won" }]), "refunded");
   await processMerchEvent(event(), dependencies);
+  await dependencies.block("pi_fixture", "disputed");
   const deps = reconciliationFixture([session()]); deps.paymentBlock = async () => currentPaymentBlock(charge, [{ status: "won" }]);
   await reconcilePhysicalOrders(true, deps);
+  assert.equal((await orders())[0].payment_status, "disputed", "A won dispute must not automatically release shipping");
+  // The documented admin procedure reconciles both records after verifying Stripe.
+  await db.exec("begin; delete from merch_payment_blocks where payment_intent_id='pi_fixture'; update merch_orders set payment_status='paid' where stripe_payment_intent_id='pi_fixture'; commit;");
+  await reconcilePhysicalOrders(true, deps);
   assert.equal((await orders())[0].payment_status, "paid");
+  assert.equal((await orders())[0].fulfillment_status, "on_hold");
+  deps.paymentBlock = async () => "partially_refunded";
+  await reconcilePhysicalOrders(true, deps);
+  assert.equal((await orders())[0].payment_status, "partially_refunded", "The old disputed block must not return");
 });
 
 test("live physical refunds alert staff; test refunds do not send alerts", async () => {

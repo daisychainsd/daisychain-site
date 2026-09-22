@@ -31,7 +31,7 @@ Initial result: seven confirmed findings (reconciliation insert race, missing ph
 
 ## Follow-up verdict
 
-Pending the third Claude review. Do not treat the initial findings below as unresolved after reading the disposition and follow-up.
+**Claude verdict: SHIP. No remaining P1/P2 findings.** The follow-up confirmed both blocking fixes and traced the SQL concurrency paths. Won/closed disputes deliberately remain held until a developer reconciles both payment tables; the procedure is in OPERATIONS.md and the test now covers a previously blocked order, both-table reset, rerun and subsequent partial refund. Other residuals are low-priority operational limits: full-history cost at larger volume, a conservative note on fresh cron-recovered orders, and a possible missing recovery note if annotation fails after insertion. The paid order itself remains durable.
 
 ## Original standards review
 
@@ -127,3 +127,58 @@ Missing verification before merge:
 2. After deploy, trigger `/api/cron/merch-reconcile` once manually via `www.daisychainsd.com` with the secret and confirm `imported: 0`, `failures: []`, and that no existing order's `notes` changed.
 3. Place one test-mode physical purchase on the dev preview and confirm a `livemode=false` row appears in Ops and the success page behaviour is acceptable.
 4. Add the reconciliation unit test described in item 7.
+
+## Original Claude follow-up
+
+**Conclusion: ship.** Both blocking findings from the first review are fixed in the working tree, the concurrency logic holds under the scenarios I traced, and the residuals are P3.
+
+## Initial findings, status
+
+**Adversarial 1 / Standards C4, R1: reconciliation ignored `created` and raced the webhook.** Resolved. `src/lib/merch/webhook.ts:28-33` returns `{created}` and throws if the RPC returns no boolean. `src/lib/merch/reconcile.ts:75-80` skips counting and annotation unless `created` is true. The race test at `tests/merch.test.ts:292-299` inserts via the webhook inside `find()` and asserts no import, no note, one row, stock decremented once. Residual: a cron-first import of a fresh order that the webhook 503'd still gets the "check Pirate Ship" note. The webhook retry still sends the confirmation, because `record` returns `created:false` and the route continues into `notifyMerchEvent`. Cosmetic.
+
+**Adversarial 2: physical refunds silent.** Resolved. `src/lib/merch/notifications.ts:14-16` alerts on live `charge.refunded` keyed by `event.id`, distinguishing full and partial. Test at `tests/merch.test.ts:339-346`.
+
+**Adversarial 3: hourly cron makes a won dispute permanently unshippable.** Partially resolved. `currentPaymentBlock` (`reconcile.ts:19-23`) lists disputes and returns null for `won` / `warning_closed`, so the cron no longer re-holds after a manual reset. Still open: nothing ever lowers `payment_status` from `disputed`. `block_merch_payment` only escalates (`supabase-schema.sql:313-316`), and `update_merch_order` rejects any non-hold status for a disputed row (`:379`). The test at `tests/merch.test.ts:325-337` asserts `paid` only because the order was never blocked in the first place. Additionally, a manual SQL reset of `merch_orders.payment_status` leaves `merch_payment_blocks` at `disputed`, so any later partial refund re-escalates to `disputed` through the conflict rule. Document "won disputes need a SQL reset of both tables" or accept it.
+
+**Adversarial 4: mark-unshipped re-arms export.** Resolved by design. `MerchDashboard.tsx:139` sends `on_hold` when `exported_at` is set, with explicit copy at `:142`. From on hold, staff must consciously choose Unshipped before Export works again. Acceptable.
+
+**Adversarial 5 / Standards C1: canonical schema drift.** Resolved. `supabase-schema.sql:371-397` matches `scripts/merch-shipping-2026-09-22.sql`, and `tests/merch.test.ts:362-367` pins the two bodies equal.
+
+**Adversarial 6 / Standards C2: success page never shows saved.** Resolved. `success/page.tsx:13` checks `merch_orders` for every paid physical session.
+
+**Adversarial 7 / Standards C4: no reconciliation tests.** Resolved. `ReconciliationDependencies` is injected (`reconcile.ts:9-17`), cron logic is extracted to `reconcile-cron.ts` with injected `run`/`alert`. Tests cover pagination past 100, paid-only filtering, replay safety, the webhook race, refund holds preserving a staff release, partial failure isolation, dry-run never writing, and cron auth/503/fingerprint.
+
+**Standards C3: doc drift.** Resolved for the operative sections. `OPERATIONS.md:27,39,49,83`, `CLAUDE.md:161-175,772`, `MERCH-ROLLOUT.md:43` reflect the current path and the hourly cron. Remaining "draft order" mentions are inside dated session notes flagged as historical.
+
+**Standards C5: recovery exports unignored.** Resolved. `.gitignore:52-55` ignores both output filenames globally plus `setup-ops-orders.sql`.
+
+**Risks R2 (full history scan hourly), R3 (unverifiable combined SQL grant), R4 (daily alert dedupe).** R4 resolved via fingerprint at `reconcile-cron.ts:20-22`; the test asserts distinct keys for distinct failures. R2 and R3 unchanged and acceptable.
+
+## Concurrency and state verification
+
+I traced these paths against the SQL rather than the tests:
+
+- **Webhook inserts between `find()` and `record()`.** `record_merch_order` takes an advisory lock on the intent hash, re-selects by session id, and returns `created:false`. Cron skips. Correct.
+- **Cron calls `block` before `record` on a missing refunded order.** `block_merch_payment` upserts `merch_payment_blocks` under the same intent lock; `record_merch_order` reads that table at `:250` and inserts as `on_hold`. Correct, and covered at `tests/merch.test.ts:301-311`.
+- **Staff released a partial refund.** Stored and Stripe severities are equal, so `severity.indexOf(status) > severity.indexOf(existing.payment_status)` is false and no re-hold happens. A later full refund escalates. Correct.
+- **Shipped order refunded later.** `block_merch_payment:318` keeps `shipped`. Correct.
+- **Two cron runs overlapping, or script `--apply` during cron.** Both `record` calls serialize on the lock; only one gets `created:true`. Correct.
+- **`annotate` fails after `record` succeeded.** Session lands in `failures`, cron 503s and alerts, order exists without the note; next run sees it as existing and never annotates. Harmless, but the order loses its "verify Pirate Ship" flag. P3.
+- **Annotate only targets `fulfillment_status = 'new'`.** Recovered orders that land `on_hold` get no note. They already require review, so acceptable.
+
+## New issues
+
+No P1 or P2 found. Two P3 observations:
+
+- **Alert fingerprint hashes the full failure detail.** If a transient error message varies per run, each hour produces a new email. Stripe and Supabase error strings are stable in practice, so this is low risk.
+- **`stripe.disputes.list` runs per disputed charge on every hourly pass.** Trivial at current volume.
+
+## Verified clean
+
+Webhook ordering (physical before the `processed_stripe_events` claim, 503 on failed write) at `route.ts:64-89`. `physicalIntent` still gates refund handling so digital refunds fall through to the old handler. Ops order route still requires Basic auth plus same-origin and passes status through to the SQL validator. Alert bodies contain session ids and error strings only, no customer data. Cron registered at `vercel.json:16-19`.
+
+## Before merge
+
+1. Confirm in Stripe that the production endpoint subscribes to `charge.refunded` and `charge.dispute.created`.
+2. After deploy, trigger `/api/cron/merch-reconcile` once via `www.daisychainsd.com` and confirm `imported: 0`, `failures: []`, and unchanged notes on the four live orders.
+3. Decide and document the won-dispute reset procedure from finding 3.

@@ -115,3 +115,12 @@ The September 14 merch schema and September 22 optional-tracking migration are a
 The optional `--output=/private/path` writes recovery JSON and a Pirate Ship CSV with customer addresses. Keep them outside Git and reconcile shipping/payment status before using them. Recovery CSV references differ from final Ops order numbers. These commands cover physical **website Stripe Checkout** orders, not independent historical Shopify/Bandcamp/booth sales.
 
 For daily shipping use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) and the [team fulfillment SOP](https://github.com/daisychainsd/daisychain-ops/blob/main/SOP-merch-fulfillment.md).
+
+## Won or closed physical disputes
+
+Disputes are deliberately not auto-released to shipping. After Stripe shows `won` or `warning_closed`, PD/developer must verify the current charge and any refunds, match the payment-intent ID to the order, and reconcile **both** stored records in one database transaction:
+
+- `merch_payment_blocks`: remove that intent's block if fully paid, or replace its status with the verified `partially_refunded` / `refunded` state.
+- `merch_orders.payment_status`: set the same verified payment state (`paid` when there is no remaining refund/block). Keep an unshipped order on hold and add a note with the dispute ID, outcome and verification date; preserve an already-shipped order's actual shipping state.
+
+Resetting only the order leaves the old disputed payment block behind and can recreate the dispute hold during a later refund. Run reconciliation again, verify the state remains correct, then explicitly release an eligible held order through Ops. Never clear an open/lost dispute or assume a won dispute means the parcel should ship.
