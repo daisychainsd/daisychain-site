@@ -27,7 +27,7 @@ Initial result: seven confirmed findings (reconciliation insert race, missing ph
 
 ## Verification
 
-31 automated tests pass; TypeScript and scoped lint pass (existing warnings only); production webpack build passes. Browser checks use isolated responses, not real shipment mutations. Live database/API verification confirmed the four recovered orders. Full-history scan cost is acceptable for the verified 55 completed sessions/four physical orders; it must be revisited as volume grows. No shortened time window was added, because that would silently exclude backlog.
+31 automated tests pass; TypeScript and scoped lint pass (existing warnings only); production webpack build passes. Browser checks use isolated responses, not real shipment mutations. Live database/API verification confirmed the four recovered orders. After PR #24 deployed, the real scheduled reconciliation returned HTTP 200 at 19:15:34 UTC, preserved all four shipping states/notes, and a fresh audit found no missing orders. The anonymous-role RPC check returned 42501 permission denied for the shipping function, resolving the original combined-SQL privilege-verification concern. Full-history scan cost is acceptable for the verified 55 completed sessions/four physical orders; it must be revisited as volume grows. No shortened time window was added, because that would silently exclude backlog.
 
 ## Follow-up verdict
 
