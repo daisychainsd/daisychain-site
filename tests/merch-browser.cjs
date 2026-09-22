@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Standalone optional Node browser harness. */
 // Run against the isolated local server documented in tests/MERCH-BROWSER.md.
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const origin = process.env.MERCH_TEST_ORIGIN || 'http://127.0.0.1:3105';
 const unknownOutcome = process.argv.includes('--unknown-outcome');
 const assert = require('node:assert/strict');
 (async () => {
@@ -12,15 +13,20 @@ const assert = require('node:assert/strict');
   let adjustment; const adjustmentKeys=[]; let failNextLoad=false;
   await page.route('**/*', async route=>{
     const req=route.request(); const url=new URL(req.url());
-    if(url.origin!=='http://127.0.0.1:3105') return route.abort();
+    if(url.origin!==origin) return route.abort();
     if(url.pathname==='/api/ops/merch' && failNextLoad) { failNextLoad=false; return route.fulfill({status:503,json:{error:'Simulated refresh failure'}}); }
     if(url.pathname==='/api/ops/merch') return route.fulfill({json:{orders:[order],products:[product],adjustments:[],newOrders:1}});
+    if(url.pathname==='/api/ops/merch/order') { const body=req.postDataJSON(); assert.equal(body.tracking,''); order.fulfillment_status=body.status; return route.fulfill({json:{ok:true}}); }
     if(url.pathname==='/api/ops/merch/inventory') {adjustment=req.postDataJSON(); adjustmentKeys.push(adjustment.requestId); if(adjustmentKeys.length===1) { if(unknownOutcome) return route.abort(); failNextLoad=true; } return route.fulfill({json:{stock:9}});}
     if(url.pathname==='/api/ops/merch/export') return route.fulfill({contentType:'text/csv',body:'Order Number,Name\r\nDC-00001,Fixture Person\r\n'});
     return route.continue();
   });
-  await page.goto('http://127.0.0.1:3105/ops/merch',{waitUntil:'networkidle'});
+  await page.goto(`${origin}/ops/merch`,{waitUntil:'networkidle'});
   await page.getByText('DC-00001',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Mark shipped',exact:true}).click();
+  await page.getByRole('button',{name:'Mark unshipped',exact:true}).click();
+  await page.getByRole('button',{name:'Mark shipped',exact:true}).waitFor();
+  assert.equal(order.fulfillment_status,'new');
   await page.screenshot({path:'/private/tmp/daisy-merch-desktop.png',fullPage:true});
   await page.getByRole('button',{name:'Select eligible'}).click();
   const download=page.waitForEvent('download'); await page.getByRole('button',{name:'Export CSV (1)',exact:true}).click(); await download;

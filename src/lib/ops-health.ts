@@ -118,7 +118,7 @@ export async function runHealthChecks(): Promise<OpsHealth> {
   let email: EmailApiStatus | null = null;
   let orders: OrderRow[] = [];
 
-  const checkNames = ["dc-email-api", "Stripe", "Supabase", "Sanity", usesMerchBackend() ? "Merch" : "Shopify"];
+  const checkNames = ["dc-email-api", "Stripe", "Supabase", "Sanity", "Physical orders", usesMerchBackend() ? "Merch" : "Shopify"];
 
   const settled = await Promise.allSettled([
     timed("dc-email-api", async () => {
@@ -201,6 +201,14 @@ export async function runHealthChecks(): Promise<OpsHealth> {
         { signal: AbortSignal.timeout(TIMEOUT_MS) }
       );
       return `${n} releases`;
+    }),
+
+    timed("Physical orders", async () => {
+      const { error, count } = await createAdminClient().from("merch_orders")
+        .select("id", { count: "exact", head: true }).eq("livemode", true)
+        .abortSignal(AbortSignal.timeout(TIMEOUT_MS));
+      if (error) throw new Error("Physical order storage unavailable — paid orders cannot appear in Ops");
+      return `${count} physical orders recorded`;
     }),
 
     timed(usesMerchBackend() ? "Merch" : "Shopify", async () => {

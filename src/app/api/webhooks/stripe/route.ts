@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createDraftOrder } from "@/lib/shopify-admin";
 import { sendDownloadEmail, sendOrderConfirmationEmail, sendPurchaseFailureAlert } from "@/lib/email";
 import { generateDownloadToken } from "@/lib/download-tokens";
 import { client } from "@/sanity/client";
 import type Stripe from "stripe";
-import { usesMerchBackend } from "@/lib/merch/config";
 import { processMerchEvent } from "@/lib/merch/webhook";
 import { alertMerchIssue, confirmMerchOrder } from "@/lib/merch/email";
 import { notifyMerchEvent } from "@/lib/merch/notifications";
@@ -63,11 +61,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  // New physical orders use session-level transactional idempotency. This must
+  // All physical orders use session-level transactional idempotency. This must
   // run BEFORE the old event claim, otherwise a failed write cannot be retried.
-  const isNewMerchSession = (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") &&
-    (event.data.object as Stripe.Checkout.Session).metadata?.fulfillment_backend === "supabase";
-  if (usesMerchBackend() || isNewMerchSession || event.type === "charge.refunded" || event.type === "charge.dispute.created") {
+  const isPhysicalSession = (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") &&
+    (event.data.object as Stripe.Checkout.Session).metadata?.type === "physical";
+  if (isPhysicalSession || event.type === "charge.refunded" || event.type === "charge.dispute.created") {
     try {
       if (await processMerchEvent(event)) {
         await notifyMerchEvent(event, { confirm: confirmMerchOrder, alert: alertMerchIssue });
@@ -129,9 +127,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true, pending: true });
       }
 
-      if (purchaseType === "physical") {
-        await handlePhysicalOrder(session);
-      } else if (purchaseType === "cart") {
+      if (purchaseType === "cart") {
         await handleCartPurchase(session);
       } else {
         await handleDigitalPurchase(session);
@@ -140,9 +136,7 @@ export async function POST(req: NextRequest) {
       // Delayed-notification method cleared — now fulfil.
       const session = event.data.object as Stripe.Checkout.Session;
       const purchaseType = session.metadata?.type;
-      if (purchaseType === "physical") {
-        await handlePhysicalOrder(session);
-      } else if (purchaseType === "cart") {
+      if (purchaseType === "cart") {
         await handleCartPurchase(session);
       } else {
         await handleDigitalPurchase(session);
@@ -267,75 +261,6 @@ async function handleRefundOrDispute(event: Stripe.Event) {
     sessionId: revoked.join(", ") || paymentIntent,
     error: `Charge ${reason}. Access removed for ${revoked.length} session(s). Verify in Stripe + Supabase.`,
   });
-}
-
-async function handlePhysicalOrder(session: Stripe.Checkout.Session) {
-  const variantsRaw = session.metadata?.variants;
-  if (!variantsRaw) {
-    console.error("No variants in physical order metadata");
-    return;
-  }
-
-  let variants: { vid: string; qty: number }[];
-  try {
-    variants = JSON.parse(variantsRaw);
-  } catch {
-    console.error("Failed to parse variants metadata:", variantsRaw);
-    return;
-  }
-
-  const shippingInfo = session.collected_information?.shipping_details;
-  const shipping = shippingInfo?.address;
-  const name = shippingInfo?.name || session.customer_details?.name;
-
-  try {
-    const draftOrder = await createDraftOrder(
-      {
-        name: name || undefined,
-        line1: shipping?.line1 || undefined,
-        line2: shipping?.line2 || undefined,
-        city: shipping?.city || undefined,
-        state: shipping?.state || undefined,
-        postal_code: shipping?.postal_code || undefined,
-        country: shipping?.country || undefined,
-      },
-      variants.map((v) => ({ variantId: v.vid, quantity: v.qty })),
-      session.customer_details?.email || undefined,
-    );
-    console.log("Created Shopify draft order:", draftOrder?.name);
-    if (session.customer_details?.email) {
-      await subscribeToBeehiiv(session.customer_details.email, "physical_purchase");
-    }
-  } catch (err) {
-    // Draft order failed but we still send confirmation below
-    console.error("Failed to create Shopify draft order:", err);
-    await sendPurchaseFailureAlert({
-      email: session.customer_details?.email || "unknown",
-      slug: "physical-order",
-      sessionId: session.id,
-      error: `Shopify draft order failed: ${err instanceof Error ? err.message : String(err)}`,
-    });
-  }
-
-  // Send confirmation email for physical orders
-  const email = session.customer_details?.email;
-  if (email) {
-    // Retrieve line items from Stripe for item names
-    let itemNames: { title: string }[] = [];
-    try {
-      const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-      itemNames = lineItems.data.map((li) => ({ title: li.description || "Item" }));
-    } catch {
-      itemNames = [{ title: "Your order" }];
-    }
-    await sendOrderConfirmationEmail({
-      to: email,
-      customerName: session.customer_details?.name || undefined,
-      type: "physical",
-      items: itemNames,
-      totalCents: session.amount_total || 0,
-    });
-  }
 }
 
 async function handleDigitalPurchase(session: Stripe.Checkout.Session) {

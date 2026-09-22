@@ -9,7 +9,7 @@ export async function GET(req: Request) {
     const params = new URL(req.url).searchParams;
     const status = params.get("status") ?? "new";
     const page = Number(params.get("page") ?? 0);
-    if (!["new", "exported", "shipped", "on_hold", "all"].includes(status) || !Number.isInteger(page) || page < 0 || page > 10000) throw new OpsRequestError("Invalid filter");
+    if (!["new", "unshipped", "exported", "shipped", "on_hold", "all"].includes(status) || !Number.isInteger(page) || page < 0 || page > 10000) throw new OpsRequestError("Invalid filter");
     const db = createAdminClient();
     const [orders, products, ledger, count] = await Promise.all([
       listOrders(status, params.get("test") === "true", page), getCatalog(true),

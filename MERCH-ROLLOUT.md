@@ -1,3 +1,7 @@
+# Order recovery update — September 22, 2026
+
+See [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md) for the physical-order incident, required database setup and activation sequence. All physical website payments now use Ops persistence independently of the catalog flag; the database migration must precede deployment. Older shipping history must be reconciled manually against Pirate Ship. Tracking is optional when marking shipped. The original catalog/inventory cutover below remains a separate unfinished project.
+
 # Merch Ops: rollout and daily use
 
 ## Before activation

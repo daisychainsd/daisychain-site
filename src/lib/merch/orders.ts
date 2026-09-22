@@ -12,7 +12,9 @@ export function orderPayload(session: Stripe.Checkout.Session, items: OrderItem[
   if (!items.length || items.some((i) => !Number.isSafeInteger(i.quantity) || i.quantity < 1 ||
     !Number.isSafeInteger(i.unit_price_cents) || i.unit_price_cents < 0 || !i.title)) throw new Error("Invalid order snapshot");
   if (session.currency !== "usd" || items.reduce((sum, i) => sum + i.quantity * i.unit_price_cents, 0) !== session.amount_subtotal) throw new Error("Paid checkout does not match its order snapshot");
-  const shipping = session.collected_information?.shipping_details;
+  // Older Stripe sessions used the top-level shipping_details field.
+  const shipping = session.collected_information?.shipping_details ??
+    (session as Stripe.Checkout.Session & { shipping_details?: Stripe.Checkout.Session.CollectedInformation.ShippingDetails }).shipping_details;
   return {
     stripe_session_id: session.id,
     stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null,
@@ -41,7 +43,8 @@ export async function getOrderBySession(sessionId: string): Promise<MerchOrder |
 export async function listOrders(status = "new", test = false, page = 0): Promise<MerchOrder[]> {
   let query = createAdminClient().from("merch_orders").select("*").eq("livemode", !test)
     .order("created_at", { ascending: false }).range(page * 50, page * 50 + 49);
-  if (status !== "all") query = query.eq("fulfillment_status", status);
+  if (status === "unshipped") query = query.neq("fulfillment_status", "shipped");
+  else if (status !== "all") query = query.eq("fulfillment_status", status);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data as MerchOrder[];

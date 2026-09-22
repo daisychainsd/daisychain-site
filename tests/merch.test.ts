@@ -1,14 +1,16 @@
-import { before, beforeEach, after, test } from "node:test";
+import { before, beforeEach, after, test, mock } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
-import type Stripe from "stripe";
+import Stripe from "stripe";
+import { NextRequest } from "next/server";
+import { POST as stripeWebhookRoute } from "../src/app/api/webhooks/stripe/route";
 import { normalizeCart, priceCart } from "../src/lib/merch/checkout";
 import { pirateShipCsv, canExport } from "../src/lib/merch/csv";
 import { orderPayload } from "../src/lib/merch/orders";
-import { reconcileLegacyItems } from "../src/lib/merch/legacy";
+import { capturedPhysicalItems, reconcileLegacyItems } from "../src/lib/merch/legacy";
 import { notifyMerchEvent } from "../src/lib/merch/notifications";
-import { processMerchEvent, type MerchWebhookDependencies } from "../src/lib/merch/webhook";
+import { processMerchEvent, merchWebhookDependencies, type MerchWebhookDependencies } from "../src/lib/merch/webhook";
 import type { CatalogProduct, MerchOrder, OrderItem } from "../src/lib/merch/types";
 import { POST as exportRoute } from "../src/app/api/ops/merch/export/route";
 import { POST as inventoryRoute } from "../src/app/api/ops/merch/inventory/route";
@@ -37,12 +39,13 @@ async function orders() { return (await db.query<MerchOrder>("select * from merc
 async function stock() { return (await db.query<{ stock: number }>("select stock from merch_variants where id='variant-m'")).rows[0].stock; }
 const dependencies: MerchWebhookDependencies = {
   snapshot: async () => snapshot, legacyItems: async () => snapshot,
-  record: async (payload) => { await rpc("record_merch_order", [JSON.stringify(payload)]); },
+  record: async (payload, deductInventory) => { await rpc("record_merch_order", [JSON.stringify(payload), deductInventory]); },
   block: async (intent, status) => { await rpc("block_merch_payment", [intent, status]); }, physicalIntent: async () => true,
 };
 before(async () => {
   await db.exec("create role anon; create role authenticated; create role service_role bypassrls;");
   await db.exec(readFileSync("scripts/merch-schema-2026-09-14.sql", "utf8"));
+  await db.exec(readFileSync("scripts/merch-shipping-2026-09-22.sql", "utf8"));
 });
 beforeEach(async () => {
   await db.exec("reset role; truncate merch_exports, merch_inventory_adjustments, merch_orders, merch_checkouts, merch_payment_blocks, merch_variants, merch_products restart identity cascade;");
@@ -197,4 +200,65 @@ test("actual Ops routes reject unauthenticated and cross-origin requests before 
   assert.equal((await listRoute(new Request("https://example.invalid/api/ops/merch"))).status, 401);
   delete process.env.OPS_PASSWORD;
   assert.equal((await listRoute(new Request("https://example.invalid/api/ops/merch"))).status, 404);
+});
+
+
+test("manual shipped toggle works without tracking and can be undone", async () => {
+  await processMerchEvent(event(), dependencies);
+  const [o] = await orders();
+  await rpc("update_merch_order", [o.id, "shipped", "", "Checked Pirate Ship", false]);
+  assert.equal((await orders())[0].fulfillment_status, "shipped");
+  assert.ok((await orders())[0].shipped_at);
+  await rpc("update_merch_order", [o.id, "new", "", "Checked Pirate Ship", false]);
+  assert.equal((await orders())[0].shipped_at, null);
+  assert.equal((await orders())[0].fulfillment_status, "new");
+});
+
+
+test("Shopify-era payments enter Ops without catalog mapping or inventory changes", async () => {
+  const line = { quantity: 2, amount_subtotal: 8000, description: "Original product name", price: { product: { name: "Renamed product", description: "L" } } } as Stripe.LineItem;
+  const legacyItems = capturedPhysicalItems([line]);
+  assert.equal(legacyItems[0].title, "Original product name");
+  assert.equal(legacyItems[0].variant_title, "L");
+  assert.equal(legacyItems[0].variant_id, null);
+  const legacy = session({ metadata: { type: "physical", variants: "[]" }, amount_subtotal: 8000, amount_total: 8599 });
+  const deps = { ...dependencies, legacyItems: async () => legacyItems };
+  await processMerchEvent(event(legacy), deps);
+  let [o] = await orders();
+  assert.equal(o.fulfillment_status, "new"); assert.equal(o.inventory_issue, false); assert.equal(await stock(), 5);
+  await rpc("update_merch_order", [o.id, "shipped", "", "Already mailed", false]);
+  await processMerchEvent(event(legacy), deps);
+  [o] = await orders();
+  assert.equal((await orders()).length, 1); assert.equal(o.fulfillment_status, "shipped"); assert.equal(o.notes, "Already mailed");
+});
+
+test("the actual signed webhook records physical orders with MERCH_BACKEND unset, retries failed writes", async () => {
+  const previous = { backend: process.env.MERCH_BACKEND, secret: process.env.STRIPE_WEBHOOK_SECRET, stripe: process.env.STRIPE_SECRET_KEY };
+  delete process.env.MERCH_BACKEND;
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_fixture";
+  process.env.STRIPE_SECRET_KEY = "sk_test_fixture";
+  const legacy = session({ livemode: false, metadata: { type: "physical", variants: "[]" } });
+  const payload = JSON.stringify({ ...event(legacy), livemode: false });
+  const request = () => new NextRequest("https://example.invalid/api/webhooks/stripe", { method: "POST", body: payload,
+    headers: { "stripe-signature": Stripe.webhooks.generateTestHeaderString({ payload, secret: "whsec_fixture" }) } });
+  const itemsMock = mock.method(merchWebhookDependencies, "legacyItems", async () => snapshot);
+  const recordMock = mock.method(merchWebhookDependencies, "record", async () => { throw new Error("Database unavailable"); });
+  try {
+    assert.equal((await stripeWebhookRoute(request())).status, 503);
+    recordMock.mock.mockImplementation(dependencies.record);
+    assert.equal((await stripeWebhookRoute(request())).status, 200);
+    assert.equal((await stripeWebhookRoute(request())).status, 200);
+    assert.equal((await orders()).length, 1);
+  } finally {
+    itemsMock.mock.restore(); recordMock.mock.restore();
+    for (const [key, value] of Object.entries({ MERCH_BACKEND: previous.backend, STRIPE_WEBHOOK_SECRET: previous.secret, STRIPE_SECRET_KEY: previous.stripe })) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
+test("legacy top-level Stripe shipping addresses survive recovery", () => {
+  const current = session();
+  const old = { ...current, collected_information: null, shipping_details: current.collected_information?.shipping_details };
+  assert.deepEqual(orderPayload(old, snapshot).shipping_address, current.collected_information?.shipping_details?.address);
 });
