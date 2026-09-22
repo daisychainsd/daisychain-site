@@ -136,9 +136,10 @@ function OrderCard({ order: o, selected, select, save, busy }: { order: MerchOrd
       <ul className="list-none p-0 m-0 text-sm">{o.items.map((i, index) => <li key={index} className="mb-2"><span className="font-mono text-blue-300">{i.quantity} × </span>{i.title}{i.variant_title !== "Default Title" ? ` / ${i.variant_title}` : ""}{i.sku ? ` [${i.sku}]` : ""}<span className="text-text-secondary"> · {money(i.unit_price_cents, o.currency)}</span></li>)}<li className="text-text-secondary">Shipping {money(o.shipping_cents, o.currency)} · Tax {money(o.tax_cents, o.currency)} · Discount {money(o.discount_cents, o.currency)}</li></ul>
     </div>
     <button className={`${button} mb-4`} disabled={busy || !o.livemode || o.inventory_issue || ["refunded", "disputed"].includes(o.payment_status)}
-      onClick={() => save({ id: o.id, status: o.fulfillment_status === "shipped" ? "new" : "shipped", tracking: o.tracking_number ?? "", notes: o.notes, resolveStock: false })}>
+      onClick={() => save({ id: o.id, status: o.fulfillment_status === "shipped" ? (o.exported_at ? "on_hold" : "new") : "shipped", tracking: o.tracking_number ?? "", notes: o.notes, resolveStock: false })}>
       {o.fulfillment_status === "shipped" ? "Mark unshipped" : "Mark shipped"}
     </button>
+    {o.exported_at && <p className="text-text-secondary text-xs">Already exported: check Pirate Ship before buying another label. Mark unshipped returns this order to On hold for review.</p>}
     {o.shipped_at && <p className="text-text-secondary text-xs">Marked shipped {date(o.shipped_at)} PT</p>}
     <details key={`${o.fulfillment_status}:${o.tracking_number}:${o.notes}`}><summary className="text-blue-300 cursor-pointer text-sm">Fulfillment and notes</summary>
       <form className="grid sm:grid-cols-2 gap-4 mt-4" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); save({ id: o.id, status: f.get("status"), tracking: f.get("tracking"), notes: f.get("notes"), resolveStock: f.get("resolveStock") === "on" }); }}>

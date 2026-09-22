@@ -386,7 +386,7 @@ begin
       raise exception 'Correct missing items or negative stock before releasing this order';
     end if;
   end if;
-  if next_status = 'shipped' and (not row.livemode or length(trim(tracking)) = 0) then raise exception 'A live order and tracking number are required'; end if;
+  if next_status = 'shipped' and not row.livemode then raise exception 'A live order is required'; end if;
   if length(note) > 2000 or length(tracking) > 200 then raise exception 'Note or tracking number too long'; end if;
   update merch_orders set fulfillment_status = next_status,
     tracking_number = nullif(trim(tracking), ''), notes = note,

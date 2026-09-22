@@ -18,7 +18,7 @@ const assert = require('node:assert/strict');
     if(url.pathname==='/api/ops/merch') return route.fulfill({json:{orders:[order],products:[product],adjustments:[],newOrders:1}});
     if(url.pathname==='/api/ops/merch/order') { const body=req.postDataJSON(); assert.equal(body.tracking,''); order.fulfillment_status=body.status; return route.fulfill({json:{ok:true}}); }
     if(url.pathname==='/api/ops/merch/inventory') {adjustment=req.postDataJSON(); adjustmentKeys.push(adjustment.requestId); if(adjustmentKeys.length===1) { if(unknownOutcome) return route.abort(); failNextLoad=true; } return route.fulfill({json:{stock:9}});}
-    if(url.pathname==='/api/ops/merch/export') return route.fulfill({contentType:'text/csv',body:'Order Number,Name\r\nDC-00001,Fixture Person\r\n'});
+    if(url.pathname==='/api/ops/merch/export') { order.fulfillment_status='exported'; order.exported_at='2026-09-22T12:00:00Z'; return route.fulfill({contentType:'text/csv',body:'Order Number,Name\r\nDC-00001,Fixture Person\r\n'}); }
     return route.continue();
   });
   await page.goto(`${origin}/ops/merch`,{waitUntil:'networkidle'});
@@ -30,6 +30,10 @@ const assert = require('node:assert/strict');
   await page.screenshot({path:'/private/tmp/daisy-merch-desktop.png',fullPage:true});
   await page.getByRole('button',{name:'Select eligible'}).click();
   const download=page.waitForEvent('download'); await page.getByRole('button',{name:'Export CSV (1)',exact:true}).click(); await download;
+  await page.getByRole('button',{name:'Mark shipped',exact:true}).click();
+  await page.getByRole('button',{name:'Mark unshipped',exact:true}).click();
+  await page.getByRole('button',{name:'Mark shipped',exact:true}).waitFor();
+  assert.equal(order.fulfillment_status,'on_hold','Previously exported orders must be reviewed before another label');
   await page.getByRole('button',{name:'INVENTORY',exact:true}).click();
   await page.getByLabel('Quantity change').fill('-3'); await page.getByLabel('Reason',{exact:true}).fill('Fixture booth sales');
   if (unknownOutcome) {

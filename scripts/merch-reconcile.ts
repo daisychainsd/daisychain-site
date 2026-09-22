@@ -2,7 +2,7 @@
 // Import missing orders: append --apply. Optional recovery files: --output=/private/path
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { reconcilePhysicalOrders } from "../src/lib/merch/reconcile";
+import { reconcilePhysicalOrders, reconciliationFailed } from "../src/lib/merch/reconcile";
 import { pirateShipCsv } from "../src/lib/merch/csv";
 import type { MerchOrder } from "../src/lib/merch/types";
 
@@ -19,6 +19,6 @@ async function main() {
     console.log(`Recovery files saved to ${resolve(output)}. Shipping status is unverified; check Pirate Ship first.`);
   }
   console.log(JSON.stringify(report, null, 2));
-  if (report.failures.length || (!process.argv.includes("--apply") && report.missing.length)) process.exitCode = 1;
+  if (reconciliationFailed(report, process.argv.includes("--apply"))) process.exitCode = 1;
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

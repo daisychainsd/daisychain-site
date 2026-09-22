@@ -8,7 +8,7 @@ import { capturedPhysicalItems } from "./legacy";
 export interface MerchWebhookDependencies {
   snapshot(id: string, livemode: boolean): Promise<OrderItem[]>;
   legacyItems(session: Stripe.Checkout.Session): Promise<OrderItem[]>;
-  record(payload: ReturnType<typeof orderPayload>, deductInventory: boolean): Promise<void>;
+  record(payload: ReturnType<typeof orderPayload>, deductInventory: boolean): Promise<{ created: boolean }>;
   block(intent: string, status: "partially_refunded" | "refunded" | "disputed"): Promise<void>;
   physicalIntent(intent: string): Promise<boolean>;
 }
@@ -26,8 +26,10 @@ export const merchWebhookDependencies: MerchWebhookDependencies = {
     return capturedPhysicalItems(lines);
   },
   async record(payload, deductInventory) {
-    const { error } = await createAdminClient().rpc("record_merch_order", { payload, deduct_inventory: deductInventory });
+    const { data, error } = await createAdminClient().rpc("record_merch_order", { payload, deduct_inventory: deductInventory });
     if (error) throw new Error(error.message);
+    if (typeof data?.created !== "boolean") throw new Error("Order persistence returned no result");
+    return { created: data.created };
   },
   async block(intent, status) {
     const { error } = await createAdminClient().rpc("block_merch_payment", { intent, new_status: status });

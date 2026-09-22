@@ -20,10 +20,10 @@ Initial production diagnosis: Stripe contains four paid physical website Checkou
 
 ## Validation
 
-23 automated tests include actual signed webhook handling with the backend flag unset, failed-write retries, duplicate deliveries, legacy address recovery, shipping without tracking and reversal, inventory/refund protections and access control. Production webpack build passes. Browser checks exercise the real built dashboard against isolated fixture API responses; they do not certify live database integration.
+31 automated tests include actual signed webhook handling with the backend flag unset, failed-write retries, duplicate deliveries, legacy address recovery, shipping without tracking and reversal, inventory/refund protections and access control. Production webpack build passes. Browser checks exercise the real built dashboard against isolated fixture API responses; they do not certify live database integration.
 
 ## Live recovery checkpoint
 
 PD ran the combined setup/recovery SQL in the production Supabase SQL Editor on September 22. Verified all four orders, item quantities and shipping addresses through the database and the authenticated production API (HTTP 200). Reconciliation then scanned all 55 completed sessions and found four physical orders, zero missing, zero newly imported, and zero failures. All four remain unshipped with the Pirate Ship reconciliation note; no shipping status was inferred.
 
-Code deployment is prepared in PR #24. GitHub requires one approving review on main; administrator override needs PD's authorization. Until the PR merges, the existing fulfillment dropdown is available with the migrated optional-tracking behavior, but the new buttons and hourly reconciliation are only on dev.
+Code deployment is prepared in PR #24. PD requested a Claude adversarial review before completing deployment; its findings and fixes are recorded in [ORDER-RECOVERY-REVIEW-2026-09-22.md](ORDER-RECOVERY-REVIEW-2026-09-22.md). Until the PR merges, the existing fulfillment dropdown is available with the migrated optional-tracking behavior, but the new buttons and hourly reconciliation are only on dev.

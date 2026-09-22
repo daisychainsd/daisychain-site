@@ -7,6 +7,8 @@ import { NextRequest } from "next/server";
 import { POST as stripeWebhookRoute } from "../src/app/api/webhooks/stripe/route";
 import { normalizeCart, priceCart } from "../src/lib/merch/checkout";
 import { pirateShipCsv, canExport } from "../src/lib/merch/csv";
+import { currentPaymentBlock, reconcilePhysicalOrders, reconciliationFailed, type ReconciliationDependencies } from "../src/lib/merch/reconcile";
+import { runReconciliationCron } from "../src/lib/merch/reconcile-cron";
 import { orderPayload } from "../src/lib/merch/orders";
 import { capturedPhysicalItems, reconcileLegacyItems } from "../src/lib/merch/legacy";
 import { notifyMerchEvent } from "../src/lib/merch/notifications";
@@ -39,7 +41,7 @@ async function orders() { return (await db.query<MerchOrder>("select * from merc
 async function stock() { return (await db.query<{ stock: number }>("select stock from merch_variants where id='variant-m'")).rows[0].stock; }
 const dependencies: MerchWebhookDependencies = {
   snapshot: async () => snapshot, legacyItems: async () => snapshot,
-  record: async (payload, deductInventory) => { await rpc("record_merch_order", [JSON.stringify(payload), deductInventory]); },
+  record: async (payload, deductInventory) => await rpc("record_merch_order", [JSON.stringify(payload), deductInventory]) as { created: boolean },
   block: async (intent, status) => { await rpc("block_merch_payment", [intent, status]); }, physicalIntent: async () => true,
 };
 before(async () => {
@@ -261,4 +263,105 @@ test("legacy top-level Stripe shipping addresses survive recovery", () => {
   const current = session();
   const old = { ...current, collected_information: null, shipping_details: current.collected_information?.shipping_details };
   assert.deepEqual(orderPayload(old, snapshot).shipping_address, current.collected_information?.shipping_details?.address);
+});
+
+
+function reconciliationFixture(sessions: Stripe.Checkout.Session[]): ReconciliationDependencies {
+  return {
+    sessions: async function* () { for (const s of sessions) yield s; },
+    items: async () => snapshot,
+    find: async (id) => (await orders()).find(o => o.stripe_session_id === id) ?? null,
+    paymentBlock: async () => null,
+    record: dependencies.record, block: dependencies.block,
+    annotate: async (id) => { await db.query("update merch_orders set notes='Recovered fixture: verify Pirate Ship' where stripe_session_id=$1 and notes='' and fulfillment_status='new'", [id]); },
+  };
+}
+
+test("reconciliation traverses beyond the first page, imports only paid physical orders and replays safely", async () => {
+  const digital = Array.from({ length: 101 }, (_, i) => session({ id: `cs_digital_${i}`, metadata: { type: "cart" } }));
+  const physical = session({ metadata: { type: "physical" } });
+  const deps = reconciliationFixture([...digital, session({ payment_status: "unpaid" }), physical]);
+  const { report } = await reconcilePhysicalOrders(true, deps);
+  assert.equal(report.checked, 103); assert.equal(report.physical, 1); assert.equal(report.imported, 1);
+  const [o] = await orders(); assert.match(o.notes, /Pirate Ship/); assert.equal(await stock(), 5);
+  await rpc("update_merch_order", [o.id, "shipped", "", "Already shipped", false]);
+  assert.equal((await reconcilePhysicalOrders(true, deps)).report.imported, 0);
+  assert.equal((await orders())[0].fulfillment_status, "shipped"); assert.equal((await orders())[0].notes, "Already shipped");
+});
+
+test("webhook winning the reconciliation race is not counted or annotated as an import", async () => {
+  const deps = reconciliationFixture([session()]);
+  deps.find = async () => { await processMerchEvent(event(), dependencies); return null; };
+  deps.annotate = async () => assert.fail("The webhook's order must not be annotated");
+  const { report } = await reconcilePhysicalOrders(true, deps);
+  assert.equal(report.imported, 0); assert.deepEqual(report.failures, []);
+  assert.equal((await orders()).length, 1); assert.equal((await orders())[0].notes, ""); assert.equal(await stock(), 3);
+});
+
+test("reconciliation holds missing refunded orders and preserves an approved partial refund", async () => {
+  const deps = reconciliationFixture([session()]); deps.paymentBlock = async () => "partially_refunded";
+  await reconcilePhysicalOrders(true, deps);
+  const [o] = await orders(); assert.equal(o.fulfillment_status, "on_hold");
+  await rpc("update_merch_order", [o.id, "new", "", "Shipping adjustment reviewed", false]);
+  await reconcilePhysicalOrders(true, deps);
+  assert.equal((await orders())[0].fulfillment_status, "new");
+  deps.paymentBlock = async () => "refunded";
+  await reconcilePhysicalOrders(true, deps);
+  assert.equal((await orders())[0].fulfillment_status, "on_hold"); assert.equal((await orders())[0].payment_status, "refunded");
+});
+
+test("reconciliation reports failures without hiding another paid order and dry-run never writes", async () => {
+  const bad = session({ id: "cs_bad" }); const good = session({ id: "cs_good" });
+  const deps = reconciliationFixture([bad, good]);
+  deps.items = async (s) => { if (s.id === bad.id) throw new Error("Missing Stripe snapshot"); return snapshot; };
+  let result = await reconcilePhysicalOrders(false, deps);
+  assert.equal((await orders()).length, 0); assert.equal(result.report.failures[0].session, "cs_bad");
+  assert.equal(reconciliationFailed(result.report, false), true);
+  result = await reconcilePhysicalOrders(true, deps);
+  assert.equal(result.report.imported, 1); assert.equal(reconciliationFailed(result.report, true), true);
+  assert.equal((await orders())[0].stripe_session_id, "cs_good");
+});
+
+test("resolved disputes do not recreate holds while open/lost disputes remain blocked", async () => {
+  const charge = { disputed: true, amount_refunded: 0, refunded: false };
+  assert.equal(currentPaymentBlock(charge, [{ status: "won" }]), null);
+  assert.equal(currentPaymentBlock(charge, [{ status: "warning_closed" }]), null);
+  assert.equal(currentPaymentBlock(charge, [{ status: "needs_response" }]), "disputed");
+  assert.equal(currentPaymentBlock(charge, [{ status: "lost" }]), "disputed");
+  assert.equal(currentPaymentBlock(charge, []), "disputed");
+  assert.equal(currentPaymentBlock({ ...charge, amount_refunded: 500, refunded: true }, [{ status: "won" }]), "refunded");
+  await processMerchEvent(event(), dependencies);
+  const deps = reconciliationFixture([session()]); deps.paymentBlock = async () => currentPaymentBlock(charge, [{ status: "won" }]);
+  await reconcilePhysicalOrders(true, deps);
+  assert.equal((await orders())[0].payment_status, "paid");
+});
+
+test("live physical refunds alert staff; test refunds do not send alerts", async () => {
+  const alerts: string[] = [];
+  const refund = { id: "evt_refund", type: "charge.refunded", livemode: true, data: { object: { id: "ch_fixture", refunded: true } } } as Stripe.Event;
+  const notify = { confirm: async () => assert.fail("A refund must not send a receipt"), alert: async (_: string, message: string) => { alerts.push(message); } };
+  await notifyMerchEvent(refund, notify);
+  assert.equal(alerts.length, 1); assert.match(alerts[0], /fully refunded/);
+  await notifyMerchEvent({ ...refund, livemode: false }, notify); assert.equal(alerts.length, 1);
+});
+
+test("cron rejects unauthorized requests and returns retryable failures with distinct alerts", async () => {
+  let runs = 0; const keys: string[] = [];
+  const report = { checked: 1, physical: 1, missing: [], imported: 0, failures: [{ session: "cs_failed", error: "Write failed" }] };
+  const deps = { run: async () => { runs++; return { report, recovered: [] }; }, alert: async (key: string, message: string) => { keys.push(key); assert.match(message, /cs_failed/); } };
+  const req = (auth = "") => new Request("https://example.invalid/api/cron/merch-reconcile", { headers: { authorization: auth } });
+  assert.equal((await runReconciliationCron(req(), "secret", deps)).status, 401);
+  assert.equal((await runReconciliationCron(req("Bearer secret"), "", deps)).status, 401); assert.equal(runs, 0);
+  assert.equal((await runReconciliationCron(req("Bearer secret"), "secret", deps)).status, 503);
+  report.failures[0].error = "Different failure";
+  assert.equal((await runReconciliationCron(req("Bearer secret"), "secret", deps)).status, 503); assert.notEqual(keys[0], keys[1]);
+  report.failures = [];
+  assert.equal((await runReconciliationCron(req("Bearer secret"), "secret", deps)).status, 200);
+});
+
+test("fresh-install schema agrees with the optional-tracking migration", () => {
+  const schema = readFileSync("supabase-schema.sql", "utf8");
+  const migration = readFileSync("scripts/merch-shipping-2026-09-22.sql", "utf8");
+  const body = (s: string) => s.slice(s.indexOf("function public.update_merch_order(")).split("$$;")[0];
+  assert.equal(body(schema), body(migration));
 });
