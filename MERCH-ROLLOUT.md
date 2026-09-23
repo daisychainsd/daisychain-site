@@ -8,9 +8,9 @@ The order-recovery implementation records paid website orders directly in Ops, i
 
 ## Daily fulfillment
 
-1. Open [Merch Ops](https://www.daisychainsd.com/ops/merch). All is the default; use Unshipped for new, exported and held orders. The recent-orders panel on the main Ops dashboard is a payment summary, not the fulfillment queue. Refresh explicitly for newer orders.
-2. Read the items, quantities, sizes, address, payment status and notes. For recovered orders, compare with Pirate Ship before shipping. All four recovered orders initially remain unshipped because shipping history was not verified.
-3. Select eligible paid orders and Export CSV. Import it into Pirate Ship, mapping name, email, phone and address columns. Keep ZIP/postal codes as text. Supply package weight/dimensions and international customs details in Pirate Ship.
+1. Open [Merch Ops](https://www.daisychainsd.com/ops/merch). Unshipped is the default, including new, exported and held orders. Use Shipped or All orders for history; source and advanced filters narrow the queue. The recent-orders panel on the main Ops dashboard is a payment summary, not the fulfillment queue. Refresh explicitly for newer orders.
+2. Read the items, quantities, sizes, address, payment status and notes. For recovered orders, compare with Pirate Ship before shipping. The four website orders were initially recovered as unshipped; current status reflects subsequent manual updates.
+3. Select eligible paid orders, then use Export CSV in the selection bar. Import it into Pirate Ship, mapping name, email, phone and address columns. Keep ZIP/postal codes as text. Supply package weight/dimensions and international customs details in Pirate Ship.
 4. After confirming shipment, choose Mark shipped. Tracking is optional. Use Mark unshipped to undo an accidental mark. If a CSV was already exported, the order returns to On hold so its existing Pirate Ship label can be checked before another export. Fulfillment and notes contains the detailed status/tracking/notes form. Manual updates do not email customers or change stock; enable shipment emails in Pirate Ship.
 5. CSV download means Exported, not Shipped. Re-export selected intentionally when replacing a failed/lost CSV. Check Pirate Ship before purchasing another label.
 
@@ -20,7 +20,7 @@ The order-recovery implementation records paid website orders directly in Ops, i
 
 ## Missing order or failed sync
 
-Search the paid physical checkout in Stripe, then compare its session ID with Ops. The signed webhook saves orders immediately; the hourly reconciliation at minute 15 recovers missed sessions. Its scope is physical website Stripe Checkout purchases, not independent Shopify, Bandcamp or booth orders. A green storage check alone is not proof that all Stripe orders are present.
+Search the paid physical checkout in Stripe, then compare its session ID with Ops. The signed webhook saves orders immediately; the hourly reconciliation at minute 15 recovers missed sessions. Its scope is physical website Stripe Checkout purchases, not independent Shopify-native or booth orders. Bandcamp uses its own hourly physical-order reconciliation at minute 25. A green storage check alone is not proof that all Stripe orders are present.
 
 See [OPERATIONS.md](OPERATIONS.md#recover-or-audit-physical-orders) for the read-only audit and `--apply` recovery commands. They paginate completed Stripe history, check payment state during import, and preserve manual fulfillment decisions. Escalate failed reconciliation or retrying webhooks to PD; don't infer shipping status from payment or CSV export.
 
@@ -49,4 +49,4 @@ Resolved disputes are not automatically released to shipping. After verifying a 
 
 ## Bandcamp order extension
 
-Physical Bandcamp merchandise also joins the shipping queue through a separate hourly feed. Digital sales are excluded. Source → Bandcamp identifies these orders; the first import carries its recorded shipped status and later syncs preserve manual Ops decisions. Pending/failed/refunded or partially shipped orders need review before fulfillment. Ops toggles do not write back to Bandcamp. See [Bandcamp setup and verification](BANDCAMP-ORDERS-2026-09-22.md); the catalog migration remains separate.
+Eight physical Bandcamp orders were imported and verified September 22; all retained their recorded shipped status. Physical Bandcamp merchandise joins the shipping queue through a separate hourly feed. Digital sales are excluded. Source → Bandcamp identifies these orders; the first import carries its recorded shipped status and later syncs preserve manual Ops decisions. Pending/failed/refunded or partially shipped orders need review before fulfillment. Ops toggles do not write back to Bandcamp. See [Bandcamp setup and verification](BANDCAMP-ORDERS-2026-09-22.md); the catalog migration remains separate.

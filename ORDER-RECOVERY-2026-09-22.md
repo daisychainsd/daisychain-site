@@ -37,3 +37,10 @@ Verified on `www.daisychainsd.com/ops/merch`: All defaults correctly, Unshipped 
 `CRON_SECRET` was already configured as a sensitive Preview/Production variable; Vercel intentionally exports it as blank. It was not changed or rotated. A blank local `vercel env pull` value is not evidence that a sensitive production secret is absent; inspect Vercel metadata and real scheduler execution instead.
 
 Related documentation is merged in [daisychain-ops PR #1](https://github.com/daisychainsd/daisychain-ops/pull/1), [system map/onboarding PR #1](https://github.com/daisychainsd/daisychainsd/pull/1), and [organization profile PR #1](https://github.com/daisychainsd/.github/pull/1). The new shipping SOP lives in the Ops repository; existing Google Doc SOPs were not rewritten. Shopify remains the catalog, and its replacement/import/opening stock counts remain unfinished.
+
+
+## Subsequent Bandcamp extension
+
+Eight physical Bandcamp orders were also imported and verified on September 22, preserving their Bandcamp shipped dates. The four website orders above were unchanged. [Bandcamp deployment record](BANDCAMP-ORDERS-2026-09-22.md) covers the separate merchandise-only feed, hourly reconciliation, source filter and review controls; digital Bandcamp sales are excluded.
+
+The subsequent [Merch UI refresh](MERCH-UI-2026-09-22.md) changes the default from All to Unshipped. The All-default verification above describes the earlier recovery deployment.
