@@ -48,6 +48,7 @@ before(async () => {
   await db.exec("create role anon; create role authenticated; create role service_role bypassrls;");
   await db.exec(readFileSync("scripts/merch-schema-2026-09-14.sql", "utf8"));
   await db.exec(readFileSync("scripts/merch-shipping-2026-09-22.sql", "utf8"));
+  await db.exec(readFileSync("scripts/merch-bandcamp-2026-09-22.sql", "utf8"));
 });
 beforeEach(async () => {
   await db.exec("reset role; truncate merch_exports, merch_inventory_adjustments, merch_orders, merch_checkouts, merch_payment_blocks, merch_variants, merch_products restart identity cascade;");
@@ -368,9 +369,9 @@ test("cron rejects unauthorized requests and returns retryable failures with dis
   assert.equal((await runReconciliationCron(req("Bearer secret"), "secret", deps)).status, 200);
 });
 
-test("fresh-install schema agrees with the optional-tracking migration", () => {
+test("fresh-install schema agrees with the latest shipping migration", () => {
   const schema = readFileSync("supabase-schema.sql", "utf8");
-  const migration = readFileSync("scripts/merch-shipping-2026-09-22.sql", "utf8");
-  const body = (s: string) => s.slice(s.indexOf("function public.update_merch_order(")).split("$$;")[0];
+  const migration = readFileSync("scripts/merch-bandcamp-2026-09-22.sql", "utf8");
+  const body = (s: string) => s.slice(s.lastIndexOf("function public.update_merch_order(")).split("$$;")[0];
   assert.equal(body(schema), body(migration));
 });

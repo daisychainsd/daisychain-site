@@ -53,3 +53,5 @@ track-artists-migration-preview.json
 recovered-orders.json
 check-pirate-ship-before-shipping.csv
 setup-ops-orders.sql
+setup-bandcamp-orders.sql
+bandcamp-orders.json

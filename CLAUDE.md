@@ -4,6 +4,10 @@
 
 > **⚠ Before you touch UI or visuals, read the "Design System — Brand Rules (NON-NEGOTIABLE)" section below. The [`design-system/`](design-system/) folder at the repo root is the canonical brand — every color, font, radius, and interaction on this site is defined there. The site is an IMPLEMENTATION of the system, not a place to redefine it.**
 
+## Bandcamp physical orders — September 22, 2026
+
+Physical Bandcamp merch (including CDs/vinyl with bundled downloads) joins website orders in `/ops/merch`; standalone digital song/album sales never enter fulfillment. `src/lib/merch/bandcamp.ts` reads an authenticated `dc-email-api` merchandise feed, groups by band/payment ID, validates snapshots and records with `record_bandcamp_order`. `merch_orders.source` distinguishes `website` and `bandcamp`; Bandcamp has null Stripe IDs. Hourly `/api/cron/bandcamp-orders` is independent of Stripe and subscriber sync. First import copies Bandcamp shipping status; subsequent runs preserve explicitly changed manual Ops shipping/notes/tracking while refreshing payment states. Later Bandcamp shipping updates propagate to untouched orders; changed snapshots can be reviewed and accepted in Ops. No customer email, Bandcamp write, or inventory deduction occurs. See [Bandcamp record](BANDCAMP-ORDERS-2026-09-22.md) and [runbook](OPERATIONS.md#bandcamp-physical-orders) for migration, limits and live verification. Earlier session entries below are historical.
+
 ## Branching & Deployment Workflow
 
 **All pushes go to `dev`. Never touch `main` directly. Only merge to `main` when explicitly asked to go live.**

@@ -45,3 +45,8 @@ Unsetting `MERCH_BACKEND` changes new catalog/checkout pricing back to Shopify; 
 Inventory-managed checkout validates stock but does not reserve it. Concurrent purchases can create a visible shortage hold instead of losing a paid order. CSV exports contain at most 100 shipments. Ops shares one password rather than per-person accounts. Product image uploads support JPG/PNG/WebP up to 4 MB in Ops; the direct importer supports 10 MB. Public success pages do not expose customer shipping details.
 
 Resolved disputes are not automatically released to shipping. After verifying a won/closed dispute in Stripe, a developer must reconcile the stored payment block and order payment status; the hourly job will not recreate a block for a resolved dispute.
+
+
+## Bandcamp order extension
+
+Physical Bandcamp merchandise also joins the shipping queue through a separate hourly feed. Digital sales are excluded. Source → Bandcamp identifies these orders; the first import carries its recorded shipped status and later syncs preserve manual Ops decisions. Pending/failed/refunded or partially shipped orders need review before fulfillment. Ops toggles do not write back to Bandcamp. See [Bandcamp setup and verification](BANDCAMP-ORDERS-2026-09-22.md); the catalog migration remains separate.

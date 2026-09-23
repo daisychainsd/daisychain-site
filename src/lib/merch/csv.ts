@@ -24,7 +24,7 @@ export function pirateShipCsv(orders: MerchOrder[]): string {
 export function canExport(order: MerchOrder): boolean {
   const a = order.shipping_address;
   return order.livemode && ["paid", "partially_refunded"].includes(order.payment_status) &&
-    ["new", "exported"].includes(order.fulfillment_status) && !order.inventory_issue &&
+    ["new", "exported"].includes(order.fulfillment_status) && !order.inventory_issue && !order.source_data?.review_needed &&
     !!(order.customer_name && a.line1 && a.city && a.postal_code && a.country &&
       (a.country !== "US" || a.state));
 }

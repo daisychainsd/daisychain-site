@@ -16,6 +16,7 @@ export default function MerchDashboard() {
   const [data, setData] = useState<Data | null>(null);
   const [tab, setTab] = useState("orders");
   const [status, setStatus] = useState("all");
+  const [source, setSource] = useState("all");
   const [test, setTest] = useState(false);
   const [page, setPage] = useState(0);
   const [selection, setSelection] = useState<string[]>([]);
@@ -25,11 +26,11 @@ export default function MerchDashboard() {
   const [editing, setEditing] = useState<CatalogProduct | null>(null);
   const retryKeys = useRef(new Map<string, string>());
   const load = useCallback(async (signal?: AbortSignal) => {
-    const response = await fetch(`/api/ops/merch?status=${status}&test=${test}&page=${page}`, { signal, cache: "no-store" });
+    const response = await fetch(`/api/ops/merch?status=${status}&test=${test}&page=${page}&source=${source}`, { signal, cache: "no-store" });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error ?? "Could not load merch");
     setData(body); setSelection([]);
-  }, [status, test, page]);
+  }, [status, test, page, source]);
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal).catch((e) => { if (!controller.signal.aborted) setError(e.message); });
@@ -78,10 +79,13 @@ export default function MerchDashboard() {
     {message && <p role="status" className="container-organic p-4 text-blue-300">{message}</p>}
     {!data && <p className="text-text-secondary">{error ? "Merch data is unavailable. Refresh once setup is complete." : "Loading merch…"}</p>}
     {data && tab === "orders" && <>
-      <p className="text-text-secondary text-sm">Check older orders against Pirate Ship, then mark shipped or unshipped. Tracking is optional. Exporting a CSV does not mark an order shipped.</p>
+      <p className="text-text-secondary text-sm">Physical website and Bandcamp orders. Check older orders against Pirate Ship, then mark shipped or unshipped. Tracking is optional. Exporting a CSV does not mark an order shipped.</p>
       <div className="container-organic p-5 mb-5 flex flex-wrap items-end gap-4">
         <label className="text-sm">Status<select className={input} value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }}>
           {["all", "unshipped", "shipped", "new", "exported", "on_hold"].map((s) => <option key={s} value={s}>{s === "new" ? "New / unshipped" : s.replace("_", " ")}</option>)}
+        </select></label>
+        <label className="text-sm">Source<select className={input} value={source} onChange={(e) => { setSource(e.target.value); setPage(0); }}>
+          <option value="all">All sources</option><option value="website">Website</option><option value="bandcamp">Bandcamp</option>
         </select></label>
         <label className="flex items-center gap-2 p-3 text-sm"><input type="checkbox" checked={test} onChange={(e) => { setTest(e.target.checked); setPage(0); }} />Test orders</label>
         <button className={button} disabled={busy || !eligible.length} onClick={() => setSelection(eligible.map((o) => o.id))}>Select eligible</button>
@@ -93,7 +97,7 @@ export default function MerchDashboard() {
       {test && <p className="text-blue-300">Test orders do not change inventory and cannot be exported or marked shipped.</p>}
       <div className="space-y-4">{data.orders.map((order) => <OrderCard key={order.id} order={order} selected={selection.includes(order.id)} busy={busy}
         select={() => setSelection((ids) => ids.includes(order.id) ? ids.filter((id) => id !== order.id) : [...ids, order.id])}
-        save={(body) => action("order", body)} />)}</div>
+        save={(body) => action("order", body)} review={(body) => action("bandcamp-review", body)} />)}</div>
       {!data.orders.length && <div className="container-organic p-10 text-text-secondary">No orders in this view.</div>}
       <div className="flex items-center justify-between mt-6"><button className={button} disabled={!page || busy} onClick={() => setPage(page - 1)}>Previous</button><span className="font-mono text-sm">Page {page + 1}</span><button className={button} disabled={data.orders.length < 50 || busy} onClick={() => setPage(page + 1)}>Next</button></div>
     </>}
@@ -122,20 +126,34 @@ export default function MerchDashboard() {
   </div>;
 }
 
-function OrderCard({ order: o, selected, select, save, busy }: { order: MerchOrder; selected: boolean; select: () => void; busy: boolean; save: (body: object) => Promise<boolean> }) {
+function OrderCard({ order: o, selected, select, save, review, busy }: { order: MerchOrder; selected: boolean; select: () => void; busy: boolean; save: (body: object) => Promise<boolean>; review: (body: object) => Promise<boolean> }) {
   const a = o.shipping_address;
   return <article className="container-organic p-5 sm:p-6">
     <div className="flex flex-wrap items-start justify-between gap-4">
-      <label className="flex gap-3 items-center"><input type="checkbox" checked={selected} disabled={!canExport(o) || busy} onChange={select} aria-label={`Select ${orderLabel(o)}`} /><span className="font-mono text-blue-300">{orderLabel(o)}</span><span className="text-text-secondary text-xs">{o.fulfillment_status.replace("_", " ")}</span></label>
+      <label className="flex gap-3 items-center"><input type="checkbox" checked={selected} disabled={!canExport(o) || busy} onChange={select} aria-label={`Select ${orderLabel(o)}`} /><span className="font-mono text-blue-300">{orderLabel(o)}</span><span className="text-text-secondary text-xs">{o.source === "bandcamp" ? "Bandcamp" : "Website"}</span><span className="text-text-secondary text-xs">{o.fulfillment_status.replace("_", " ")}</span></label>
       <span className="font-mono text-sm">{money(o.total_cents, o.currency)} · {o.payment_status.replaceAll("_", " ")}</span>
     </div>
     <p className="font-mono text-text-secondary text-xs mt-3">{date(o.created_at)} PT{o.exported_at ? ` · Exported ${date(o.exported_at)}` : ""}</p>
+    {o.source === "bandcamp" && <p className="font-mono text-text-secondary text-xs">Bandcamp order {o.source_data?.payment_id ?? o.source_order_id?.split(":").at(-1)} · Shipping updates here are saved in Ops.</p>}
+    {o.source_data?.review_needed && <p className="text-red-400 text-sm">Bandcamp changed the purchased items, address or amount. Reconcile those details before shipping.</p>}
     {o.inventory_issue && <p className="text-red-400 text-sm">Inventory needs review. Correct the stock count and explain the resolution before releasing this order.</p>}
     <div className="grid sm:grid-cols-2 gap-5 my-4">
       <div className="text-sm break-words"><strong>{o.customer_name || "Missing recipient name"}</strong><div>{o.email}</div><div>{a.line1 || "Missing shipping address"}</div>{a.line2 && <div>{a.line2}</div>}<div>{[a.city, a.state, a.postal_code].filter(Boolean).join(", ")}</div><div>{a.country} {o.phone}</div></div>
-      <ul className="list-none p-0 m-0 text-sm">{o.items.map((i, index) => <li key={index} className="mb-2"><span className="font-mono text-blue-300">{i.quantity} × </span>{i.title}{i.variant_title !== "Default Title" ? ` / ${i.variant_title}` : ""}{i.sku ? ` [${i.sku}]` : ""}<span className="text-text-secondary"> · {money(i.unit_price_cents, o.currency)}</span></li>)}<li className="text-text-secondary">Shipping {money(o.shipping_cents, o.currency)} · Tax {money(o.tax_cents, o.currency)} · Discount {money(o.discount_cents, o.currency)}</li></ul>
+      <ul className="list-none p-0 m-0 text-sm">{o.items.map((i, index) => <li key={index} className="mb-2"><span className="font-mono text-blue-300">{i.quantity} × </span>{i.title}{i.variant_title !== "Default Title" ? ` / ${i.variant_title}` : ""}{i.sku ? ` [${i.sku}]` : ""}<span className="text-text-secondary"> · {i.line_total_cents !== undefined ? `${money(i.line_total_cents, o.currency)} total` : money(i.unit_price_cents, o.currency)}</span></li>)}<li className="text-text-secondary">Shipping {money(o.shipping_cents, o.currency)} · Tax {money(o.tax_cents, o.currency)} · Discount {money(o.discount_cents, o.currency)}</li></ul>
     </div>
-    <button className={`${button} mb-4`} disabled={busy || !o.livemode || o.inventory_issue || ["refunded", "disputed"].includes(o.payment_status)}
+    {o.source_data?.review_needed && o.source_data.pending && <details className="mb-4">
+      <summary className="text-blue-300 cursor-pointer text-sm">Review updated Bandcamp details</summary>
+      <div className="text-sm my-3"><strong>{o.source_data.pending.customer_name}</strong><p>{o.source_data.pending.email} {o.source_data.pending.phone}</p><p>{Object.values(o.source_data.pending.shipping_address).filter(Boolean).join(", ")}</p>
+        <ul>{o.source_data.pending.items.map((i, n) => <li key={n}>{i.quantity} × {i.title} / {i.variant_title}</li>)}</ul>
+        <p>Total: {money(o.source_data.pending.total_cents, o.source_data.pending.currency)}</p>
+        <p>Compare these updated details with the saved order above. Check any existing Pirate Ship label before accepting. An unshipped order stays on hold afterward.</p>
+      </div>
+      <form className="flex flex-wrap gap-3 items-end" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); review({ id: o.id, note: f.get("reviewNote"), snapshot: o.source_data?.pending }); }}>
+        <label className="text-sm">Review note<input className={input} name="reviewNote" required maxLength={500} /></label>
+        <button className={button} disabled={busy}>Accept updated Bandcamp details</button>
+      </form>
+    </details>}
+    <button className={`${button} mb-4`} disabled={busy || !o.livemode || o.inventory_issue || o.source_data?.review_needed || ["refunded", "disputed", "pending", "failed"].includes(o.payment_status)}
       onClick={() => save({ id: o.id, status: o.fulfillment_status === "shipped" ? (o.exported_at ? "on_hold" : "new") : "shipped", tracking: o.tracking_number ?? "", notes: o.notes, resolveStock: false })}>
       {o.fulfillment_status === "shipped" ? "Mark unshipped" : "Mark shipped"}
     </button>
@@ -149,7 +167,7 @@ function OrderCard({ order: o, selected, select, save, busy }: { order: MerchOrd
         {o.inventory_issue && <label className="text-sm flex items-center gap-2"><input type="checkbox" name="resolveStock" />Inventory issue resolved</label>}
         <button className={`${button} justify-self-start`} disabled={busy}>Save fulfillment</button>
       </form>
-      <p className="text-text-secondary text-xs mt-4">Confirmation email: {o.confirmation_email_sent_at ? `sent ${date(o.confirmation_email_sent_at)}` : "not recorded as sent"}. Shipping notifications are sent through Pirate Ship. Refunds and returns require a manual stock adjustment.</p>
+      <p className="text-text-secondary text-xs mt-4">{o.source === "bandcamp" ? "Purchase receipt is handled by Bandcamp." : `Confirmation email: ${o.confirmation_email_sent_at ? `sent ${date(o.confirmation_email_sent_at)}` : "not recorded as sent"}.`} Shipping notifications are sent through Pirate Ship. Refunds and returns require a manual stock adjustment.</p>
     </details>
   </article>;
 }

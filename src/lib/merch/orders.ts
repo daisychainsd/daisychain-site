@@ -40,11 +40,12 @@ export async function getOrderBySession(sessionId: string): Promise<MerchOrder |
   return data as MerchOrder | null;
 }
 
-export async function listOrders(status = "new", test = false, page = 0): Promise<MerchOrder[]> {
+export async function listOrders(status = "new", test = false, page = 0, source = "all"): Promise<MerchOrder[]> {
   let query = createAdminClient().from("merch_orders").select("*").eq("livemode", !test)
     .order("created_at", { ascending: false }).range(page * 50, page * 50 + 49);
   if (status === "unshipped") query = query.neq("fulfillment_status", "shipped");
   else if (status !== "all") query = query.eq("fulfillment_status", status);
+  if (source !== "all") query = query.eq("source", source);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data as MerchOrder[];

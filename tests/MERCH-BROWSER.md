@@ -18,3 +18,5 @@ node tests/merch-browser.cjs --unknown-outcome
 Both runs check desktop/mobile rendering, CSV download, inventory form and catalog editor. The default also proves a confirmed save followed by a failed refresh resets the form and permits a later identical intentional adjustment with a new key. The second run drops the first POST response and proves retry uses the same key. Screenshots go to /private/tmp/daisy-merch-desktop.png and /private/tmp/daisy-merch-mobile.png. The harness uses a fixed local test password and localhost port only.
 
 The harness also checks marking shipped and unshipped without tracking. Set `MERCH_TEST_ORIGIN` to use another dedicated local server port.
+
+`node tests/bandcamp-browser.cjs` additionally checks the Bandcamp/Website source filter, grouped physical items, shipped/unshipped controls and Bandcamp receipt copy on desktop/mobile using isolated fixtures. Its default port is 3117; set `MERCH_TEST_ORIGIN` to match the dedicated local server. It never reads or modifies real customer orders.

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:merch": "node --import tsx --test tests/merch.test.ts"
+    "test:merch": "node --import tsx --test tests/merch.test.ts tests/bandcamp.test.ts"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.3",
