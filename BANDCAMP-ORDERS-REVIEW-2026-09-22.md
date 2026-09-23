@@ -1,6 +1,6 @@
 # Claude adversarial review: physical Bandcamp orders
 
-Actual Claude Code read-only review of the site and email-service changes, September 22, 2026. See [the activation record](BANDCAMP-ORDERS-2026-09-22.md) for dispositions and verified deployment status. The reviewer could not read the private backlog SQL or run live requests; statements about its import are assumptions pending our separate verification.
+Actual Claude Code read-only review of the site and email-service changes, September 22, 2026. See [the activation record](BANDCAMP-ORDERS-2026-09-22.md) for dispositions and verified deployment status. The reviewer could not read the private backlog SQL or run live requests; statements about its import were assumptions at review time. The final dispositions below record our completed production verification.
 
 ## Initial review
 
@@ -84,6 +84,6 @@ Next step: apply the P1 snapshot adoption and the export guard as a small follow
 - Snapshot lock, DB export guard, and later source shipments: fixed and tested.
 - Email/phone corrections and unpaid hold explanations: added after follow-up.
 - Browser form review: exercised in the final isolated browser run.
-- Import-shape check: exact generated SQL applied twice and normalizer replayed against all eight captured orders in isolated PostgreSQL; live verification awaits PD’s SQL step.
+- Import-shape check: exact generated SQL applied twice and normalizer replayed against all eight captured orders in isolated PostgreSQL; production import and replay are now verified: eight Bandcamp orders, zero new inserts, zero review flags; all shipping records and the four website orders preserved.
 - Multi-item monetary semantics: no such live transaction exists yet; documented verification at first occurrence.
 - Failed physical payments remain visible on hold as part of all-order history, and cannot ship/export.

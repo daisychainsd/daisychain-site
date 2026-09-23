@@ -40,7 +40,7 @@ export async function getOrderBySession(sessionId: string): Promise<MerchOrder |
   return data as MerchOrder | null;
 }
 
-export async function listOrders(status = "new", test = false, page = 0, source = "all"): Promise<MerchOrder[]> {
+export async function listOrders(status = "unshipped", test = false, page = 0, source = "all"): Promise<MerchOrder[]> {
   let query = createAdminClient().from("merch_orders").select("*").eq("livemode", !test)
     .order("created_at", { ascending: false }).range(page * 50, page * 50 + 49);
   if (status === "unshipped") query = query.neq("fulfillment_status", "shipped");

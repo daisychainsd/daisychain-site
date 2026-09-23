@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   try {
     requireOps(req);
     const params = new URL(req.url).searchParams;
-    const status = params.get("status") ?? "new";
+    const status = params.get("status") ?? "unshipped";
     const page = Number(params.get("page") ?? 0);
     const source = params.get("source") ?? "all";
     if (!["all", "website", "bandcamp"].includes(source)) throw new OpsRequestError("Invalid source");
