@@ -1,5 +1,7 @@
 # Full Site Audit Plan — 2026-08-06 (v2, post-Codex review)
 
+> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+
 **Target:** daisychain-site (Next.js 16 + Sanity + Stripe LIVE + Supabase + Shopify + beehiiv/Laylo/Resend)
 **Goals:** (1) security posture, (2) customer-flow correctness under realistic and hostile use, (3) durability of what breaks silently.
 **Review status:** v1 reviewed adversarially by Codex → **blocked** for allowing production writes. v2 adopts Codex's Phase 0 + revised structure. Findings will be re-reviewed by Codex before the report ships.

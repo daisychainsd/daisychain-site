@@ -1,7 +1,9 @@
-# Daisy Chain Records — Canonical Catalog
+# Daisy Chain Recordings — Canonical Music Catalog
 
 > This file is the single source of truth for all release and artist data.
 > Any seed script or data migration must match this exactly.
+
+This document covers the music seed catalog. Physical products, variant SKUs, prices, stock and product photos are managed in [Merch Ops](https://www.daisychainsd.com/ops/merch), backed by Supabase since September 29, 2026. See the [merch workflow](MERCH-ROLLOUT.md) and [opening-stock record](MERCH-PRODUCT-EDITOR-2026-09-29.md); this file is not a merch inventory source.
 
 ## Artists (20)
 

@@ -1,4 +1,4 @@
-> Historical September 14 implementation plan. Current shipping behavior, applied migrations and remaining catalog work are documented in [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) and [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md).
+> Historical September 14 implementation plan, not setup instructions. The catalog cutover, image import and opening stock were completed September 29. Production and dev preview use `MERCH_BACKEND=supabase`; physical order persistence is independent of the flag. Use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for current behavior and [the September 29 release record](MERCH-PRODUCT-EDITOR-2026-09-29.md) for activation evidence. Do not rerun the historical setup sequence.
 
 # Daisy Chain merch: implementation and rollout
 

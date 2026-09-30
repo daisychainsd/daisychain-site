@@ -1,5 +1,7 @@
 # Claude adversarial review: physical Bandcamp orders
 
+> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+
 Actual Claude Code read-only review of the site and email-service changes, September 22, 2026. See [the activation record](BANDCAMP-ORDERS-2026-09-22.md) for dispositions and verified deployment status. The reviewer could not read the private backlog SQL or run live requests; statements about its import were assumptions at review time. The final dispositions below record our completed production verification.
 
 ## Initial review

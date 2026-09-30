@@ -1,5 +1,7 @@
 # Session Audit — Design System Install + Homepage V2 Port
 
+> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+
 > **SUPERSEDED by [AUDIT-session-2.md](AUDIT-session-2.md).** This file documents end of Session 1 (2026-04-22). During Session 2 (2026-04-23 → 2026-04-25), the `--card-bg` / `--card-bg-raised` translucent-token system referenced as "fixed today" in items §2 and §3 below was DELETED in a revert pass. Those items are out of date. See AUDIT-session-2 for the current state. Keeping this file as historical context for the Session 1 work.
 
 Written after an extended session that installed the Daisy Chain Design System, ported Homepage V2, and touched 9 phases of work. The build passes and every page returns 200, but there are real issues worth flagging before the next session.

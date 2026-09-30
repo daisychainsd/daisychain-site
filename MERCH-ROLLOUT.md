@@ -1,10 +1,10 @@
-# Merch Ops: shipping and catalog rollout
+# Merch Ops: products, inventory and shipping
 
-## Current state — September 22, 2026
+## Current state — September 29, 2026
 
 Four paid physical website orders were recovered into production Supabase and verified through the live Ops API. The merch schema and optional-tracking migration are applied. [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md) records the exact production deployment status of PR #24 and its adversarial review.
 
-The order-recovery implementation records paid website orders directly in Ops, independent of the catalog backend. Shopify still supplies the storefront catalog because `MERCH_BACKEND` is unset. Supabase product/image import, image storage setup and opening inventory counts remain pending. The Inventory and Products tabs must not be treated as the current Shopify stock/catalog.
+Ops now controls the live shop catalog, prices, photos, sizes and stock. `MERCH_BACKEND=supabase` is enabled in production and the dev preview. All 14 products, 38 variants and DCM01–DCM38 SKUs were verified at launch; 384 opening units and the requested sale prices were applied. [PR #28](https://github.com/daisychainsd/daisychain-site/pull/28) is live; see the [release record](MERCH-PRODUCT-EDITOR-2026-09-29.md). Orders continue to persist independently of this flag.
 
 ## Daily fulfillment
 
@@ -24,23 +24,31 @@ Search the paid physical checkout in Stripe, then compare its session ID with Op
 
 See [OPERATIONS.md](OPERATIONS.md#recover-or-audit-physical-orders) for the read-only audit and `--apply` recovery commands. They paginate completed Stripe history, check payment state during import, and preserve manual fulfillment decisions. Escalate failed reconciliation or retrying webhooks to PD; don't infer shipping status from payment or CSV export.
 
-## Separate project: replacing the Shopify catalog
+## Products, sizes and stock
 
-The September 14 code shipped in [PR #20](https://github.com/daisychainsd/daisychain-site/pull/20), but its rollout was unfinished. The original read-only snapshot contained 13 products, 33 variants and 44 image references. Refresh/review it before using it; it is not a current stock count.
+1. Open Inventory or Products in [Merch Ops](https://www.daisychainsd.com/ops/merch). Both show clickable product thumbnails with sizes/options and total stock. Click the product or its Edit product action.
+2. Review each size's current stock. Enter signed **Add/remove** quantities and check the projected result: `-2` removes two units, `5` adds five. To correct 12 units to 9, enter `-3`, not `9`. Enter a reason, then Save stock changes.
+3. Confirmed rows clear after saving. If a save response is interrupted, use **Retry remaining changes**. The same request keys are retained so retries do not duplicate stock adjustments; navigation stays locked while the outcome is unknown.
+4. Choose **Edit product & sizes** for name, description, visibility, photos, sizes/options, price and SKU. Add or rename sizes in the product's own rows. New sizes inherit that product's price and receive the next suggested DCM code. Every variant/size has its own SKU. Save product to apply changes; stock remains managed by adjustments.
+5. A product must be published, its variant active, and that variant's stock positive to be available for sale. Product/price changes reach the cached shop grid on its next revalidation (configured at 60 seconds). Checkout validates current stock and prices on the server.
 
-1. Review [the original implementation/review](MERCH-IMPLEMENTATION-PLAN.md), [the September 14 review](MERCH-IMPLEMENTATION-REVIEW-2026-09-14.md), and the current recovery changes. Run the appropriate tests, TypeScript, lint and production build after changes.
-2. **Do not rerun `scripts/merch-schema-2026-09-14.sql`: it is already applied.** Verify/apply the separate `scripts/merch-storage-2026-09-14.sql` before importing images. Never apply the full `supabase-schema.sql` to the existing production database.
-3. Run `node --env-file=/path/to/env scripts/merch-import.mjs` for a fresh read-only catalog/image snapshot, then review `.merch-import/`. `--apply` copies it to Supabase. New variants begin at zero; repeated import preserves stock but overwrites product content.
-4. Count physical stock and enter opening adjustments in Ops close to cutover. Reconcile intervening online and booth sales. Legacy Shopify-era order imports do not deduct Supabase inventory, so include outstanding orders when planning the count/cutover.
-5. Verify the Supabase-backed storefront and purchase/webhook flow against an isolated test database and test Stripe account, with outbound notifications disabled. Dev shares production services and is not a disposable checkout test environment.
-6. Validate product images, release links, prices, paid order persistence, shortage handling, and Pirate Ship mapping/label creation. Ensure the live Stripe endpoint subscribes to completed checkout, delayed-payment success, refund and dispute events.
-7. Activate `MERCH_BACKEND=supabase` only as a reviewed, explicitly authorized cutover. Monitor the first real order. Keep Shopify available until the rollout and remaining Shopify history reconciliation are complete.
+New website purchases through the Ops-backed checkout deduct stock once when paid. Bandcamp orders, legacy Shopify-era checkouts and Stripe Tap to Pay booth sales do **not** deduct this stock automatically. Reconcile those sales manually with a reason. Refunds do not automatically restock products; count returned or unshipped stock before adding it back.
 
-When the Supabase catalog is active, Products edits affect the storefront and Inventory manages opening counts, booth sales and restocks. Stripe Tap to Pay booth payments do not automatically update counts. No inventory values have been invented for this recovery.
+## Thumbnail framing
+
+Open **Edit product & sizes** and find **Thumbnail framing** below the product photos. Enable **Crop to fill square**, adjust Zoom (1–3×), Horizontal position and Vertical position (0–100%), then Save product. **Reset to full photo** removes the crop setting. The preview and shop/Ops cards use the first product photo; the original uploaded photo and full product detail view remain intact.
+
+These controls are independent of Sanity's flyer crop tool. Merch framing is stored in the image's `thumbnailCrop` metadata and shared by Ops, shop cards, the homepage shop strip and gallery thumbnails.
+
+## Completed catalog migration
+
+The original 13 products, 33 variants and 44 image references were imported with handles/variant IDs preserved. The public `merch-images` bucket is configured. The staple tee adds five variants, for 14 products and 38 variants. The [release record](MERCH-PRODUCT-EDITOR-2026-09-29.md) contains the confirmed opening counts and prices.
+
+**Do not rerun the production schema, full catalog importer or opening-count setup.** Repeated catalog import can overwrite product edits. The 384-unit snapshot is historical; later sales must not be replenished by resetting it. The one-time scripts and request IDs are retained for audit/recovery only. Shopify cancellation and historical-order export remain separate work; no subscription was cancelled during this release.
 
 ## Rollback and limits
 
-Unsetting `MERCH_BACKEND` changes new catalog/checkout pricing back to Shopify; physical orders continue to persist in Ops. In-flight Supabase snapshots retain their inventory behavior. Rolling back to pre-PR #24 code would restore the old Shopify-only fulfillment path and lose the new recovery protection; audit Stripe immediately if that rollback is necessary.
+Unsetting `MERCH_BACKEND` and redeploying changes new catalog/checkout pricing back to Shopify; physical orders continue to persist in Ops. This is not a catalog sync: the staple tee and current Ops prices/counts will not automatically exist in Shopify. Reconcile the fallback catalog before a rollback. In-flight Supabase snapshots retain their inventory behavior. Rolling back to pre-PR #24 code would restore the old Shopify-only fulfillment path and lose the new recovery protection; audit Stripe immediately if that rollback is necessary.
 
 Inventory-managed checkout validates stock but does not reserve it. Concurrent purchases can create a visible shortage hold instead of losing a paid order. CSV exports contain at most 100 shipments. Ops shares one password rather than per-person accounts. Product image uploads support JPG/PNG/WebP up to 4 MB in Ops; the direct importer supports 10 MB. Public success pages do not expose customer shipping details.
 
@@ -49,4 +57,4 @@ Resolved disputes are not automatically released to shipping. After verifying a 
 
 ## Bandcamp order extension
 
-Eight physical Bandcamp orders were imported and verified September 22; all retained their recorded shipped status. Physical Bandcamp merchandise joins the shipping queue through a separate hourly feed. Digital sales are excluded. Source → Bandcamp identifies these orders; the first import carries its recorded shipped status and later syncs preserve manual Ops decisions. Pending/failed/refunded or partially shipped orders need review before fulfillment. Ops toggles do not write back to Bandcamp. See [Bandcamp setup and verification](BANDCAMP-ORDERS-2026-09-22.md); the catalog migration remains separate.
+Eight physical Bandcamp orders were imported and verified September 22; all retained their recorded shipped status. Physical Bandcamp merchandise joins the shipping queue through a separate hourly feed. Digital sales are excluded. Source → Bandcamp identifies these orders; the first import carries its recorded shipped status and later syncs preserve manual Ops decisions. Pending/failed/refunded or partially shipped orders need review before fulfillment. Ops toggles do not write back to Bandcamp. Bandcamp inventory remains separate even after the September 29 shop cutover. See [Bandcamp setup and verification](BANDCAMP-ORDERS-2026-09-22.md).
