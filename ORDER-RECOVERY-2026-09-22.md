@@ -1,5 +1,7 @@
 # Physical website order recovery
 
+> Historical September 22 recovery record. Since September 29, Ops/Supabase controls the live catalog, prices, images and stock (`MERCH_BACKEND=supabase` in production and dev preview). The catalog import and opening counts are complete; Unshipped is the current default. See [the live product release](MERCH-PRODUCT-EDITOR-2026-09-29.md) and [daily workflow](MERCH-ROLLOUT.md). The completed recovery sequence below is reference only.
+
 Initial production diagnosis: Stripe contains four paid physical website Checkout Sessions across the full 55 completed-session history. The `merch_orders` table was absent; the live `/api/ops/merch` endpoint returned 500. The storefront backend flag is unset, so the existing webhook routed physical payments exclusively to Shopify draft creation and never persisted them to Ops. The Shopify Admin token exchange returned HTTP 400 during diagnosis. No refunds or disputes were present on these four payments at the time of the audit.
 
 ## Changes
@@ -36,7 +38,7 @@ Verified on `www.daisychainsd.com/ops/merch`: All defaults correctly, Unshipped 
 
 `CRON_SECRET` was already configured as a sensitive Preview/Production variable; Vercel intentionally exports it as blank. It was not changed or rotated. A blank local `vercel env pull` value is not evidence that a sensitive production secret is absent; inspect Vercel metadata and real scheduler execution instead.
 
-Related documentation is merged in [daisychain-ops PR #1](https://github.com/daisychainsd/daisychain-ops/pull/1), [system map/onboarding PR #1](https://github.com/daisychainsd/daisychainsd/pull/1), and [organization profile PR #1](https://github.com/daisychainsd/.github/pull/1). The new shipping SOP lives in the Ops repository; existing Google Doc SOPs were not rewritten. Shopify remains the catalog, and its replacement/import/opening stock counts remain unfinished.
+Related documentation is merged in [daisychain-ops PR #1](https://github.com/daisychainsd/daisychain-ops/pull/1), [system map/onboarding PR #1](https://github.com/daisychainsd/daisychainsd/pull/1), and [organization profile PR #1](https://github.com/daisychainsd/.github/pull/1). The new shipping SOP lives in the Ops repository; existing Google Doc SOPs were not rewritten. At this September 22 checkpoint Shopify still supplied the catalog. That was superseded by the completed [September 29 catalog cutover](MERCH-PRODUCT-EDITOR-2026-09-29.md).
 
 
 ## Subsequent Bandcamp extension

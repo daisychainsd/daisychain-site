@@ -1,5 +1,7 @@
 # Session 2 Audit — 2026-04-23 → 2026-04-25
 
+> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+
 Supersedes [`AUDIT.md`](AUDIT.md). That file is from end of Session 1 (Phases 1-9 + Homepage V2 install). Some of its "fixed today" items were undone during Session 2's revert pass and parts are now stale — this file is the accurate state.
 
 ## TL;DR

@@ -1,5 +1,7 @@
 # Bandcamp physical orders in Merch Ops
 
+> September 29 update: the website catalog and inventory now run in Ops/Supabase. Bandcamp remains a separate sales/inventory source: its physical orders appear in Ops but do not deduct website stock. Reconcile shared stock manually. See [current merch workflow](MERCH-ROLLOUT.md) and [catalog activation](MERCH-PRODUCT-EDITOR-2026-09-29.md).
+
 ## Scope and source audit
 
 Physical Bandcamp merchandise joins website Stripe orders at `/ops/merch`. Standalone digital song and album sales are excluded. The existing Bandcamp integration was subscriber-only; this change adds a separate order feed using [Bandcamp's Merch Orders API v4](https://bandcamp.com/developer/merch), not its sales report.
@@ -13,7 +15,7 @@ The initial authenticated, full-history query returned **8 physical items across
 - Items group by band ID + payment ID into one order. The database enforces unique source IDs and saves atomically. Source labels and a Website/Bandcamp filter identify orders in the shared dashboard.
 - Initial shipping state comes from Bandcamp. Later syncs preserve manual Ops fulfillment, notes, tracking and shipment/export timestamps. Source shipping changes update orders that have not had an explicit manual fulfillment change in Ops. Refunds hold unshipped orders; previously shipped orders keep their shipment history. Ops shipping changes do not write back to Bandcamp or email customers.
 - Pending, failed and refunded purchases cannot ship/export. Partial shipments, incomplete addresses and inconsistent totals start On hold. Review the Bandcamp item history before releasing a partial shipment, so already shipped items are not sent twice.
-- Changed items/recipient/address/amount are flagged while retaining the original snapshot and applying payment changes. Ops lets staff review and accept the incoming snapshot with a note; stale reviews are rejected and accepted unshipped orders remain On hold until released. These failures return 503 and alert staff. No Bandcamp import deducts Supabase stock or changes the Shopify catalog.
+- Changed items/recipient/address/amount are flagged while retaining the original snapshot and applying payment changes. Ops lets staff review and accept the incoming snapshot with a note; stale reviews are rejected and accepted unshipped orders remain On hold until released. These failures return 503 and alert staff. No Bandcamp import deducts Supabase stock or edits the website product catalog.
 
 Current limits: amounts are supported in USD; another currency fails visibly instead of being misvalued. Multiple destinations under one Bandcamp payment require manual splitting. Full-history scanning is appropriate for the current eight-order volume; revisit windowing with overlap and a separate refund sweep when volume grows.
 

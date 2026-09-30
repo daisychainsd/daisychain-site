@@ -1,5 +1,7 @@
 # Merch replacement: independent Claude review
 
+> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+
 Date: 2026-09-14
 Baseline: `2335f33` (`main`); local branch: `feature/merch-ops`.
 

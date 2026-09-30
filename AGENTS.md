@@ -10,6 +10,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Daisy Chain Brand & Design System
 
+## Live merch state — September 29, 2026
+
+Ops/Supabase is the product, price, photo and inventory source for production and the dev preview (`MERCH_BACKEND=supabase`). The catalog import, image storage, DCM01–DCM38 SKUs, staple tee and 384-unit opening count are complete; do not rerun the old import/schema or reset current stock to that opening snapshot. Use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for daily editing and [MERCH-PRODUCT-EDITOR-2026-09-29.md](MERCH-PRODUCT-EDITOR-2026-09-29.md) for release evidence. Historical September 14/22 notes are not current activation instructions.
+
+Product stock inputs are signed adjustments, not replacement totals. Thumbnail framing is optional image JSON metadata shared by shop cards and Ops; original photos remain intact. `npm run build` uses webpack; `npm run test:merch-ui` covers the product editor. Push only to `dev`; production requires a dev→main PR and explicit go-live authorization. The owner override used for PR #28 was authorized for that release only.
+
+## Brand conventions
+
 The [`design-system/`](design-system/) folder at the project root is the **canonical Daisy Chain brand**. It is not optional reference material — it is the source of truth for every visual, typographic, and interaction decision on this site.
 
 **Required reading before any UI, copy, or visual change:**

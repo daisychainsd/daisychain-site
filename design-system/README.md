@@ -2,7 +2,7 @@
 
 > Design system for **Daisy Chain Records** — an independent electronic music label and intimate dance floor based in San Diego, CA. Run by Player Dave. Home to Dream Disc, Player Dave, Mirror Maze, JOIA, Crosstalk, Canary Yellow, Next To Blue and more.
 
-This system powers the daisychainsd.com website, Shotgun event flyers, Sanity CMS studio content, Stripe/Shopify checkout, and the in-venue visual world at **Spin Nightclub, San Diego**.
+This system powers the daisychainsd.com website, Shotgun event flyers, Sanity CMS studio content, Stripe checkout, the Supabase-backed Merch Ops catalog, and the in-venue visual world at **Spin Nightclub, San Diego**. Product-thumbnail framing is managed in Ops; see the [current product workflow](../MERCH-ROLLOUT.md#thumbnail-framing).
 
 ---
 

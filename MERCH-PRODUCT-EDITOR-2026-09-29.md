@@ -1,44 +1,71 @@
-# Product inventory editor — September 29, 2026
+# Merch catalog and product editor — September 29, 2026
 
-## Release progress (supersedes earlier pending-data notes)
+## Live release
 
-Network approvals restored. Applied and independently verified all 384 opening units, 38 unique DCM SKUs, the replacement 1400px staple photo, and the three 40% price reductions. Staple tee is now active in the Ops catalog. Preview MERCH_BACKEND is supabase; production cutover is pending preview verification. Both isolated Playwright desktop/mobile flows passed, including unknown-response retries. Local production build passed with webpack. Vercel's Turbopack preview failed resolving its internal Google Font module; the build command now explicitly uses the verified webpack compiler.
+The shop and Ops product editor are live through [PR #28](https://github.com/daisychainsd/daisychain-site/pull/28), merge `a4ded457956029c122616813a60f2024d074610d`. Vercel production deployment `dpl_etGeB97pezUvB44v3qnB8tLVtomU` completed at September 29, 10:46pm PT. PD explicitly authorized the repository-owner override for this release's one-review requirement; branch protection remains in place.
 
-Local branch: `feature/product-inventory-editor`. Not deployed.
+Production and the dev preview use `MERCH_BACKEND=supabase`. Ops is the source for product content, images, prices, sizes and stock. Shopify cancellation was not part of this release; its helpers and credentials remain for legacy references and rollback.
 
-The Inventory and Products tabs now open a thumbnail grid. Each product opens its own size rows, current stock, quantity adjustments and projected totals. One action saves all entered size adjustments. Confirmed rows clear individually; interrupted requests retain their idempotency keys. An unknown response locks navigation until safely retried. The product details screen supports adding/renaming sizes and generates sequential DCM SKUs, inheriting the product's existing price for new sizes. Card actions have a dedicated, bottom-aligned row with 20px separation.
+- [Live shop](https://www.daisychainsd.com/shop)
+- [DC staple tee](https://www.daisychainsd.com/shop/dc-staple-tee)
+- [Merch Ops](https://www.daisychainsd.com/ops/merch)
+- [Daily product and shipping workflow](MERCH-ROLLOUT.md)
 
-Quantity fields are **add/remove units**, not replacement totals. This uses the existing transactional adjustment RPC and requires no schema migration. Stock was not changed during this work.
+## Product editing
 
-## Catalog state
+Inventory and Products open a clickable thumbnail grid. Each product opens its own size rows, current stock, signed quantity adjustments, projected totals and recent adjustment history. Edit product & sizes opens the product details, photos, visibility, size names, prices and SKUs. Card actions have a dedicated, bottom-aligned row with 20px separation.
 
-Earlier in this session, 13 existing Shopify products / 33 variants / 44 image references were imported into Supabase and verified through the live Ops API. The original DC staple tee draft was created with no variants and kept hidden. Opening stock is still zero; production checkout still uses Shopify. The user will provide counts after reviewing this layout.
+Stock inputs **add or remove units**, not replace totals. Confirmed rows clear individually. Unknown responses retain the same request IDs and freeze navigation until Retry remaining changes resolves the outcome. A failed refresh after a confirmed save does not replay the adjustment.
 
-User subsequently requested DCM01, DCM02, etc. (one code per variant) and supplied a replacement DC staple tee photo. These live changes remain pending: network access was disabled before they could be applied. The reviewed local plan is `.merch-import/sku-photo-update.json`; it maps 33 variants to DCM01–DCM33 and records the replacement PNG checksum. `scripts/prepare-merch-catalog-update.mjs --apply` applies only SKU/image fields and refuses unexpected catalog changes. Run with the production environment only when connectivity is restored; do not reset stock or re-import the full catalog.
+Sizes can be added or renamed within the product editor. New variants inherit the product price and suggest the next DCM code. Each size/variant has its own SKU. The imported variants use DCM01–DCM33; staple S/M/L/XL/XXL use DCM34–DCM38 respectively.
 
-## Preview and checks
+## Thumbnail framing
 
-- Interactive offline preview: `/Users/pd/Downloads/Daisy-Chain-product-editor-preview.html`. Uses actual product photos, replacement tee image and planned SKUs. All saves are simulated in memory and reset on reload.
-- Rebuild with `node scripts/preview-merch-editor.mjs` using the local import files. Preview scripts and fixtures contain no credentials or customer orders.
-- `node --test tests/product-editor.test.mjs`: 4 DOM integration tests covering product navigation, multi-size saves, partial rejection, lost responses, failed refreshes, renaming, SKU defaults and duplicate size prevention.
-- `npm run test:merch`: 46 existing tests passed.
-- TypeScript passed. Targeted ESLint passed with only the repository's expected plain-image warnings.
-- Browser screenshot/local-server checks were blocked by the session sandbox (`listen EPERM`, Chromium Mach port permission denied); live Supabase access failed with DNS blocked. No browser visual verification or deployment claimed.
+Edit product & sizes → Thumbnail framing controls the first product photo. Enable Crop to fill square, adjust zoom (1–3×) and horizontal/vertical position (0–100%), then Save product. Reset to full photo removes the framing setting.
 
-## Confirmed stock, sale prices and live authorization
+The optional `thumbnailCrop` metadata is stored on image JSON and validated by the product API. `src/lib/merch/thumbnail.ts` is shared by Ops, shop cards, the homepage shop strip and gallery thumbnails. Full product photos use contain. Original uploaded files remain unchanged; no database schema migration was required. This is separate from Sanity's flyer crop tool.
 
-PD approved the layout, provided opening counts, and explicitly requested pushing live ASAP. No further deployment approval is needed. The session still blocks outbound shell network access; GitHub DNS was checked again after a daemon restart and returned `ENOTFOUND`.
+## Confirmed opening stock and prices
 
-Confirmed stock totals: staple tee 32 (S3/M6/L12/XL8/XXL3); disco tee 18 (M4/L9/XL4/2XL1); Holy Cobra 13 (S4/M4/L4/2XL1); brown hoodie 9 (S5/M4); grey/Faded Black Daisy Tee 7 (S3/M4); CDs 65; Mini Daisy Chain 100; Daisy Chain 2.0 100; beanies 40. Total **384**. Unlisted sizes/products zero. Holy Cobra and Faded Black Daisy Tee become **$27** (was $45); brown hoodie **$39** (was $65). Staple tee is $45 and its five new sizes are DCM34–DCM38.
+These are the September 29 opening counts supplied by PD, **not current stock targets**. Later sales and adjustments must not be reset to this snapshot. Unlisted products and sizes started at zero.
 
-- `scripts/prepare-merch-opening-stock.mjs` creates `.merch-import/opening-stock-plan.json`, a transactional SQL option, and `/Users/pd/Downloads/Daisy-Chain-confirmed-stock.csv`.
-- `scripts/apply-merch-opening-stock.mjs` preflights the live catalog and ledger; `--apply` uses existing RPCs with fixed request IDs. It records counts without double-adding on retry and uses absolute sale prices to avoid compounding discounts. Apply only one method (SQL or API); both use the same idempotency keys.
-- The generated SQL was tested in isolated PGlite: all 384 units and 38 variants match; replay preserves counts and discounts; a subsequent sale is not replenished; an unexpected starting stock count rolls back the entire transaction.
-- `scripts/prepare-merch-catalog-update.mjs --apply` still supplies the 33 existing sequential SKUs and replacement tee photo.
-- Latest offline preview includes the confirmed counts, discounted prices, replacement photo, and thumbnail controls. Preview data remains simulated.
+| Product | Opening quantities | Total | Unit price |
+|---|---|---:|---:|
+| DC staple tee | S 3, M 6, L 12, XL 8, XXL 3 | 32 | $45 |
+| Disco tee | M 4, L 9, XL 4, 2XL 1 | 18 | $40 |
+| Holy Cobra tee | S 4, M 4, L 4, 2XL 1 | 13 | $27 (40% off $45) |
+| Brown DC Hoodie | S 5, M 4 | 9 | $39 (40% off $65) |
+| Faded Black Daisy Tee (grey shirt) | S 3, M 4 | 7 | $27 (40% off $45) |
+| Dream Disc CD | 65 | 65 | $20 |
+| Mini Daisy Chain | 100 | 100 | $40 |
+| Daisy Chain 2.0 | 100 | 100 | $50 |
+| Black Daisy Beanie | 40 | 40 | $35 |
+| **Total** | | **384** | |
 
-Thumbnail framing now supports zoom 1–3 and X/Y positioning 0–100 with a square live preview and reset. Framing is stored on the image JSON (`thumbnailCrop`) and validated on the product API. Shop cards, homepage shop strip, gallery thumbnails and Ops share the same rendering helper. Full product photos use contain, so the source image is never destroyed or clipped. No DB schema change is needed.
+Sale prices are stored as the actual catalog unit prices; this release does not add a separate compare-at price or discount badge. The staple tee uses the replacement 1400×1400 PNG from PD's STAPLE TEE folder and is published with all five variants active.
 
-Remaining deployment: finish the production build/browser check with network and process access; reconcile remote branches; commit and push only to `dev`; verify preview, PR/merge dev→main (already authorized); apply/reverify catalog data; publish the staple draft; enable `MERCH_BACKEND=supabase` with all opening counts verified; redeploy and verify live shop prices, size availability, images, crops and Ops. The prior live catalog is still Shopify until that flag is set. Never rerun the old create-table migration or the full catalog importer after edits.
+## Completed migration and recovery artifacts
 
-Final local validation after crop support: TypeScript passed; 47 merch tests and 5 DOM editor tests passed. The complete offline preview was loaded in JSDOM and verified to include the 14 products, staple tee's 32 units and crop controls. Production build was attempted and failed because the sandbox could not fetch the existing Google Fonts; retry the unchanged build when network access returns. Targeted lint has no errors (only expected plain-img warnings).
+The existing 13 Shopify products, 33 variants and 44 image references were imported with handles and variant IDs preserved. The public `merch-images` bucket is configured. The staple tee adds one product and five variants, for 14 products and 38 variants. All prices, stocks, unique SKUs and the replacement photo were independently verified before cutover.
+
+The following are one-time release/recovery tools, not routine setup:
+
+- `scripts/prepare-merch-catalog-update.mjs`: reviewed SKU/photo plan in `.merch-import/sku-photo-update.json`; application completed.
+- `scripts/prepare-merch-opening-stock.mjs`: confirmed stock plan, optional transactional SQL and local CSV. Do not regenerate opening counts to replenish sold stock.
+- `scripts/apply-merch-opening-stock.mjs`: applied the saved opening plan through existing RPCs with fixed request IDs. Retries use the same IDs and absolute sale prices. The generated SQL alternative shares those IDs; do not apply both unnecessarily.
+- `.merch-import/` holds ignored local snapshots/plans. `/Users/pd/Downloads/Daisy-Chain-confirmed-stock.csv` is the historical count worksheet.
+- `/Users/pd/Downloads/Daisy-Chain-product-editor-preview.html` is a simulated offline preview. Its saves never affect production; use the live dashboard for current stock.
+
+Do not rerun the create-table schema, full production schema, full catalog import or opening-stock setup. Re-import can overwrite product content. Routine stock, price, size and image edits belong in Ops. New website checkout snapshots deduct inventory once when paid; Bandcamp, booth and legacy Shopify-era orders require manual stock reconciliation.
+
+## Verification
+
+- 47 merch tests passed, including actual SQL transactions, webhook/route handling and crop validation.
+- 5 product-editor DOM tests passed: product navigation, multi-size saves, partial failures, unknown-response retries, failed-refresh behavior, size/SKU editing and crop persistence/reset.
+- Both isolated Playwright desktop/mobile flows passed, including CSV/shipping behavior and retry request IDs.
+- TypeScript and targeted lint passed with the repository's expected plain-image warnings.
+- The generated opening SQL was verified in isolated PGlite: exact 384-unit plan, safe replay, no replenishment after a simulated sale, and rollback on unexpected starting stock.
+- Local production webpack build and Vercel preview/production builds passed. Default Turbopack failed resolving its internal Google Font module on Vercel, so `npm run build` explicitly uses webpack.
+- Read-only Chromium checks passed on dev and production: staple price and five sizes, all three reduced prices, all 14 product cards with fully decoded images, framing controls, no mobile overflow and no browser runtime errors. API mutations were blocked during those checks. No live payment, inventory change or shipment was created for testing.
+
+Monitor the next genuine paid order through Stripe → Ops and its inventory deduction. The release verification did not create a paid production transaction or buy a Pirate Ship label. Temporary verification credential exports were removed.

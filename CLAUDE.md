@@ -10,6 +10,12 @@
 
 Physical Bandcamp merch (including CDs/vinyl with bundled downloads) joins website orders in `/ops/merch`; standalone digital song/album sales never enter fulfillment. `src/lib/merch/bandcamp.ts` reads an authenticated `dc-email-api` merchandise feed, groups by band/payment ID, validates snapshots and records with `record_bandcamp_order`. `merch_orders.source` distinguishes `website` and `bandcamp`; Bandcamp has null Stripe IDs. Hourly `/api/cron/bandcamp-orders` is independent of Stripe and subscriber sync. First import copies Bandcamp shipping status; subsequent runs preserve explicitly changed manual Ops shipping/notes/tracking while refreshing payment states. Later Bandcamp shipping updates propagate to untouched orders; changed snapshots can be reviewed and accepted in Ops. No customer email, Bandcamp write, or inventory deduction occurs. See [Bandcamp record](BANDCAMP-ORDERS-2026-09-22.md) and [runbook](OPERATIONS.md#bandcamp-physical-orders) for migration, limits and live verification. Earlier session entries below are historical.
 
+## Merch catalog and product editor — live September 29, 2026
+
+[PR #28](https://github.com/daisychainsd/daisychain-site/pull/28) is live as `a4ded457956029c122616813a60f2024d074610d`. Production and dev preview use `MERCH_BACKEND=supabase`. Ops is authoritative for product content, prices, photos, sizes and stock. The 14-product/38-variant catalog, DCM01–DCM38, replacement staple photo and 384-unit opening count are verified. Do not reset inventory to that historical snapshot or rerun catalog/schema setup. [Release evidence and prices](MERCH-PRODUCT-EDITOR-2026-09-29.md), [daily workflow](MERCH-ROLLOUT.md).
+
+Inventory and Products open a thumbnail grid; each card opens its own size rows. Stock fields are signed adjustments. Edit product & sizes supports adding/renaming sizes, price/SKU changes and first-image thumbnail zoom/X/Y framing. Shared `thumbnailStyle` renders Ops/shop/homepage/gallery thumbnails; full photos remain intact. Unknown stock-save responses retain request IDs and lock navigation until safely retried. PR #28 validation passed 47 merch tests, 5 DOM editor tests, both isolated Playwright flows, and deployed preview/production read-only browser checks. `npm run build` now explicitly uses webpack after Vercel's Turbopack font-module failure.
+
 ## Branching & Deployment Workflow
 
 **All pushes go to `dev`. Never touch `main` directly. Only merge to `main` when explicitly asked to go live.**
@@ -25,6 +31,7 @@ local work  →  push to dev  →  dev.daisychainsd.com auto-builds  →  review
 - **Collaborator workflow**: Niko pushes to `dev` (or a feature branch → PR into `dev`). Review at **`dev.daisychainsd.com`** before merging to `main`.
 - **Local dev server**: `npm run dev` (Turbopack, localhost:3000)
 - **Before merging to main**: run `npm run build` locally to catch TypeScript/build errors before Vercel sees them
+- **Build compiler**: `npm run build` runs `next build --webpack`; keep local and Vercel builds aligned. Default Turbopack failed resolving its internal Google Font module during the September 29 release.
 - **Merging to main** (only when ready to go live): open a PR from `dev` to `main` — never push `main` directly (branch protection requires PRs now that the repo has collaborators):
   ```bash
   gh pr create --base main --head dev --title "..." --body "..."
@@ -46,7 +53,7 @@ Daisy Chain SD is an independent electronic music label based in San Diego, run 
 - **Supabase** — email+password auth, profiles + purchases tables, RLS
 - **wavesurfer.js** — real waveform audio player with scrubbing (`@wavesurfer/react`)
 - **ffmpeg-static** — server-side audio format conversion (WAV → MP3/FLAC/AIFF)
-- **Shopify Storefront API** — headless product data/inventory for `/shop`
+- **Supabase Merch Ops** — product catalog, images, sizes, prices and inventory for `/shop`; Shopify Storefront remains a legacy fallback
 - **Physical order fulfillment** — Supabase Merch Ops → Pirate Ship CSV; Shopify Admin draft creation is retired by the September 22 recovery
 - **beehiiv** — newsletter email collection via API (publication: "Daisy Chain Mail")
 
@@ -68,7 +75,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **Public queries** (`src/lib/queries.ts`): filter with `hidden != true` (and equivalent for nested references where needed) so hidden content never appears on the site.
 
 ### Schemas
-- **release** — title, slug, **`artists`** (array of artist refs in display order — primary credit is `artists[0]`, all rendered as comma-separated clickable links), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl, **`trackArtists`** array of artist refs for per-track linkable credits, plus a legacy `trackArtist` text fallback), price, physicalPrice, **shopifyHandle** (links to Shopify product for physical format purchases), **status** (`"live"` default or `"upcoming"`), **`goLiveAt`** (datetime, only visible when status is upcoming — exact date+time for auto-promotion, 15min time steps, cron checks hourly), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true). The legacy fields `artist` (single ref), `displayArtist` (string), `additionalArtists` (refs) auto-hide in Studio once `artists[]` has at least one entry; they remain in older docs as fallback so unmigrated releases keep rendering. GROQ pattern: `coalesce(artists[0]->name, displayArtist, artist->name)`. Per-track multi-artist credits render as comma-separated `<Link>`s in `TrackList` (Spotify/Apple-style); fallback order is `trackArtists[]` → `trackArtist` string → release primary artist.
+- **release** — title, slug, **`artists`** (array of artist refs in display order — primary credit is `artists[0]`, all rendered as comma-separated clickable links), coverArt, releaseDate, catalogNumber, releaseType, format[], tracks[] (with audioFile for WAV storage, **previewFile** for MP3 streaming, youtubeUrl, **`trackArtists`** array of artist refs for per-track linkable credits, plus a legacy `trackArtist` text fallback), price, physicalPrice, **shopifyHandle** (legacy field name linking to the active catalog product for physical purchases), **status** (`"live"` default or `"upcoming"`), **`goLiveAt`** (datetime, only visible when status is upcoming — exact date+time for auto-promotion, 15min time steps, cron checks hourly), **presaveUrl** (shown as Pre-save button when status is upcoming), embedUrl, description, **hidden** (exclude from site when true). The legacy fields `artist` (single ref), `displayArtist` (string), `additionalArtists` (refs) auto-hide in Studio once `artists[]` has at least one entry; they remain in older docs as fallback so unmigrated releases keep rendering. GROQ pattern: `coalesce(artists[0]->name, displayArtist, artist->name)`. Per-track multi-artist credits render as comma-separated `<Link>`s in `TrackList` (Spotify/Apple-style); fallback order is `trackArtists[]` → `trackArtist` string → release primary artist.
 - **artist** — name, slug, photo, bio, role, hometown, **rosterTier** (`"main"` default / `"side"`), links (website, instagram, spotify, soundcloud). `rosterTier: "side"` hides the artist from the `/artists` roster grid (filtered by `ARTISTS_LIST` GROQ) but the doc still exists, the `/artists/[slug]` profile page still works, and any release credit (primary `artist`, `additionalArtists`, or per-track `trackArtist`) still renders. Use Side for featured artists / collaborators / one-track contributors who shouldn't take up a roster slot.
 - **event** — title, slug, date, venue, flyer, ticketUrl, lineup, description, **hidden** (exclude from site when true)
 - **sop** — name, area (6 fixed areas), status (live/draft/todo), owner, note, **links[]** (label + url — reference links the team edits in Studio, no code changes), slug + docId (Google Doc embedded at `/ops/sops/[slug]`), order. Powers the SOPs panel on `/ops`. Data layer: `src/lib/sops.ts` (`getSopAreas`, `findSopBySlug`, `sopCounts`). Studio list sorted by area then order. liveEdit — edits show on /ops immediately (page is force-dynamic).
@@ -98,7 +105,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/releases/[slug]` | Release detail — cover art (or product photos for physical), metadata, waveform TrackList |
 | `/artists/[slug]` | Artist page |
 | `/events` | Events listing — upcoming (hero card) + past (flyer grid) |
-| `/shop` | Physical merch grid (vinyl, shirts — fetched from Shopify Storefront API) |
+| `/shop` | Physical merch grid from the active Supabase Ops catalog |
 | `/shop/[handle]` | Product detail — image gallery, variant/size selection, add to cart |
 | `/shop/checkout` | Embedded Stripe Checkout (address, shipping, payment — all inline) |
 | `/shop/checkout/success` | Order confirmation page, clears cart |
@@ -112,14 +119,14 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/api/verify-purchase` | Verifies Stripe session before allowing downloads |
 | `/api/checkout-physical` | Creates Stripe Embedded Checkout session for physical products with shipping |
 | `/api/convert` | Server-side audio format conversion (WAV → MP3/FLAC/AIFF via ffmpeg) |
-| `/api/shopify-product` | GET endpoint returning Shopify product data by handle (used by ReleaseInteractive for physical format display) |
+| `/api/shopify-product` | Compatibility GET endpoint returning the active catalog product by handle; currently Supabase, used by ReleaseInteractive |
 | `/api/webhooks/stripe` | Stripe webhook — handles `checkout.session.completed`. Records purchase in Supabase for logged-in users; sends download email via Resend for guests; auto-subscribes all purchase emails to beehiiv. Requires `STRIPE_WEBHOOK_SECRET`. |
 | `/api/webhooks/sanity/preview-gen` | Sanity webhook handler — auto-generates 128k MP3 preview files for tracks with `audioFile` but no `previewFile`. Auth: Sanity `t=/v1=` HMAC signature with `SANITY_WEBHOOK_SECRET`. **LIVE since 2026-08-06** — Sanity webhook "Preview Gen" (id `v0jM3fNyHxICjXPQ`) fires on release create/update when any track has `audioFile` but no `previewFile`. |
 | `/api/newsletter` | POST endpoint — subscribes email to beehiiv newsletter (Daisy Chain Mail) with dynamic `campaign` parameter for UTM tracking |
 
 ## Components
 
-- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to Shopify product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy/pre-save button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout. When `status === "upcoming"`, cover stays fully visible with a **top-right "Soon" pill** (`bg-blue-300/20 border-blue-300/30 backdrop-blur-sm`) — no opaque overlay. **Pre-save** + **LayloModal** sit in the tracklist header row (not on the cover).
+- **ReleaseInteractive** (`src/components/ReleaseInteractive.tsx`) — release detail view: cover art (swaps to active catalog product photos when physical format active, with arrow navigation + dot indicators), metadata, multi-artist credit links, format toggle, "includes digital files" note, buy/pre-save button (between container and tracklist), release date. Physical buy button adds to cart; digital buy button goes to Stripe checkout. When `status === "upcoming"`, cover stays fully visible with a **top-right "Soon" pill** (`bg-blue-300/20 border-blue-300/30 backdrop-blur-sm`) — no opaque overlay. **Pre-save** + **LayloModal** sit in the tracklist header row (not on the cover).
 - **TrackList** (`src/components/TrackList.tsx`) — wavesurfer.js waveform player with real audio waveforms from MP3 previews. Active track shows title/artist at normal size on the left with waveform inline to the right. Pre-loads wavesurfer module on mount for instant playback. Properly cleans up media elements on track switch.
 - **DownloadPanel** (`src/components/DownloadPanel.tsx`) — post-purchase: verifies Stripe session, then shows download links
 - **ReleaseCard** (`src/components/ReleaseCard.tsx`) — grid card with cover art + catalog number badge (bottom-left) + "Soon" badge (top-right, when status is upcoming). Title strips "EP"/"Album" suffix. The **outer** `container-organic-md` wrapper uses **`overflow-hidden`** so scale-on-hover does not clip rounded corners (avoid only patching inner layers).
@@ -160,29 +167,29 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **Webhook** (`/api/webhooks/stripe`): paid physical sessions, including delayed-payment success, go to Supabase Merch Ops; digital purchases retain their separate fulfillment path. Physical persistence failure returns 503 for retry.
 - Test card: `4242 4242 4242 4242`
 
-## Merch Ops and physical-order recovery (September 22, 2026)
+## Merch Ops, catalog and physical-order recovery (updated September 29, 2026)
 
 - **Shipping-first UI:** `MerchDashboard.tsx` + scoped `MerchDashboard.module.css` use the project UI-designer guidance and Daisy Chain design tokens. Unshipped is the client/API default. Use quiet section tabs, body typography for controls, one SVG select chevron with native keyboard behavior, and selection-only CSV actions. Generic shipping instructions belong in the SOP; order-specific payment/stock/address and duplicate-label warnings remain visible. No global font/token overrides or new component-library dependency. See [UI behavior and validation](MERCH-UI-2026-09-22.md).
 
-- Current recovery/deployment evidence: `ORDER-RECOVERY-2026-09-22.md`; daily use and unfinished catalog migration: `MERCH-ROLLOUT.md`. The September 14 implementation plan and review are historical references, not current activation status.
+- Current catalog/deployment evidence: `MERCH-PRODUCT-EDITOR-2026-09-29.md`; daily use: `MERCH-ROLLOUT.md`; earlier order recovery: `ORDER-RECOVERY-2026-09-22.md`. September 14/22 plans and reviews are historical references, not current activation instructions.
 - **Verified live:** PD applied the merch schema and optional-tracking migration and restored four paid physical website orders. Reconciliation found zero missing orders, zero duplicates and zero failures. Shipping remains unverified until manually checked in Pirate Ship. PR #24 merged as `6c6c6d60d709f248c9ce90a8db08944331be0918`; production UI and the first scheduled reconciliation (HTTP 200 at 19:15:34 UTC) are verified. Claude's follow-up verdict is SHIP; see `ORDER-RECOVERY-REVIEW-2026-09-22.md`.
 - `CRON_SECRET` is a sensitive Vercel variable and appears blank in local env exports; that does not mean it is absent in production. Verify scheduler execution before changing it.
-- **Catalog remains Shopify:** `MERCH_BACKEND` is unset. This flag selects catalog/checkout pricing, not whether physical orders persist in Ops. Product/image import, storage setup and opening stock are still pending. Do not enable the flag, treat Ops stock as authoritative, or cancel Shopify as part of order recovery.
+- **Catalog is Ops/Supabase:** production and dev preview have `MERCH_BACKEND=supabase`. This flag selects catalog/checkout pricing, not whether physical orders persist in Ops. Product/image import, public storage and opening stock are complete. Shopify cancellation is separate work and has not been performed.
 - `/ops/merch` opens on Unshipped, offers Shipped/All orders views, CSV export, manual shipped/unshipped controls, optional tracking and notes. Exported means a CSV was downloaded, not that a parcel shipped. No auto-refresh that could wipe forms. Shipping state changes do not email customers or change inventory.
 - Every paid physical checkout is processed before legacy event claiming, using session-idempotent SQL. Never return 2xx on a failed durable write. Shopify-era items come from Stripe snapshots with no inferred catalog mapping or Supabase inventory deduction; Supabase snapshots deduct stock transactionally.
 - `scripts/merch-reconcile.ts` audits full paginated Stripe history; `--apply` recovers missing orders and checks payment blocks. `/api/cron/merch-reconcile` invokes it hourly at minute 15 with `CRON_SECRET`. Reconciliation does not send customer confirmations. Preserve manual shipping decisions across retries.
 - Refunds/disputes hold unshipped orders; a reviewed partial refund can be explicitly released. Stock shortage resolution and returns remain manual. Test orders do not consume stock or export. Pirate Ship handles shipment emails.
 - All `/api/ops/merch/*` routes enforce Basic auth directly, reject cross-origin writes, and return no-store. Supabase anon/authenticated roles cannot access customer order tables or RPCs.
-- **Applied:** `scripts/merch-schema-2026-09-14.sql`, `scripts/merch-shipping-2026-09-22.sql`. Never rerun the create-table migration or full schema against production. **Pending:** `scripts/merch-storage-2026-09-14.sql`, catalog/image import, physical stock count and isolated purchase validation before catalog cutover.
-- Catalog importer dry run: `node --env-file=/path/to/env scripts/merch-import.mjs`; `--apply` imports reviewed products/images. Stable Shopify IDs/handles survive for saved carts and release links. Repeated import preserves stock but can overwrite product edits.
-- Tests: `npm run test:merch` uses isolated PostgreSQL/PGlite and signed-webhook fixtures. Browser setup: `tests/MERCH-BROWSER.md`. Dev shares production services; never test payments against shared live data or send fixture emails.
+- **Applied/configured:** merch schema, optional tracking, Bandcamp migration, public `merch-images` storage, catalog/image import and confirmed opening stock. Never rerun create-table/full schema or reset production inventory. No crop schema migration is needed; framing is optional image JSON metadata.
+- Catalog importer `scripts/merch-import.mjs` is retained for controlled recovery only. Stable imported Shopify IDs/handles survive for saved carts and release links. Repeated import can overwrite product edits; use Ops for routine product management.
+- Tests: `npm run test:merch` uses isolated PostgreSQL/PGlite and signed-webhook fixtures; `npm run test:merch-ui` covers product navigation, multi-size saves/retries, size/SKU editing and framing. Browser setup: `tests/MERCH-BROWSER.md`. Dev shares production services; never test payments against shared live data or send fixture emails.
 - Earlier deployment: PR #20 merged September 14 as `55eed88b09cc8d89de0930343dd6c49efcdf780a`; code deployment did not complete its database/catalog rollout. Its admin override was a one-time authorization, not a branch-policy change.
 
-## Shopify Integration (Physical Products)
+## Physical catalog and Shopify compatibility
 
-- **Storefront API** (`src/lib/shopify.ts`): fetches products, variants, images, inventory for the shop pages. Read-only, public token. Also used by release pages to fetch product photos for physical formats via `getProductByHandle()`.
+- **Active catalog** (`src/lib/merch/storefront.ts` → `catalog.ts`): reads Supabase products/variants for shop pages, homepage merchandise and physical release links. `src/lib/shopify.ts` remains the fallback when `MERCH_BACKEND` is not `supabase`; it is not the current source for edits or stock.
 - **Admin API** (`src/lib/shopify-admin.ts`): retained legacy helper; the physical webhook no longer calls it. Historical drafts may still exist and must be checked against Pirate Ship; they are not the current order source of truth.
-- **Release → Shopify linking**: Releases with physical formats have a `shopifyHandle` field in Sanity that maps to a Shopify product. Currently linked: Dream Disc CD (`dream-disc-cd`), and then i started floating vinyl (`and-then-i-started-floating-vinyl`).
+- **Release → physical product linking**: the existing Sanity `shopifyHandle` name is retained and resolves against the active catalog. Imported handles are preserved: Dream Disc CD (`dream-disc-cd`), and then i started floating vinyl (`and-then-i-started-floating-vinyl`).
 - **Flow**: Customer browses → adds to cart → Stripe Embedded Checkout (with shipping) → payment → webhook saves Supabase order → `/ops/merch` → Pirate Ship CSV → manual shipped status
 - **Shipping tiers**: Standard ($5.99, 5-7 days), Priority ($9.99, 2-3 days), International ($15.99, 7-14 days) — defined in `/api/checkout-physical`
 - Physical checkout does NOT require Supabase auth (guest checkout)
@@ -427,11 +434,11 @@ When the Stripe → Parcel Sound revenue pipeline gets built, per-track net sale
 - Clean CSS: removed dead classes, scoped all transitions, consistent font system, `animate-fade-in` keyframe for image transitions
 - Physical merch shop: product grid, detail pages, variant selection, cart, embedded Stripe checkout
 - Physical orders persist directly in Supabase Merch Ops; legacy Shopify draft creation is retired
-- Release ↔ Shopify product linking: `shopifyHandle` field on releases connects to Shopify products for physical format purchases
-- Physical format UX on release pages: cover art swaps to Shopify product photos (arrow nav + dots), "All physical purchases include downloadable digital files" note, Buy CD/Vinyl button adds to cart
+- Release ↔ physical product linking: `shopifyHandle` resolves against the active Supabase catalog for physical format purchases
+- Physical format UX on release pages: cover art swaps to catalog product photos (arrow nav + dots), "All physical purchases include downloadable digital files" note, Buy CD/Vinyl button adds to cart
 - Inline waveform layout: active track shows title/artist at normal size with waveform to the right (not stacked)
 - Stripe webhook handles digital fulfillment and retryable physical-order persistence in Supabase
-- Shopify Storefront API fully connected with real credentials
+- Ops product editing, per-size stock adjustments, DCM SKUs and thumbnail framing are live; Shopify credentials remain for legacy fallback
 - Newsletter signup (beehiiv integration): email form on homepage, POSTs to `/api/newsletter`, UTM-tracked as `daisychainsd.com / website / homepage_signup`
 - Homepage redesigned: responsive hero (`/public/hero-horizontal.png` ≥1280px, `/public/hero-vertical.png` <1280px), newsletter signup, then CMS-driven Upcoming section
 - Upcoming section: side-by-side at ≥1280px (matching horizontal hero breakpoint), stacked below. Left-aligned with fluid padding. Configured entirely from Sanity Studio → Homepage singleton
@@ -454,7 +461,7 @@ When the Stripe → Parcel Sound revenue pipeline gets built, per-track net sale
 - Sanity data fix: `trackArtists` added to DCR#18 "Cocky" (Mirror Maze, Niles) and DCR#18.5 "Cocky (Coido Remix)" (Mirror Maze, Niles, Coido) so per-track credits match release-level credits.
 - Sanity data fix: DCR#21 title corrected from "Sakima EP" to "Sakima / Melted EP".
 
-> The dated session entries below are historical. For current physical-order behavior, use the Merch Ops section and ORDER-RECOVERY-2026-09-22.md; older Shopify-draft notes are superseded.
+> The dated session entries below are historical. For current product and physical-order behavior, use the Merch Ops section, MERCH-ROLLOUT.md and MERCH-PRODUCT-EDITOR-2026-09-29.md. Older Shopify-draft and unfinished catalog-cutover notes are superseded.
 
 ### Session 1 (2026-04-22) — Daisy Chain Design System install + Homepage V2 port
 

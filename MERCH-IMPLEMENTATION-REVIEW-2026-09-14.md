@@ -1,5 +1,7 @@
 # Claude adversarial review: Merch Ops implementation
 
+> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+
 Actual Claude Code CLI reviewed the implementation with read-only Read/Glob/Grep tools. This is separate from the earlier draft review in MERCH-REVIEW-2026-09-14.md.
 
 ## Validation record

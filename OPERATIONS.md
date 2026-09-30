@@ -9,15 +9,15 @@ checkout, auto release-day promotion, and newsletter/SMS capture.
 
 ## Where it runs
 - Vercel (Next.js 16 App Router). Branch flow: work on `dev` → merge to `main` to go live.
-- Data: Supabase (auth, purchases, physical orders, download tokens) · Sanity (content) · Shopify (current merch catalog)
+- Data: Supabase (auth, purchases, physical orders, merch catalog/images/inventory, download tokens) · Sanity (content) · Shopify (legacy catalog fallback)
 
 ## Integrations at a glance
 | Service | Role | Failure impact |
 |---|---|---|
 | Stripe | All payments + fulfillment webhook | Nobody can buy anything (highest severity) |
-| Supabase | Auth, digital purchases, physical orders/fulfillment, guest tokens, pass | Logins/downloads fail; physical orders cannot appear in Ops |
+| Supabase | Auth, digital purchases, merch catalog/images/stock, physical orders/fulfillment, guest tokens, pass | Logins/downloads, shop and physical checkout fail; physical orders cannot appear in Ops |
 | Sanity | Releases/artists/events content | Site content frozen; release drops need manual flip |
-| Shopify Storefront | Current merch catalog and checkout pricing | Shop/physical checkout unavailable; recorded Ops orders remain accessible |
+| Shopify Storefront | Legacy catalog fallback; not the active storefront backend | Affects fallback/import tools; the active Supabase shop remains independent |
 | Beehiiv | Newsletter signups + auto-subscribe on purchase | Email capture stops (purchases unaffected) |
 | Laylo | SMS list from account signup | SMS capture stops (soft-fails) |
 | Resend | Download links, order confirmations, owner alerts | Guests don't get download emails — bad |
@@ -29,6 +29,8 @@ checkout, auto release-day promotion, and newsletter/SMS capture.
 Legacy/Shopify-era orders use Stripe's purchased line items and address, without decrementing Supabase inventory. Supabase checkout snapshots deduct inventory transactionally. Refunds/disputes hold unshipped physical orders; digital entitlement handling remains separate. A notification outage does not undo a saved physical order.
 
 **September 22 deployment status and evidence:** [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md). The schema, four-order backlog, reviewed code and first scheduled reconciliation are verified live after PR #24.
+
+**September 29 catalog activation:** [PR #28](https://github.com/daisychainsd/daisychain-site/pull/28) is live with `MERCH_BACKEND=supabase` in production and dev preview. Ops owns products, prices, images, sizes and stock. The release verified 14 products, 38 variants, DCM01–DCM38 and 384 opening units. See the [activation record](MERCH-PRODUCT-EDITOR-2026-09-29.md); counts can change with sales.
 
 ## Cron & webhooks
 - `GET /api/cron/release-day` — hourly (Vercel cron, Bearer `CRON_SECRET`).
@@ -46,22 +48,23 @@ Legacy/Shopify-era orders use Stripe's purchased line items and address, without
 4. Vercel → Logs for cron runs (hourly release-day).
 5. `[ALERT]` emails to playerdave@daisychainsd.com mean a purchase record
    failed — act immediately (buyer paid, got nothing).
-6. Ops → Physical orders health checks order storage even with the Shopify catalog active. `/ops/merch` is the complete paginated physical fulfillment list; the main dashboard's recent-orders panel is only a payment summary.
+6. Ops → Physical orders checks order storage independently of the catalog flag. The Merch health check verifies an active catalog and flags live held orders. `/ops/merch` is the complete paginated physical fulfillment list; the main dashboard's recent-orders panel is only a payment summary.
 7. Reconcile Stripe against Ops using the audit command below; missing records must not be dismissed because webhook deliveries returned 200.
 
 ## Env vars (Vercel; local via `vercel env pull`)
 Sanity: `NEXT_PUBLIC_SANITY_PROJECT_ID`, `NEXT_PUBLIC_SANITY_DATASET`,
-`SANITY_API_TOKEN`, `SANITY_WEBHOOK_SECRET` ·
+`SANITY_API_TOKEN`, `SANITY_READ_TOKEN`, `SANITY_WEBHOOK_SECRET` ·
 Stripe: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
 `STRIPE_WEBHOOK_SECRET` ·
 Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY` ·
-Shopify: `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`,
+Merch catalog: `MERCH_BACKEND=supabase` in production and dev preview ·
+Shopify fallback: `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`,
 `NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_STORE_DOMAIN`,
 `SHOPIFY_STOREFRONT_ACCESS_TOKEN`, `SHOPIFY_APP_CLIENT_ID`,
 `SHOPIFY_APP_CLIENT_SECRET` ·
 Email/SMS: `BEEHIIV_API_KEY`, `LAYLO_API_KEY`, `RESEND_API_KEY`, `ALERT_EMAIL` ·
-Misc: `CRON_SECRET`, `STUDIO_PASSWORD`.
+Misc: `CRON_SECRET`, `STUDIO_PASSWORD`, `OPS_PASSWORD`.
 
 The site can build without full configuration, but live payments and order storage require their keys. Missing `OPS_PASSWORD` fails closed; missing physical-order storage is an operational failure, not a completed order.
 
@@ -71,16 +74,17 @@ git clone https://github.com/daisychainsd/daisychain-site.git
 cd daisychain-site && npm install
 vercel env pull .env.local    # or get values from PD
 npm run dev                   # localhost:3000
-npm run build                 # run before merging to main — catches TS errors
+npm run test:merch             # isolated SQL/webhook/route fixtures
+npm run test:merch-ui          # isolated product-editor DOM checks
+npm run build                 # webpack production build, including TypeScript
 ```
-Work on `dev`, PR to `main`. Never merge to `main` without walking the
-purchase flow end-to-end.
+Push to `dev`, verify preview, then PR to `main` when going live is authorized. Verify purchase behavior with isolated fixtures; preview shares production Supabase and is not a disposable payment environment. The build command explicitly selects webpack after Vercel's September 29 Turbopack Google Font resolution failure.
 
 ## Ops dashboard
 - **URL**: https://www.daisychainsd.com/ops — HTTP basic auth (any username,
   password = `OPS_PASSWORD`). If `OPS_PASSWORD` is unset the route 404s (fail
   closed). Gate lives in `src/proxy.ts`, covering `/ops` and `/api/ops`.
-- **Panels**: Health (dc-email-api, Stripe, Supabase, Sanity, Physical orders, Shopify/catalog —
+- **Panels**: Health (dc-email-api, Stripe, Supabase, Sanity, Physical orders, Merch —
   shared checks in `src/lib/ops-health.ts`), Orders (last 10 Stripe charges +
   30-day revenue), Email (dc-email-api `/api/status`: subscriber count, last
   post, sync cursors, Laylo webhook age), Upcoming (Sanity events with a
@@ -112,7 +116,7 @@ node --env-file=/path/to/production.env --import tsx scripts/merch-reconcile.ts
 node --env-file=/path/to/production.env --import tsx scripts/merch-reconcile.ts --apply
 ```
 
-The September 14 merch schema and September 22 optional-tracking migration are already applied in production. Do not rerun the create-table migration or the full `supabase-schema.sql`. The product-image storage migration, catalog import and opening counts are separate remaining work.
+The September 14 merch schema and September 22 optional-tracking/Bandcamp migrations are already applied in production. The public product-image bucket, catalog import and opening counts were completed September 29. Do not rerun the create-table migration, full `supabase-schema.sql`, full catalog import or opening-stock setup against production. Routine changes belong in Ops; preserve current counts and product edits.
 
 The optional `--output=/private/path` writes recovery JSON and a Pirate Ship CSV with customer addresses. Keep them outside Git and reconcile shipping/payment status before using them. Recovery CSV references differ from final Ops order numbers. These commands cover physical **website Stripe Checkout** orders, not independent Shopify-native or booth sales. Bandcamp physical orders use the separate reconciliation below.
 
