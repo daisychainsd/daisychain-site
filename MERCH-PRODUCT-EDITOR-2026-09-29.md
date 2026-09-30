@@ -1,10 +1,18 @@
 # Product inventory editor — September 29, 2026
 
+## Live verification — September 29, 2026, 10:46pm PT
+
+Released through [PR #28](https://github.com/daisychainsd/daisychain-site/pull/28), merge `a4ded457956029c122616813a60f2024d074610d`. PD explicitly authorized the owner override for GitHub's one-review requirement. Production deployment `dpl_etGeB97pezUvB44v3qnB8tLVtomU` is Ready. Both production and dev preview use `MERCH_BACKEND=supabase`.
+
+Verified https://www.daisychainsd.com in Chromium: staple tee's five sizes and $45 price; Holy Cobra/grey tee $27 and brown hoodie $39; all 14 Ops product cards with fully decoded images; thumbnail zoom and positioning; no mobile overflow or browser runtime errors. Verification blocked API mutations and did not create a payment or change inventory. All 384 opening units, 38 unique DCM SKUs and the replacement photo were verified before cutover. Future stock may decrease with purchases; never replay opening counts with new request IDs.
+
+The release is complete. Earlier pending-access/data/deployment notes below are historical.
+
 ## Release progress (supersedes earlier pending-data notes)
 
 Network approvals restored. Applied and independently verified all 384 opening units, 38 unique DCM SKUs, the replacement 1400px staple photo, and the three 40% price reductions. Staple tee is now active in the Ops catalog. Preview MERCH_BACKEND is supabase; production cutover is pending preview verification. Both isolated Playwright desktop/mobile flows passed, including unknown-response retries. Local production build passed with webpack. Vercel's Turbopack preview failed resolving its internal Google Font module; the build command now explicitly uses the verified webpack compiler.
 
-Local branch: `feature/product-inventory-editor`. Not deployed.
+Implementation branch: `feature/product-inventory-editor`; released through dev to main as recorded above.
 
 The Inventory and Products tabs now open a thumbnail grid. Each product opens its own size rows, current stock, quantity adjustments and projected totals. One action saves all entered size adjustments. Confirmed rows clear individually; interrupted requests retain their idempotency keys. An unknown response locks navigation until safely retried. The product details screen supports adding/renaming sizes and generates sequential DCM SKUs, inheriting the product's existing price for new sizes. Card actions have a dedicated, bottom-aligned row with 20px separation.
 
