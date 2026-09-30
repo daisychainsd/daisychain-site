@@ -1,5 +1,9 @@
 # Product inventory editor — September 29, 2026
 
+## Release progress (supersedes earlier pending-data notes)
+
+Network approvals restored. Applied and independently verified all 384 opening units, 38 unique DCM SKUs, the replacement 1400px staple photo, and the three 40% price reductions. Staple tee is now active in the Ops catalog. Preview MERCH_BACKEND is supabase; production cutover is pending preview verification. Both isolated Playwright desktop/mobile flows passed, including unknown-response retries. Local production build passed with webpack. Vercel's Turbopack preview failed resolving its internal Google Font module; the build command now explicitly uses the verified webpack compiler.
+
 Local branch: `feature/product-inventory-editor`. Not deployed.
 
 The Inventory and Products tabs now open a thumbnail grid. Each product opens its own size rows, current stock, quantity adjustments and projected totals. One action saves all entered size adjustments. Confirmed rows clear individually; interrupted requests retain their idempotency keys. An unknown response locks navigation until safely retried. The product details screen supports adding/renaming sizes and generates sequential DCM SKUs, inheriting the product's existing price for new sizes. Card actions have a dedicated, bottom-aligned row with 20px separation.
