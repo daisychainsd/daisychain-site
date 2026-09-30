@@ -1,5 +1,6 @@
 "use client";
 
+import { thumbnailStyle } from "@/lib/merch/thumbnail";
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
@@ -73,7 +74,7 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
                 <img
                   src={images[selectedImageIndex].url}
                   alt={images[selectedImageIndex].altText || product.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-text-muted text-2xl bg-bg-raised">
@@ -97,7 +98,8 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
                     <img
                       src={img.url}
                       alt={img.altText || `${product.title} image ${i + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full"
+                      style={thumbnailStyle(img.thumbnailCrop)}
                     />
                   </button>
                 ))}

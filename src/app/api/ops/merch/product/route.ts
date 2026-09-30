@@ -1,3 +1,4 @@
+import { isThumbnailCrop } from "@/lib/merch/thumbnail";
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireOps, opsError, OpsRequestError } from "@/lib/merch/auth";
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
     });
     if (new Set(variants.map((v) => v.id)).size !== variants.length) throw new OpsRequestError("Duplicate variant");
     for (const image of p.images) {
+      if (image.thumbnailCrop != null && !isThumbnailCrop(image.thumbnailCrop)) throw new OpsRequestError("Thumbnail zoom must be 1–3 and positions must be 0–100");
       if (typeof image.url !== "string" || image.url.length > 2000 || !/^https:\/\//.test(image.url) ||
         (image.altText != null && typeof image.altText !== "string")) throw new OpsRequestError("Invalid image URL");
     }

@@ -1,8 +1,11 @@
+export interface ThumbnailCrop { zoom: number; x: number; y: number }
+
 export interface MerchImage {
   url: string;
   altText: string | null;
   width: number;
   height: number;
+  thumbnailCrop?: ThumbnailCrop;
 }
 
 export interface MerchVariant {

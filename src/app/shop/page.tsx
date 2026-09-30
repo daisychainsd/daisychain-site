@@ -1,3 +1,4 @@
+import { thumbnailStyle } from "@/lib/merch/thumbnail";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getProducts } from "@/lib/merch/storefront";
@@ -52,7 +53,8 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
               alt={image.altText || product.title}
               loading="lazy"
               decoding="async"
-              className="absolute inset-0 w-full h-full object-cover image-hover-card-zoom"
+              className="absolute inset-0 w-full h-full"
+              style={thumbnailStyle(image.thumbnailCrop)}
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-text-muted text-xs p-4 text-center">
