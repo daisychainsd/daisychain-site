@@ -43,26 +43,27 @@ const assert = require('node:assert/strict');
   await page.getByRole('button',{name:'Mark shipped',exact:true}).waitFor();
   assert.equal(order.fulfillment_status,'on_hold','Previously exported orders must be reviewed before another label');
   await page.getByRole('button',{name:'Inventory',exact:true}).click();
-  await page.getByLabel('Quantity change').fill('-3'); await page.getByLabel('Reason',{exact:true}).fill('Fixture booth sales');
+  await page.getByRole('button',{name:'Manage Daisy Chain Tee',exact:true}).click();
+  await page.getByLabel('Quantity change for M').fill('-3'); await page.getByLabel('Reason',{exact:true}).fill('Fixture booth sales');
   if (unknownOutcome) {
-  await page.getByRole('button',{name:'Save adjustment'}).click();
+  await page.getByRole('button',{name:'Save stock changes'}).click();
   await page.getByRole('alert').waitFor();
-  await page.getByRole('button',{name:'Save adjustment'}).click();
-  await page.getByRole('status').filter({hasText:'Saved.'}).waitFor();
+  await page.getByRole('button',{name:'Retry remaining changes'}).click();
+  await page.getByRole('status').filter({hasText:'Stock saved'}).waitFor();
   assert.equal(adjustmentKeys[0],adjustmentKeys[1], 'Unknown write outcome must reuse request key');
   } else {
-  await page.getByRole('button',{name:'Save adjustment'}).click();
-  await page.getByRole('status').filter({hasText:'Saved, but the list did not refresh'}).waitFor();
-  assert.equal(await page.getByLabel('Quantity change').inputValue(),'');
+  await page.getByRole('button',{name:'Save stock changes'}).click();
+  await page.getByRole('status').filter({hasText:'Recent activity could not refresh'}).waitFor();
+  assert.equal(await page.getByLabel('Quantity change for M').inputValue(),'');
   assert.equal(adjustmentKeys.length,1);
   await page.getByRole('button',{name:'Refresh',exact:true}).click();
-  await page.getByLabel('Quantity change').fill('-3'); await page.getByLabel('Reason',{exact:true}).fill('Fixture booth sales');
-  await page.getByRole('button',{name:'Save adjustment'}).click();
-  await page.getByRole('status').filter({hasText:'Saved.'}).waitFor();
+  await page.getByLabel('Quantity change for M').fill('-3'); await page.getByLabel('Reason',{exact:true}).fill('Fixture booth sales');
+  await page.getByRole('button',{name:'Save stock changes'}).click();
+  await page.getByRole('status').filter({hasText:'Stock saved'}).waitFor();
   assert.notEqual(adjustmentKeys[0],adjustmentKeys[1], 'A confirmed save must allow a later identical intentional adjustment');
   }
   assert.equal(adjustment.delta,-3);assert.equal(adjustment.variantId,'v1');
-  await page.getByRole('button',{name:'Products',exact:true}).click(); await page.getByRole('button',{name:'Edit product'}).click();
+  await page.getByRole('button',{name:'Products',exact:true}).click(); await page.getByRole('button',{name:'Edit product & sizes'}).click();
   await page.getByLabel('Name',{exact:true}).waitFor(); assert.equal(await page.getByLabel('Name',{exact:true}).inputValue(),'Daisy Chain Tee');
   await page.getByRole('button',{name:'Close',exact:true}).click();
   await page.setViewportSize({width:390,height:844}); await page.getByRole('button',{name:'Orders',exact:true}).click();

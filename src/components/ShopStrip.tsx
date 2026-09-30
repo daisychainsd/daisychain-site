@@ -1,3 +1,4 @@
+import { thumbnailStyle } from "@/lib/merch/thumbnail";
 import Link from "next/link";
 import { getProducts } from "@/lib/merch/storefront";
 import type { MerchProduct } from "@/lib/merch/types";
@@ -82,7 +83,8 @@ export default async function ShopStrip({ limit = 4 }: { limit?: number }) {
                     alt={img.altText || product.title}
                     loading="lazy"
                     decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover image-hover-card-zoom"
+                    className="absolute inset-0 w-full h-full"
+              style={thumbnailStyle(img.thumbnailCrop)}
                   />
                 ) : null}
                 {isNew && (

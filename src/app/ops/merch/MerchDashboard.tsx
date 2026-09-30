@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import styles from "./MerchDashboard.module.css";
+import ThumbnailCropEditor from "./ThumbnailCropEditor";
+import ProductInventory, { ProductThumbnail } from "./ProductInventory";
 import { canExport } from "@/lib/merch/csv";
 import { orderLabel, type CatalogProduct, type MerchOrder } from "@/lib/merch/types";
 
@@ -25,6 +27,8 @@ export default function MerchDashboard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [inventoryLocked, setInventoryLocked] = useState(false);
   const [editing, setEditing] = useState<CatalogProduct | null>(null);
   const retryKeys = useRef(new Map<string, string>());
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -66,7 +70,8 @@ export default function MerchDashboard() {
     finally { setBusy(false); }
   }
 
-  const variants = data?.products.flatMap((p) => p.merch_variants.map((v) => ({ ...v, productTitle: p.title }))) ?? [];
+  const nextSkuNumber = Math.max(0, ...(data?.products.flatMap(p => p.merch_variants.map(v => /^DCM[0-9]+$/.test(v.sku) ? Number(v.sku.slice(3)) : 0)) ?? [])) + 1;
+  const selectedProduct = data?.products.find(p => p.id === selectedProductId);
   const eligible = data?.orders.filter(canExport) ?? [];
   const filterStatus = (value: string) => { setStatus(value); setPage(0); setSelection([]); };
   const selectedExported = data?.orders.some(o => selection.includes(o.id) && o.exported_at);
@@ -75,10 +80,10 @@ export default function MerchDashboard() {
     <Link href="/ops" className={styles.back}><Icon name="back" />Ops</Link>
     <header className={styles.header}>
       <div><p className={styles.eyebrow}>Daisy Chain / Fulfillment</p><h1 className={styles.title}>Merch</h1></div>
-      <button className={button} disabled={busy} onClick={() => { setError(""); load().catch((e) => setError(e.message)); }}><Icon name="refresh" />Refresh</button>
+      <button className={button} disabled={busy || inventoryLocked} onClick={() => { setError(""); load().catch((e) => setError(e.message)); }}><Icon name="refresh" />Refresh</button>
     </header>
     <nav className={styles.navigation} aria-label="Merch sections">
-      {["orders", "inventory", "products"].map(t => <button key={t} aria-current={tab === t ? "page" : undefined} onClick={() => { setTab(t); setSelection([]); }}>{t[0].toUpperCase() + t.slice(1)}</button>)}
+      {["orders", "inventory", "products"].map(t => <button key={t} disabled={busy || inventoryLocked} aria-current={tab === t ? "page" : undefined} onClick={() => { setTab(t); setSelection([]); setEditing(null); }}>{t[0].toUpperCase() + t.slice(1)}</button>)}
     </nav>
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {message && <p role="status" className={styles.message}>{message}</p>}
@@ -124,27 +129,24 @@ export default function MerchDashboard() {
       </div>}
       {(page > 0 || data.orders.length === 50) && <div className={styles.pagination}><button className={button} disabled={!page || busy} onClick={() => setPage(page - 1)}>Previous</button><span>Page {page + 1}</span><button className={button} disabled={data.orders.length < 50 || busy} onClick={() => setPage(page + 1)}>Next</button></div>}
     </>}
-    {data && tab === "inventory" && <>
-      <section className="container-organic p-6 mb-6">
-        <h2 className="uppercase text-title mb-3">Adjust inventory</h2>
-        <p className="text-text-secondary text-sm mb-5">Record a restock, return, booth sale or count correction.</p>
-        <form className="grid md:grid-cols-4 gap-4 items-end" onSubmit={async (e) => {
-          e.preventDefault(); const form = e.currentTarget; const f = new FormData(form);
-          if (await action("inventory", { variantId: f.get("variantId"), delta: Number(f.get("delta")), reason: f.get("reason") })) form.reset();
-        }}>
-          <label className="text-sm md:col-span-2">Item<div className={styles.selectControl}><select required name="variantId" aria-label="Item">{variants.map((v) => <option key={v.id} value={v.id}>{v.productTitle} / {v.title} ({v.stock})</option>)}</select><Icon name="chevron" /></div></label>
-          <label className="text-sm">Quantity change<input required name="delta" type="number" step="1" min="-100000" max="100000" placeholder="−3 or +10" className={input} /></label>
-          <label className="text-sm md:col-span-3">Reason<input required name="reason" maxLength={300} placeholder="Booth sales — show/date, restock, or count correction" className={input} /></label>
-          <button className={primary} disabled={busy || !variants.length}>Save adjustment</button>
-        </form>
-      </section>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">{variants.map((v) => <div key={v.id} className="container-organic p-5 min-w-0"><p className="font-semibold m-0">{v.productTitle}</p><p className="text-text-secondary text-sm">{v.title} · {v.sku || "No SKU"}</p><p className={`font-mono text-2xl m-0 ${v.stock <= 0 ? "text-red-400" : "text-blue-300"}`}>{v.stock} <span className="text-sm">remaining</span></p>{!v.active && <span className="text-text-secondary text-xs">Hidden variant</span>}</div>)}</div>
-      <section className="container-organic p-6"><h2 className="uppercase text-title mb-4">Recent adjustments</h2>{data.adjustments.map((a) => <div key={a.id} className="border-t border-white/[0.06] py-3 flex flex-wrap gap-x-4 gap-y-1 text-sm"><span className="font-mono text-blue-300">{a.quantity_delta > 0 ? "+" : ""}{a.quantity_delta}</span><span>{variants.find((v) => v.id === a.variant_id)?.productTitle} / {variants.find((v) => v.id === a.variant_id)?.title}</span><span className="text-text-secondary">{a.reason}</span><span className="font-mono text-text-secondary ml-auto">{date(a.created_at)} PT</span></div>)}{!data.adjustments.length && <p className="text-text-secondary">No adjustments yet.</p>}</section>
-    </>}
-    {data && tab === "products" && <>
-      <button className={`${primary} mb-5`} disabled={busy} onClick={() => setEditing({ id: `merch-product-${crypto.randomUUID()}`, handle: "", title: "", description: "", product_type: "", active: false, images: [], options: [], tags: [], merch_variants: [] })}>Add product</button>
-      {editing && <ProductEditor key={editing.id} product={editing} busy={busy} close={() => setEditing(null)} save={async (product) => { if (await action("product", product)) setEditing(null); }} />}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{data.products.map((p) => <div key={p.id} className="container-organic p-5 min-w-0">{p.images[0] && <img src={p.images[0].url} alt={p.title} className="container-inset-md w-full aspect-square object-cover mb-4" />}<h2 className="uppercase text-lg">{p.title}</h2><p className="text-text-secondary text-sm">{p.active ? "Published" : "Hidden"} · {p.merch_variants.length} variants</p><button className={button} onClick={() => setEditing(p)}>Edit product</button></div>)}</div>
+    {data && (tab === "inventory" || tab === "products") && <>
+      {selectedProduct || editing ? <>
+        <button className={`${button} mb-5`} disabled={busy || inventoryLocked} onClick={() => { setSelectedProductId(null); setEditing(null); setError(""); setMessage(""); }}><Icon name="back" />All products</button>
+        {editing ? <ProductEditor key={editing.id} product={editing} nextSkuNumber={nextSkuNumber} busy={busy} close={() => setEditing(null)} save={async (product) => { if (await action("product", product)) { setSelectedProductId(product.id); setEditing(null); } }} /> : selectedProduct &&
+          <ProductInventory key={selectedProduct.id} product={selectedProduct} adjustments={data.adjustments.filter(a => selectedProduct.merch_variants.some(v => v.id === a.variant_id))}
+            edit={() => setEditing(selectedProduct)} lock={setInventoryLocked} refresh={load}
+            stockSaved={(variantId, stock) => setData(current => current && ({ ...current, products: current.products.map(p => p.id === selectedProduct.id ? { ...p, merch_variants: p.merch_variants.map(v => v.id === variantId ? { ...v, stock } : v) } : p) }))} />}
+      </> : <>
+        <div className={styles.toolbar}>
+          <div><h2 className="uppercase text-title m-0">{tab === "inventory" ? "Inventory by product" : "Products"}</h2><p className="text-text-secondary text-sm mt-2 mb-0">Choose a product to manage its sizes and stock.</p></div>
+          <button className={button} disabled={busy} onClick={() => setEditing({ id: `merch-product-${crypto.randomUUID()}`, handle: "", title: "", description: "", product_type: "", active: false, images: [], options: [], tags: [], merch_variants: [] })}>Add product</button>
+        </div>
+        <div className={styles.productGrid}>{data.products.map(p => <button key={p.id} className={styles.productCard} onClick={() => { setSelectedProductId(p.id); setError(""); setMessage(""); }} aria-label={`Manage ${p.title}`}>
+          <ProductThumbnail product={p} />
+          <span className={styles.productCardBody}><strong>{p.title}</strong><span>{p.merch_variants.length} sizes / options · {p.merch_variants.reduce((total, v) => total + v.stock, 0)} in stock</span><span className={styles.productCardFooter}><span>{p.active ? "Active" : "Hidden"}</span><span className={styles.productCardAction}>Edit product →</span></span></span>
+        </button>)}</div>
+        {!data.products.length && <div className={styles.empty}><Icon name="package" /><p>No products yet. Add your first product to get started.</p></div>}
+      </>}
     </>}
   </div>;
 }
@@ -226,7 +228,7 @@ function OrderCard({ order: o, selected, select, save, review, busy }: { order: 
   </article>;
 }
 
-function ProductEditor({ product, save, close, busy }: { product: CatalogProduct; save: (p: CatalogProduct) => Promise<void>; close: () => void; busy: boolean }) {
+function ProductEditor({ product, nextSkuNumber, save, close, busy }: { product: CatalogProduct; nextSkuNumber: number; save: (p: CatalogProduct) => Promise<void>; close: () => void; busy: boolean }) {
   const [p, setP] = useState(() => structuredClone(product));
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -243,8 +245,8 @@ function ProductEditor({ product, save, close, busy }: { product: CatalogProduct
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed"); }
     finally { setUploading(false); }
   }
-  return <form className="container-organic p-6 mb-6 space-y-4" onSubmit={(e) => { e.preventDefault(); save(p); }}>
-    <h2 className="uppercase text-title">Edit product</h2>
+  return <form className="container-organic p-6 mb-6 space-y-4" onSubmit={(e) => { e.preventDefault(); if (new Set(p.merch_variants.map(v => v.title.trim().toLowerCase())).size !== p.merch_variants.length) { setError("Each size or option needs a different name."); return; } save(p); }}>
+    <div className={styles.productHeading}><div className={styles.productHeadingImage}><ProductThumbnail product={p} /></div><div><p className={styles.eyebrow}>Product details</p><h2 className="uppercase text-title">{p.title || "New product"}</h2></div></div>
     {error && <p role="alert" className="text-red-400">{error}</p>}
     <div className="grid sm:grid-cols-2 gap-4"><label className="text-sm">Name<input required value={p.title} onChange={(e) => setP({ ...p, title: e.target.value })} className={input} /></label><label className="text-sm">URL handle<input required pattern="[a-z0-9][a-z0-9-]*" value={p.handle} onChange={(e) => setP({ ...p, handle: e.target.value })} className={input} /></label></div>
     <label className="block text-sm">Description<textarea value={p.description} onChange={(e) => setP({ ...p, description: e.target.value })} className={input} /></label>
@@ -252,18 +254,22 @@ function ProductEditor({ product, save, close, busy }: { product: CatalogProduct
     <label className="flex gap-2 text-sm"><input type="checkbox" checked={p.active} onChange={(e) => setP({ ...p, active: e.target.checked })} />Published in shop</label>
     <div className="flex flex-wrap gap-4">{p.images.map((image, i) => <div key={image.url} className="w-24"><img src={image.url} alt={image.altText ?? p.title} className="w-24 h-24 object-cover container-inset-md" /><button type="button" className="text-sm text-text-secondary mt-2" onClick={() => setP({ ...p, images: p.images.filter((_, j) => j !== i) })}>Remove</button></div>)}</div>
     <label className="block text-sm">Add image (JPG, PNG or WebP, up to 4 MB)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} onChange={upload} className="block mt-2" /></label>
-    <h3 className="uppercase text-base">Variants</h3>
+    {p.images[0] && <ThumbnailCropEditor image={p.images[0]} change={image => setP({ ...p, images: [image, ...p.images.slice(1)] })} />}
+    <h3 className="uppercase text-base">Sizes & options</h3>
     {p.merch_variants.map((v, index) => <div key={v.id} className="grid sm:grid-cols-4 items-end gap-3 border-t border-white/[0.06] pt-3">
-      <div className="text-sm">{v.title}</div>
+      <label className="text-sm">Size / option<input required value={v.title} className={input} onChange={e => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, title: e.target.value, selected_options: item.selected_options.length === 1 ? [{ ...item.selected_options[0], value: e.target.value }] : item.selected_options } : item) })} /></label>
       <label className="text-sm">Price ($)<input type="number" step="0.01" min="0.01" required defaultValue={(v.price_cents / 100).toFixed(2)} className={input} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, price_cents: Math.round(Number(e.target.value) * 100) } : item) })} /></label>
       <label className="text-sm">SKU<input value={v.sku} className={input} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, sku: e.target.value } : item) })} /></label>
       <label className="text-sm flex gap-2 p-3"><input type="checkbox" checked={v.active} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, active: e.target.checked } : item) })} />Available in shop</label>
     </div>)}
-    <div className="flex flex-wrap gap-3 items-end"><label className="text-sm">New variant label<input id={`variant-${p.id}`} placeholder="M, L, or Default Title" className={input} /></label><button type="button" className={button} onClick={() => {
+    <div className="flex flex-wrap gap-3 items-end"><label className="text-sm">New size / option<input id={`variant-${p.id}`} placeholder="M, L, or Default Title" className={input} /></label><button type="button" className={button} onClick={() => {
       const el = document.getElementById(`variant-${p.id}`) as HTMLInputElement; const title = el.value.trim(); if (!title) return;
-      setP({ ...p, merch_variants: [...p.merch_variants, { id: `merch-variant-${crypto.randomUUID()}`, product_id: p.id, title, sku: "", price_cents: 2500, currency: "usd", stock: 0, active: true, sort_order: p.merch_variants.length, selected_options: [{ name: p.options[0]?.name ?? "Option", value: title }] }] }); el.value = "";
-    }}>Add variant</button></div>
-    <p className="text-text-secondary text-sm">New variants start at zero stock. Set the opening count under Inventory after saving.</p>
+      if (p.merch_variants.some(v => v.title.trim().toLowerCase() === title.toLowerCase())) { setError("That size or option already exists."); return; }
+      setError("");
+      const skuNumber = Math.max(nextSkuNumber, ...p.merch_variants.map(v => /^DCM[0-9]+$/.test(v.sku) ? Number(v.sku.slice(3)) + 1 : 1));
+      setP({ ...p, merch_variants: [...p.merch_variants, { id: `merch-variant-${crypto.randomUUID()}`, product_id: p.id, title, sku: `DCM${String(skuNumber).padStart(2, "0")}`, price_cents: p.merch_variants[0]?.price_cents ?? 4500, currency: "usd", stock: 0, active: true, sort_order: p.merch_variants.length, selected_options: [{ name: p.options[0]?.name ?? "Size", value: title }] }] }); el.value = "";
+    }}>Add size / option</button></div>
+    <p className="text-text-secondary text-sm">New variants start at zero stock. Save the product, then enter stock for each size.</p>
     <div className="flex gap-3"><button disabled={busy || uploading || !p.merch_variants.length} className={primary}>Save product</button><button type="button" className={button} onClick={close}>Close</button></div>
   </form>;
 }
