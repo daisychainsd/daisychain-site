@@ -17,8 +17,9 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
-    if (variants[0]) {
-      for (const opt of variants[0].selectedOptions) {
+    const initialVariant = variants.find(v => v.availableForSale) ?? variants[0];
+    if (initialVariant) {
+      for (const opt of initialVariant.selectedOptions) {
         initial[opt.name] = opt.value;
       }
     }

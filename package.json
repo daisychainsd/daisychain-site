@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:merch": "node --import tsx --test tests/merch.test.ts tests/bandcamp.test.ts tests/merch-discounts.test.ts",
-    "test:merch-ui": "node --test tests/product-editor.test.mjs tests/merch-placement-ui.test.mjs"
+    "test:merch-ui": "node --test tests/product-editor.test.mjs tests/merch-placement-ui.test.mjs tests/merch-storefront-ui.test.mjs"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.3",
