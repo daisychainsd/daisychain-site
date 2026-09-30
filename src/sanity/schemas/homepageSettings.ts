@@ -6,6 +6,8 @@ export const homepageSettings = defineType({
   type: "document",
   liveEdit: true,
   fields: [
+    defineField({ name: "merch", title: "Homepage shop products", type: "merchSelection",
+      description: "Choose the featured products on the homepage. Automatic mode shows the first four products." }),
     defineField({
       name: "latestRelease",
       title: "Latest Release",

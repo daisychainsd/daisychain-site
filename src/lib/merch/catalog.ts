@@ -19,6 +19,7 @@ function storefrontProduct(p: CatalogProduct): MerchProduct {
     description: p.description, descriptionHtml: "", productType: p.product_type,
     tags: p.tags, options: p.options,
     availableForSale: variants.some((v) => v.stock > 0),
+    discountPercent: p.discount_percent ?? 0,
     priceRange: {
       minVariantPrice: price(prices.length ? Math.min(...prices) : 0),
       maxVariantPrice: price(prices.length ? Math.max(...prices) : 0),
@@ -27,6 +28,7 @@ function storefrontProduct(p: CatalogProduct): MerchProduct {
     variants: { edges: variants.map((v) => ({ node: {
       id: v.id, title: v.title, selectedOptions: v.selected_options,
       availableForSale: v.stock > 0, price: price(v.price_cents),
+      compareAtPrice: v.compare_at_price_cents ? price(v.compare_at_price_cents) : null,
     } })) },
   };
 }

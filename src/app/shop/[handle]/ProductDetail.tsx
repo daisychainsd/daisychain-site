@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import type { MerchProduct } from "@/lib/merch/types";
+import MerchPrice from "@/components/MerchPrice";
 
 export default function ProductDetail({ product }: { product: MerchProduct }) {
   const { addItem } = useCart();
@@ -115,9 +116,11 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
               )}
               <h1 className="text-headline mb-2">{product.title}</h1>
 
-              <p className="text-2xl text-blue-300 font-semibold mb-6">
-                {selectedVariant ? `$${price.toFixed(2)}` : "Unavailable"}
-              </p>
+              <div className="mb-6" aria-live="polite" aria-atomic="true">
+                {selectedVariant ? (
+                  <MerchPrice price={price} compareAtPrice={selectedVariant.compareAtPrice ? Number(selectedVariant.compareAtPrice.amount) : undefined} discountPercent={product.discountPercent} currency={selectedVariant.price.currencyCode} large />
+                ) : "Unavailable"}
+              </div>
 
               {/* Variant Options */}
               {hasVariants && (

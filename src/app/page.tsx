@@ -11,6 +11,7 @@ import SectionHeader from "@/components/SectionHeader";
 import Link from "next/link";
 import LayloModal from "@/components/LayloModal";
 import { ArrowIcon } from "@/components/icons";
+import type { MerchSelection } from "@/lib/merch/placement";
 
 export const revalidate = 60;
 
@@ -44,6 +45,7 @@ interface UpcomingItem {
 }
 
 interface HomepageSettings {
+  merch?: MerchSelection;
   latestRelease?: LatestReleaseData | null;
   upcoming?: UpcomingItem[];
 }
@@ -253,7 +255,7 @@ export default async function HomePage() {
 
       {!prioritizeLatestRelease && <ReleaseSpotlight release={latest} />}
 
-      <ShopStrip />
+      <ShopStrip selection={settings?.merch} />
     </>
   );
 }

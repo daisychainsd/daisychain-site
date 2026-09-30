@@ -6,7 +6,9 @@ import styles from "./MerchDashboard.module.css";
 import ThumbnailCropEditor from "./ThumbnailCropEditor";
 import ProductInventory, { ProductThumbnail } from "./ProductInventory";
 import { canExport } from "@/lib/merch/csv";
-import { orderLabel, type CatalogProduct, type MerchOrder } from "@/lib/merch/types";
+import { orderLabel, type CatalogProduct, type MerchOrder, type ProductEditInput } from "@/lib/merch/types";
+import { discountedCents } from "@/lib/merch/sale";
+import MerchPrice from "@/components/MerchPrice";
 
 const input = styles.input;
 const button = styles.button;
@@ -228,8 +230,12 @@ function OrderCard({ order: o, selected, select, save, review, busy }: { order: 
   </article>;
 }
 
-function ProductEditor({ product, nextSkuNumber, save, close, busy }: { product: CatalogProduct; nextSkuNumber: number; save: (p: CatalogProduct) => Promise<void>; close: () => void; busy: boolean }) {
-  const [p, setP] = useState(() => structuredClone(product));
+function ProductEditor({ product, nextSkuNumber, save, close, busy }: { product: CatalogProduct; nextSkuNumber: number; save: (p: ProductEditInput) => Promise<void>; close: () => void; busy: boolean }) {
+  // Inputs edit the regular price, never an already discounted one.
+  const [p, setP] = useState(() => ({ ...structuredClone(product), discount_percent: product.discount_percent ?? 0,
+    merch_variants: product.merch_variants.map(v => ({ ...structuredClone(v), price_cents: v.compare_at_price_cents ?? v.price_cents })) }));
+  const [discountEnabled, setDiscountEnabled] = useState((product.discount_percent ?? 0) > 0);
+  const lastDiscountPercent = useRef(product.discount_percent || 40);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   async function upload(e: FormEvent<HTMLInputElement>) {
@@ -245,7 +251,7 @@ function ProductEditor({ product, nextSkuNumber, save, close, busy }: { product:
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed"); }
     finally { setUploading(false); }
   }
-  return <form className="container-organic p-6 mb-6 space-y-4" onSubmit={(e) => { e.preventDefault(); if (new Set(p.merch_variants.map(v => v.title.trim().toLowerCase())).size !== p.merch_variants.length) { setError("Each size or option needs a different name."); return; } save(p); }}>
+  return <form className="container-organic p-6 mb-6 space-y-4" onSubmit={(e) => { e.preventDefault(); if (new Set(p.merch_variants.map(v => v.title.trim().toLowerCase())).size !== p.merch_variants.length) { setError("Each size or option needs a different name."); return; } save({ ...p, merch_variants: p.merch_variants.map(v => ({ ...v, regular_price_cents: v.price_cents })) }); }}>
     <div className={styles.productHeading}><div className={styles.productHeadingImage}><ProductThumbnail product={p} /></div><div><p className={styles.eyebrow}>Product details</p><h2 className="uppercase text-title">{p.title || "New product"}</h2></div></div>
     {error && <p role="alert" className="text-red-400">{error}</p>}
     <div className="grid sm:grid-cols-2 gap-4"><label className="text-sm">Name<input required value={p.title} onChange={(e) => setP({ ...p, title: e.target.value })} className={input} /></label><label className="text-sm">URL handle<input required pattern="[a-z0-9][a-z0-9-]*" value={p.handle} onChange={(e) => setP({ ...p, handle: e.target.value })} className={input} /></label></div>
@@ -258,7 +264,7 @@ function ProductEditor({ product, nextSkuNumber, save, close, busy }: { product:
     <h3 className="uppercase text-base">Sizes & options</h3>
     {p.merch_variants.map((v, index) => <div key={v.id} className="grid sm:grid-cols-4 items-end gap-3 border-t border-white/[0.06] pt-3">
       <label className="text-sm">Size / option<input required value={v.title} className={input} onChange={e => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, title: e.target.value, selected_options: item.selected_options.length === 1 ? [{ ...item.selected_options[0], value: e.target.value }] : item.selected_options } : item) })} /></label>
-      <label className="text-sm">Price ($)<input type="number" step="0.01" min="0.01" required defaultValue={(v.price_cents / 100).toFixed(2)} className={input} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, price_cents: Math.round(Number(e.target.value) * 100) } : item) })} /></label>
+      <label className="text-sm">Regular price ($)<input type="number" step="0.01" min="0.01" max="100000" required defaultValue={(v.price_cents / 100).toFixed(2)} className={input} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, price_cents: Math.round(Number(e.target.value) * 100) } : item) })} /></label>
       <label className="text-sm">SKU<input value={v.sku} className={input} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, sku: e.target.value } : item) })} /></label>
       <label className="text-sm flex gap-2 p-3"><input type="checkbox" checked={v.active} onChange={(e) => setP({ ...p, merch_variants: p.merch_variants.map((item, i) => i === index ? { ...item, active: e.target.checked } : item) })} />Available in shop</label>
     </div>)}
@@ -270,6 +276,15 @@ function ProductEditor({ product, nextSkuNumber, save, close, busy }: { product:
       setP({ ...p, merch_variants: [...p.merch_variants, { id: `merch-variant-${crypto.randomUUID()}`, product_id: p.id, title, sku: `DCM${String(skuNumber).padStart(2, "0")}`, price_cents: p.merch_variants[0]?.price_cents ?? 4500, currency: "usd", stock: 0, active: true, sort_order: p.merch_variants.length, selected_options: [{ name: p.options[0]?.name ?? "Size", value: title }] }] }); el.value = "";
     }}>Add size / option</button></div>
     <p className="text-text-secondary text-sm">New variants start at zero stock. Save the product, then enter stock for each size.</p>
+    <fieldset className="border-t border-white/[0.06] pt-4 space-y-3">
+      <legend className="font-[family-name:var(--font-heading)] uppercase text-base pt-4">Discount</legend>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={discountEnabled} onChange={e => { setDiscountEnabled(e.target.checked); setP({ ...p, discount_percent: e.target.checked ? lastDiscountPercent.current : 0 }); }} />Offer a discount</label>
+      <p className="text-text-secondary text-sm">Applies to every size. Customers see the original price crossed out, the sale price, and a red discount badge. Turning it off restores the regular prices when you save.</p>
+      {discountEnabled && <>
+        <label className="block text-sm max-w-48">Discount (%)<input className={input} type="number" min="1" max="99" step="1" required value={p.discount_percent || ""} onChange={e => { const percent = Number(e.target.value); if (Number.isInteger(percent) && percent >= 1 && percent <= 99) lastDiscountPercent.current = percent; setP({ ...p, discount_percent: percent }); }} /></label>
+        <div className="space-y-2" aria-live="polite" aria-label="Sale price preview">{p.merch_variants.map(v => <div key={v.id} className="flex flex-wrap items-center gap-3"><span className="text-text-secondary text-sm min-w-12">{v.title}</span><MerchPrice price={discountedCents(v.price_cents, p.discount_percent) / 100} compareAtPrice={v.price_cents / 100} discountPercent={p.discount_percent} /></div>)}</div>
+      </>}
+    </fieldset>
     <div className="flex gap-3"><button disabled={busy || uploading || !p.merch_variants.length} className={primary}>Save product</button><button type="button" className={button} onClick={close}>Close</button></div>
   </form>;
 }

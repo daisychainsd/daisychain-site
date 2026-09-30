@@ -208,9 +208,9 @@ test("actual Ops routes reject unauthenticated and cross-origin requests before 
 
 test("product API rejects invalid thumbnail framing before writing catalog data", async () => {
   process.env.OPS_PASSWORD = "fixture-password";
-  const product = { id: "product", handle: "shirt", title: "Shirt", description: "", product_type: "T-Shirt", active: true,
+  const product = { id: "product", handle: "shirt", title: "Shirt", description: "", product_type: "T-Shirt", active: true, discount_percent: 0,
     images: [{ url: "https://example.invalid/shirt.png", thumbnailCrop: { zoom: 4, x: 50, y: 50 } }],
-    merch_variants: [{ id: "variant-m", title: "M", sku: "DCM01", price_cents: 4500, active: true, selected_options: [{name:"Size",value:"M"}] }] };
+    merch_variants: [{ id: "variant-m", title: "M", sku: "DCM01", price_cents: 4500, regular_price_cents: 4500, active: true, selected_options: [{name:"Size",value:"M"}] }] };
   try {
     for (const crop of [{zoom:4,x:50,y:50},{zoom:1,x:-1,y:50},{zoom:1,x:50,y:101},{zoom:"2",x:50,y:50}]) {
       const response = await productRoute(new Request("https://example.invalid/api/ops/merch/product", {method:"POST", headers:{authorization:"Basic " + Buffer.from("staff:fixture-password").toString("base64"),origin:"https://example.invalid","Content-Type":"application/json"},body:JSON.stringify({...product,images:[{...product.images[0],thumbnailCrop:crop}]})}));

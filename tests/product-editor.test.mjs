@@ -10,8 +10,8 @@ async function until(check) { for(let i=0;i<100;i++){ if(check())return;await ti
 function fixture() {
   return {id:'p',title:'Fixture Tee',handle:'tee',description:'',product_type:'T-Shirt',active:true,images:[{url:'https://example.invalid/tee.png',altText:'Tee photo',width:100,height:100}],options:[{name:'Size',values:['S','M']}],tags:[],merch_variants:['S','M'].map((title,i)=>({id:'v'+i,product_id:'p',title,sku:'DCM0'+(i+1),price_cents:4500,currency:'usd',stock:0,active:true,sort_order:i,selected_options:[{name:'Size',value:title}]}))};
 }
-async function setup({unknown=false,rejected=false,refreshFailure=false}={}) {
-  const product=fixture(); const data={orders:[],products:[product],adjustments:[],newOrders:0};
+async function setup({unknown=false,rejected=false,refreshFailure=false,sale=false}={}) {
+  const product=fixture(); if(sale){product.discount_percent=40;for(const v of product.merch_variants){v.compare_at_price_cents=4500;v.price_cents=2700;}} const data={orders:[],products:[product],adjustments:[],newOrders:0};
   const calls=[];const applied=new Set();let drop=unknown;let reject=rejected;let failLoad=false;let savedProduct;
   const dom=new JSDOM('<div id="root"></div>',{url:'https://ops.example.invalid',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){w.structuredClone=structuredClone;w.fetch=async(url,options={})=>{
     if(String(url).endsWith('/inventory')){
@@ -23,7 +23,7 @@ async function setup({unknown=false,rejected=false,refreshFailure=false}={}) {
       if(refreshFailure)failLoad=true;
       return {ok:true,json:async()=>({stock:v.stock})};
     }
-    if(String(url).endsWith('/product')){savedProduct=JSON.parse(options.body);data.products=[savedProduct];return {ok:true,json:async()=>({ok:true})};}
+    if(String(url).endsWith('/product')){savedProduct=JSON.parse(options.body);data.products=[{...savedProduct,merch_variants:savedProduct.merch_variants.map(v=>({...v,price_cents:Math.round(v.price_cents*(100-(savedProduct.discount_percent||0))/100),compare_at_price_cents:savedProduct.discount_percent?v.price_cents:null}))}];return {ok:true,json:async()=>({ok:true})};}
     if(failLoad){failLoad=false;return {ok:false,json:async()=>({error:'Refresh failed'})};}
     return {ok:true,json:async()=>structuredClone(data)};
   };}});
@@ -97,5 +97,25 @@ test('thumbnail zoom and positioning persist on save, appear on cards, and reset
     t.button('Reset to full photo').click();await tick();
     assert.equal(t.doc.querySelector('img[alt="Thumbnail crop preview"]').style.objectFit,'contain');
     t.button('Save product').click();await tick();assert.equal(t.getSaved().images[0].thumbnailCrop,undefined);
+  }finally{t.dom.window.close();}
+});
+
+
+test('discount editor reopens at original prices, previews percentage changes, applies to new sizes, and restores regular prices when disabled',async()=>{
+  const t=await setup({sale:true});try{
+    await t.open();t.button('Edit product & sizes').click();await until(()=>t.button('Save product'));
+    const regular=()=>[...t.doc.querySelectorAll('label')].filter(l=>l.textContent==='Regular price ($)').map(l=>l.querySelector('input'));
+    assert.deepEqual(regular().map(i=>i.value),['45.00','45.00']);
+    const discount=()=>[...t.doc.querySelectorAll('label')].find(l=>l.textContent==='Discount (%)')?.querySelector('input');
+    assert.equal(discount().value,'40');assert.match(t.doc.querySelector('[aria-label="Sale price preview"]').textContent,/\$27.00/);
+    t.fill(discount(),'25');await tick();assert.match(t.doc.querySelector('[aria-label="Sale price preview"]').textContent,/\$33.75/);
+    t.fill(t.doc.querySelector('input[id="variant-p"]'),'L');t.button('Add size / option').click();await tick();
+    assert.deepEqual(regular().map(i=>i.value),['45.00','45.00','45.00']);
+    t.button('Save product').click();await until(()=>t.getSaved());assert.equal(t.getSaved().discount_percent,25);assert.ok(t.getSaved().merch_variants.every(v=>v.price_cents===4500));
+    await until(()=>t.button('Edit product & sizes'));t.button('Edit product & sizes').click();await until(()=>discount());
+    assert.deepEqual(regular().map(i=>i.value),['45.00','45.00','45.00']);
+    const toggle=[...t.doc.querySelectorAll('label')].find(l=>l.textContent==='Offer a discount').querySelector('input');toggle.click();await tick();
+    assert.equal(discount(),undefined);toggle.click();await tick();assert.equal(discount().value,'25');toggle.click();await tick();t.button('Save product').click();await until(()=>t.getSaved().discount_percent===0);
+    assert.ok(t.getSaved().merch_variants.every(v=>v.price_cents===4500));
   }finally{t.dom.window.close();}
 });

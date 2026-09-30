@@ -7,8 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test:merch": "node --import tsx --test tests/merch.test.ts tests/bandcamp.test.ts",
-    "test:merch-ui": "node --test tests/product-editor.test.mjs"
+    "test:merch": "node --import tsx --test tests/merch.test.ts tests/bandcamp.test.ts tests/merch-discounts.test.ts",
+    "test:merch-ui": "node --test tests/product-editor.test.mjs tests/merch-placement-ui.test.mjs"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.3",
