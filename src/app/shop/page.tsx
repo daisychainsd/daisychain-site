@@ -31,8 +31,9 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
   const maxPrice = parseFloat(product.priceRange.maxVariantPrice.amount);
 
   return (
-    <Link href={`/shop/${product.handle}`} className="group block hover-lift">
+    <Link href={`/shop/${product.handle}`} className="group block h-full hover-lift">
       <div
+        className="h-full flex flex-col"
         style={{
           borderRadius: "var(--radius-organic-md)",
           background: "var(--color-bg-surface)",
@@ -103,14 +104,14 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
           )}
         </div>
 
-        <div className="px-2.5 pt-3.5 pb-2.5">
+        <div className="px-2.5 pt-3.5 pb-2.5 flex flex-col flex-1">
           <p className="text-text-primary text-[15px] font-semibold m-0 truncate">
             {product.title}
           </p>
           {product.productType && (
             <p className="text-text-secondary text-[13px] m-0 mt-1">{product.productType}</p>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-auto pt-3">
             <MerchPrice price={price} maxPrice={maxPrice} compareAtPrice={productCompareAtPrice(product)} discountPercent={product.discountPercent} currency={product.priceRange.minVariantPrice.currencyCode} />
             <span
               className="uppercase"
@@ -163,7 +164,7 @@ export default async function ShopPage() {
       {products.length > 0 ? (
         <div
           className="relative grid gap-5"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gridAutoRows: "1fr" }}
         >
           {products.map((product, idx) => (
             <ProductCard key={product.id} product={product} isNew={!selection?.manualSelection && idx < 2} />

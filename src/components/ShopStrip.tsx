@@ -48,7 +48,7 @@ export default async function ShopStrip({ limit = 4, selection }: { limit?: numb
       />
       <div
         className="grid gap-5"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gridAutoRows: "1fr" }}
       >
         {items.map((product, idx) => {
           const img = product.images.edges[0]?.node;
@@ -58,7 +58,7 @@ export default async function ShopStrip({ limit = 4, selection }: { limit?: numb
             <Link
               key={product.id}
               href={`/shop/${product.handle}`}
-              className="group block hover-lift"
+              className="group flex flex-col h-full hover-lift"
               style={{
                 borderRadius: "var(--radius-organic-md)",
                 background: "var(--color-bg-surface)",
@@ -102,14 +102,14 @@ export default async function ShopStrip({ limit = 4, selection }: { limit?: numb
                   </span>
                 )}
               </div>
-              <div className="px-2.5 pt-3.5 pb-2.5">
+              <div className="px-2.5 pt-3.5 pb-2.5 flex flex-col flex-1">
                 <p className="text-text-primary text-[15px] m-0" style={{ fontWeight: 600 }}>
                   {product.title}
                 </p>
                 <p className="text-text-secondary text-[13px] m-0 mt-1">
                   {product.productType || "—"}
                 </p>
-                <div className="flex flex-wrap justify-between items-center gap-2 mt-3">
+                <div className="flex flex-wrap justify-between items-center gap-2 mt-auto pt-3">
                   <MerchPrice price={price} maxPrice={Number(product.priceRange.maxVariantPrice.amount)} compareAtPrice={productCompareAtPrice(product)} discountPercent={product.discountPercent} currency={product.priceRange.minVariantPrice.currencyCode} />
                   <span
                     className="uppercase"
