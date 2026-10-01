@@ -221,6 +221,7 @@ export const NEXT_EVENT = `
 
 export const HOMEPAGE_SETTINGS = `
   *[_type == "homepageSettings"][0] {
+    merch { manualSelection, products[] { productId } },
     latestRelease->{
       title,
       "slug": slug.current,

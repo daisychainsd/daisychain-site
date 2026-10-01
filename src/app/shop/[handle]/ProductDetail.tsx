@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartProvider";
 import type { MerchProduct } from "@/lib/merch/types";
+import MerchPrice from "@/components/MerchPrice";
 
 export default function ProductDetail({ product }: { product: MerchProduct }) {
   const { addItem } = useCart();
@@ -16,8 +17,9 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
-    if (variants[0]) {
-      for (const opt of variants[0].selectedOptions) {
+    const initialVariant = variants.find(v => v.availableForSale) ?? variants[0];
+    if (initialVariant) {
+      for (const opt of initialVariant.selectedOptions) {
         initial[opt.name] = opt.value;
       }
     }
@@ -115,9 +117,11 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
               )}
               <h1 className="text-headline mb-2">{product.title}</h1>
 
-              <p className="text-2xl text-blue-300 font-semibold mb-6">
-                {selectedVariant ? `$${price.toFixed(2)}` : "Unavailable"}
-              </p>
+              <div className="mb-6" aria-live="polite" aria-atomic="true">
+                {selectedVariant ? (
+                  <MerchPrice price={price} compareAtPrice={selectedVariant.compareAtPrice ? Number(selectedVariant.compareAtPrice.amount) : undefined} discountPercent={product.discountPercent} currency={selectedVariant.price.currencyCode} large />
+                ) : "Unavailable"}
+              </div>
 
               {/* Variant Options */}
               {hasVariants && (

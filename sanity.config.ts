@@ -15,6 +15,9 @@ export default defineConfig({
         S.list()
           .title("Content")
           .items([
+            S.listItem().title("Shop").id("shopSettings").child(
+              S.document().schemaType("shopSettings").documentId("shopSettings")
+            ),
             S.listItem()
               .title("Homepage")
               .id("homepageSettings")

@@ -3,12 +3,9 @@ import Link from "next/link";
 import { getProducts } from "@/lib/merch/storefront";
 import type { MerchProduct } from "@/lib/merch/types";
 import SectionHeader from "@/components/SectionHeader";
-
-function formatPrice(amount: string) {
-  const n = Number(amount);
-  if (Number.isNaN(n)) return amount;
-  return n.toFixed(2);
-}
+import MerchPrice from "@/components/MerchPrice";
+import { productCompareAtPrice } from "@/lib/merch/sale";
+import { selectMerchProducts, type MerchSelection } from "@/lib/merch/placement";
 
 /**
  * Append Shopify CDN size params to an image URL so we never download a 2000px image
@@ -27,7 +24,7 @@ function shopifyImg(url: string, width: number) {
   }
 }
 
-export default async function ShopStrip({ limit = 4 }: { limit?: number }) {
+export default async function ShopStrip({ limit = 4, selection }: { limit?: number; selection?: MerchSelection }) {
   let products: MerchProduct[] = [];
   try {
     products = await getProducts();
@@ -35,7 +32,7 @@ export default async function ShopStrip({ limit = 4 }: { limit?: number }) {
     products = [];
   }
 
-  const items = products.slice(0, limit);
+  const items = selectMerchProducts(products, selection, limit);
   if (items.length === 0) return null;
 
   return (
@@ -55,8 +52,8 @@ export default async function ShopStrip({ limit = 4 }: { limit?: number }) {
       >
         {items.map((product, idx) => {
           const img = product.images.edges[0]?.node;
-          const price = formatPrice(product.priceRange.minVariantPrice.amount);
-          const isNew = idx < 2; // fallback heuristic: newest two get the NEW pill
+          const price = Number(product.priceRange.minVariantPrice.amount);
+          const isNew = !selection?.manualSelection && idx < 2;
           return (
             <Link
               key={product.id}
@@ -112,13 +109,8 @@ export default async function ShopStrip({ limit = 4 }: { limit?: number }) {
                 <p className="text-text-secondary text-[13px] m-0 mt-1">
                   {product.productType || "—"}
                 </p>
-                <div className="flex justify-between items-center mt-3">
-                  <span
-                    className="text-blue-300"
-                    style={{ fontFamily: "var(--font-mono), monospace", fontSize: 14 }}
-                  >
-                    ${price}
-                  </span>
+                <div className="flex flex-wrap justify-between items-center gap-2 mt-3">
+                  <MerchPrice price={price} maxPrice={Number(product.priceRange.maxVariantPrice.amount)} compareAtPrice={productCompareAtPrice(product)} discountPercent={product.discountPercent} currency={product.priceRange.minVariantPrice.currencyCode} />
                   <span
                     className="uppercase"
                     style={{

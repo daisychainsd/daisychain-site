@@ -13,11 +13,13 @@ export interface MerchVariant {
   title: string;
   availableForSale: boolean;
   price: { amount: string; currencyCode: string };
+  compareAtPrice?: { amount: string; currencyCode: string } | null;
   selectedOptions: { name: string; value: string }[];
 }
 
 // Keep the existing storefront component contract when changing catalog storage.
 export interface MerchProduct {
+  discountPercent?: number;
   id: string;
   title: string;
   handle: string;
@@ -41,6 +43,7 @@ export interface InventoryVariant {
   title: string;
   sku: string;
   price_cents: number;
+  compare_at_price_cents?: number | null;
   currency: string;
   stock: number;
   sort_order: number;
@@ -49,6 +52,7 @@ export interface InventoryVariant {
 }
 
 export interface CatalogProduct {
+  discount_percent?: number;
   id: string;
   handle: string;
   title: string;
@@ -60,6 +64,12 @@ export interface CatalogProduct {
   tags: string[];
   merch_variants: InventoryVariant[];
 }
+
+// Explicit regular-price fields prevent old open Ops tabs from submitting
+// their effective prices as the base for another discount.
+export type ProductEditInput = Omit<CatalogProduct, "merch_variants"> & {
+  merch_variants: (InventoryVariant & { regular_price_cents: number })[];
+};
 
 export interface OrderItem {
   variant_id: string | null;

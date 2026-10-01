@@ -7,6 +7,10 @@ export const metadata: Metadata = { title: "Shop" };
 export const revalidate = 60;
 import type { MerchProduct } from "@/lib/merch/types";
 import SectionHeader from "@/components/SectionHeader";
+import MerchPrice from "@/components/MerchPrice";
+import { productCompareAtPrice } from "@/lib/merch/sale";
+import { selectMerchProducts, type MerchSelection } from "@/lib/merch/placement";
+import { client } from "@/sanity/client";
 
 function shopifyImg(url: string, width: number) {
   try {
@@ -25,7 +29,6 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
   const image = product.images.edges[0]?.node;
   const price = parseFloat(product.priceRange.minVariantPrice.amount);
   const maxPrice = parseFloat(product.priceRange.maxVariantPrice.amount);
-  const hasRange = price !== maxPrice;
   const variants = product.variants.edges.map((e) => e.node);
   const variantCount = variants.filter((v) => v.title !== "Default Title").length;
 
@@ -109,13 +112,8 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
           {product.productType && (
             <p className="text-text-secondary text-[13px] m-0 mt-1">{product.productType}</p>
           )}
-          <div className="flex items-center justify-between mt-3">
-            <span
-              className="text-blue-300"
-              style={{ fontFamily: "var(--font-mono), monospace", fontSize: 14 }}
-            >
-              {hasRange ? `From $${price.toFixed(2)}` : `$${price.toFixed(2)}`}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+            <MerchPrice price={price} maxPrice={maxPrice} compareAtPrice={productCompareAtPrice(product)} discountPercent={product.discountPercent} currency={product.priceRange.minVariantPrice.currencyCode} />
             {variantCount > 0 && product.availableForSale ? (
               <span className="text-text-muted text-xs">
                 {variantCount} {variantCount === 1 ? "option" : "options"}
@@ -146,7 +144,12 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
 }
 
 export default async function ShopPage() {
-  const products = await getProducts();
+  const [catalog, selection] = await Promise.all([
+    getProducts(),
+    client?.fetch<MerchSelection | null>('*[_id == "shopSettings"][0].merch { manualSelection, products[] { productId } }')
+      .catch(error => { console.error("Shop placement unavailable; using published Ops catalog", error); return null; }) ?? Promise.resolve(null),
+  ]);
+  const products = selectMerchProducts(catalog, selection);
 
   return (
     <div
@@ -171,7 +174,7 @@ export default async function ShopPage() {
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}
         >
           {products.map((product, idx) => (
-            <ProductCard key={product.id} product={product} isNew={idx < 2} />
+            <ProductCard key={product.id} product={product} isNew={!selection?.manualSelection && idx < 2} />
           ))}
         </div>
       ) : (
