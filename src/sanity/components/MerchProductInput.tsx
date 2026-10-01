@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { set, unset, type StringInputProps, type PreviewProps } from "sanity";
+import { insert, set, setIfMissing, unset, useFormValue, type ArrayOfObjectsInputProps, type StringInputProps, type PreviewProps } from "sanity";
 
 interface ProductChoice {
   id: string; title: string; handle: string; available: boolean; imageUrl: string | null;
@@ -38,10 +38,13 @@ function useProducts() {
   return { products, error, loading };
 }
 
-export function MerchProductInput({ value, onChange, elementProps, readOnly }: StringInputProps) {
+export function MerchProductInput({ value, onChange, elementProps, readOnly, path }: StringInputProps) {
   const { products, error, loading } = useProducts();
   const selected = products.find(p => p.id === value);
-  const availableProducts = products.filter(p => p.available);
+  // Products already placed in sibling rows are not offered again.
+  const siblings = useFormValue(path.slice(0, -2)) as { productId?: string }[] | undefined;
+  const taken = new Set((siblings ?? []).map(item => item.productId));
+  const availableProducts = products.filter(p => p.available && (p.id === value || !taken.has(p.id)));
   // The string input ref is specific to <input>; preserve the focus handlers on this select.
   const focusProps = { id: elementProps.id, onFocus: elementProps.onFocus, onBlur: elementProps.onBlur,
     "aria-describedby": elementProps["aria-describedby"] };
@@ -58,8 +61,22 @@ export function MerchProductInput({ value, onChange, elementProps, readOnly }: S
       {selected.imageUrl && <img src={selected.imageUrl} alt="" width={64} height={64} style={{ objectFit: "contain" }} />}
       <div><strong>{selected.title}</strong><p>{new Intl.NumberFormat("en-US", { style: "currency", currency: selected.price.currencyCode }).format(Number(selected.price.amount))}{selected.available ? "" : " · Sold out"}</p></div>
     </div>}
-    {!loading && !error && availableProducts.length === 0 && <p>No published products are currently in stock. Restock or publish a product in Ops to select it here.</p>}
+    {!loading && !error && availableProducts.length === 0 && <p>{products.some(p => p.available) ? "Every in-stock product is already in this list." : "No published products are currently in stock. Restock or publish a product in Ops to select it here."}</p>}
     <p style={{ fontSize: 13, opacity: 0.75 }}>Only published products with stock can be selected. Details update from Ops automatically. Previously selected products that sell out stay marked so you can replace or remove them.</p>
+  </div>;
+}
+
+export function MerchProductsInput(props: ArrayOfObjectsInputProps) {
+  const { products } = useProducts();
+  const listed = new Set((props.value ?? []).map(item => (item as { productId?: string }).productId));
+  const missing = products.filter(p => p.available && !listed.has(p.id));
+  const addAll = () => props.onChange([setIfMissing([]), insert(missing.map(p => (
+    { _type: "merchPlacement", _key: crypto.randomUUID().replaceAll("-", "").slice(0, 12), productId: p.id })), "after", [-1])]);
+  return <div style={{ display: "grid", gap: 12 }}>
+    {!props.readOnly && missing.length > 0 && <button type="button" onClick={addAll}
+      style={{ padding: 12, cursor: "pointer", background: "transparent", color: "inherit", border: "1px solid currentColor", borderRadius: 4, font: "inherit" }}>
+      Add all in-stock products not yet listed ({missing.length})</button>}
+    {props.renderDefault(props)}
   </div>;
 }
 

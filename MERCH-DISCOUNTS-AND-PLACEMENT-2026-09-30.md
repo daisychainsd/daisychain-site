@@ -47,3 +47,9 @@ The Sanity picker now offers only published products with at least one available
 Follow-up validation: all nine UI tests passed, including sold-out choice filtering, preserving a saved sold-out ID, the empty-stock message and restocking. The 53 merch tests, TypeScript and the full production webpack build also passed. Claude adversarial review of `224c8ea`: SHIP, no code changes required. Known, accepted limits: the picker list can lag Ops stock by up to about a minute (30-second client cache plus the short API cache), and a product already used in another row is still offered, with the existing "Choose each product only once" validation catching the duplicate.
 
 Deployed September 30, 2026: `224c8ea0578a8380e1e4aa3b3951cae118821400` fast-forwarded to `main`; Vercel production deployment `daisychain-site-rekfg4ung` is Ready and aliased to `www.daisychainsd.com`. Read-only live checks: `/` and `/shop` return 200, and `/api/merch-products` returned 14 published products, 10 with an available size and 4 sold out (the 4 are therefore not offered as new picker choices). The Studio picker itself was not exercised in a logged-in browser session.
+
+## Add-all follow-up
+
+The product list in Studio now has an **Add all in-stock products not yet listed** button above it. One click appends every published, in-stock product that is missing from the list; the native Studio drag handles then set the order and the row menu removes unwanted items. Row pickers also exclude products already placed in another row, so a product can no longer be chosen twice; the existing duplicate validation remains as a backstop. Sold-out products are not added by the button, consistent with the in-stock picker. No schema shape, storefront or data change: saved lists keep the same `productId` entries.
+
+Validation: nine UI tests (the placement test now covers add-all and sibling exclusion), 53 merch tests, TypeScript and the production webpack build.
