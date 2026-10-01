@@ -29,8 +29,6 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
   const image = product.images.edges[0]?.node;
   const price = parseFloat(product.priceRange.minVariantPrice.amount);
   const maxPrice = parseFloat(product.priceRange.maxVariantPrice.amount);
-  const variants = product.variants.edges.map((e) => e.node);
-  const variantCount = variants.filter((v) => v.title !== "Default Title").length;
 
   return (
     <Link href={`/shop/${product.handle}`} className="group block hover-lift">
@@ -114,28 +112,22 @@ function ProductCard({ product, isNew = false }: { product: MerchProduct; isNew?
           )}
           <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
             <MerchPrice price={price} maxPrice={maxPrice} compareAtPrice={productCompareAtPrice(product)} discountPercent={product.discountPercent} currency={product.priceRange.minVariantPrice.currencyCode} />
-            {variantCount > 0 && product.availableForSale ? (
-              <span className="text-text-muted text-xs">
-                {variantCount} {variantCount === 1 ? "option" : "options"}
-              </span>
-            ) : (
-              <span
-                className="uppercase"
-                style={{
-                  padding: "7px 14px",
-                  borderRadius: "var(--radius-pill-right)",
-                  border: "1px solid rgba(124,185,232,0.2)",
-                  background: "rgba(124,185,232,0.05)",
-                  color: "var(--color-blue-300)",
-                  fontFamily: "var(--font-heading), system-ui, sans-serif",
-                  fontWeight: 700,
-                  fontSize: 11,
-                  letterSpacing: "0.08em",
-                }}
-              >
-                View
-              </span>
-            )}
+            <span
+              className="uppercase"
+              style={{
+                padding: "7px 14px",
+                borderRadius: "var(--radius-pill-right)",
+                border: "1px solid rgba(124,185,232,0.2)",
+                background: "rgba(124,185,232,0.05)",
+                color: "var(--color-blue-300)",
+                fontFamily: "var(--font-heading), system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: 11,
+                letterSpacing: "0.08em",
+              }}
+            >
+              View
+            </span>
           </div>
         </div>
       </div>
