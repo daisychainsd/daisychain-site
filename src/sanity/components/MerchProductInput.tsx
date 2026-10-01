@@ -41,6 +41,7 @@ function useProducts() {
 export function MerchProductInput({ value, onChange, elementProps, readOnly }: StringInputProps) {
   const { products, error, loading } = useProducts();
   const selected = products.find(p => p.id === value);
+  const availableProducts = products.filter(p => p.available);
   // The string input ref is specific to <input>; preserve the focus handlers on this select.
   const focusProps = { id: elementProps.id, onFocus: elementProps.onFocus, onBlur: elementProps.onBlur,
     "aria-describedby": elementProps["aria-describedby"] };
@@ -49,14 +50,16 @@ export function MerchProductInput({ value, onChange, elementProps, readOnly }: S
       style={{ width: "100%", padding: 12, background: "var(--color-bg-surface)", color: "var(--color-text-primary)", border: "1px solid var(--color-text-muted)", borderRadius: "var(--radius-organic-sm)" }}>
       <option value="">Choose a product</option>
       {value && !selected && <option value={value}>{loading ? "Loading selected product…" : error ? "Saved product — Ops unavailable" : "Unavailable product — hidden or removed in Ops"}</option>}
-      {products.map(p => <option key={p.id} value={p.id}>{p.title}{p.available ? "" : " (sold out)"}</option>)}
+      {selected && !selected.available && <option value={selected.id} disabled>{selected.title} (sold out — replace or remove)</option>}
+      {availableProducts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
     </select>
     {error && <p role="alert">{error}</p>}
     {selected && <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
       {selected.imageUrl && <img src={selected.imageUrl} alt="" width={64} height={64} style={{ objectFit: "contain" }} />}
       <div><strong>{selected.title}</strong><p>{new Intl.NumberFormat("en-US", { style: "currency", currency: selected.price.currencyCode }).format(Number(selected.price.amount))}{selected.available ? "" : " · Sold out"}</p></div>
     </div>}
-    <p style={{ fontSize: 13, opacity: 0.75 }}>Details update from Ops automatically. Only products published in Ops are available here.</p>
+    {!loading && !error && availableProducts.length === 0 && <p>No published products are currently in stock. Restock or publish a product in Ops to select it here.</p>}
+    <p style={{ fontSize: 13, opacity: 0.75 }}>Only published products with stock can be selected. Details update from Ops automatically. Previously selected products that sell out stay marked so you can replace or remove them.</p>
   </div>;
 }
 

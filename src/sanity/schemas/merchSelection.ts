@@ -7,7 +7,7 @@ export const merchSelection = defineType({
     defineField({ name: "manualSelection", title: "Choose products and their order", type: "boolean", initialValue: false,
       description: "Arrange the products below first, then turn this on. On: show only your list, in this order. An empty list hides this section. Off: automatic list. Homepage changes are live immediately; Shop changes require Publish." }),
     defineField({ name: "products", title: "Products in display order", type: "array",
-      description: "Add products from Ops, then drag to reorder. Prices, discounts, photos and availability always come from Ops.",
+      description: "Add in-stock products from Ops, then drag to reorder. Products that sell out are marked in your saved list so you can replace or remove them. Prices, discounts, photos and availability always come from Ops.",
       validation: rule => rule.custom(value => {
         const ids = (value ?? []).map(item => (item as { productId?: string }).productId).filter(Boolean);
         return new Set(ids).size === ids.length || "Choose each product only once.";

@@ -39,3 +39,9 @@ Requested changes publish to `main` after appropriate local checks and review. P
 PR #30 used the earlier dev-to-main route. This standing policy supersedes earlier release-specific approval and dev-first instructions; historical audit documents retain their original checkpoint findings.
 
 The follow-up Claude documentation review returned SHIP. Its stale historical-branch banner, retired download-verification route references and hourly-cron wording findings were corrected before the docs commit.
+
+## In-stock picker follow-up
+
+The Sanity picker now offers only published products with at least one available size. An already-selected product that sells out retains its ID and a disabled, labeled option so editors can replace or remove it. Restocking makes it selectable again on refresh. An empty in-stock list explains how to restock/publish in Ops. This changes CMS choices, not storefront publication or saved placement records.
+
+Follow-up validation: all nine UI tests passed, including sold-out choice filtering, preserving a saved sold-out ID, the empty-stock message and restocking. Compilation and TypeScript passed; the full build stopped because this session could not resolve the Sanity API host. Claude review could not run because the CLI reported signed out. GitHub DNS was also unavailable, so this follow-up remains local and has not been deployed. Complete the review/build and push to main when access is restored. Earlier deployment evidence above applies to the preceding release.
