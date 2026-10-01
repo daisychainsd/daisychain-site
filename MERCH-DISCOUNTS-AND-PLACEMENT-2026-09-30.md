@@ -53,3 +53,14 @@ Deployed September 30, 2026: `224c8ea0578a8380e1e4aa3b3951cae118821400` fast-for
 The product list in Studio now has an **Add all in-stock products not yet listed** button above it. One click appends every published, in-stock product that is missing from the list; the native Studio drag handles then set the order and the row menu removes unwanted items. Row pickers also exclude products already placed in another row, so a product can no longer be chosen twice; the existing duplicate validation remains as a backstop. Sold-out products are not added by the button, consistent with the in-stock picker. No schema shape, storefront or data change: saved lists keep the same `productId` entries.
 
 Validation: nine UI tests (the placement test now covers add-all and sibling exclusion), 53 merch tests, TypeScript and the production webpack build.
+
+Deployed September 30, 2026: `a5508c8469ae0c8848b5136116294be5c28b4446` fast-forwarded to `main`; Vercel production deployment `daisychain-site-c7ao4g3l5` is Ready and aliased to `www.daisychainsd.com`. `/shop` returns 200 and `/studio` returns its expected 401 auth challenge. No separate adversarial review was run on this follow-up. The button was not clicked in a logged-in Studio session; behaviour is covered by the DOM test. Known limit: the button does not remove empty "Choose a product" rows; delete those from the row menu.
+
+## Trucker hat photo replacement
+
+Also on September 30, the Black DC Trucker Hat's single photo was replaced with the new front-on "Planted in San Diego" product shot (source: Dropbox `MERCH/DAISYCHAIN_PRODUCT/PLANTED HAT/DC HAt.PNG`, 1241×1268 PNG, stored as `merch-images/d18e968b-789c-4ac1-beb0-872eeb634da6.png`). The previous file (`b967a064…e800.jpg`) was deleted from the `merch-images` bucket after confirming no other product or order referenced it. This was a direct Supabase data change with no code or deploy; the product page and `/api/merch-products` were verified serving the new image. No thumbnail framing is saved for it; adjust in Ops → Edit product & sizes if needed.
+
+## Current state after these follow-ups
+
+`main` and production are at the add-all commit plus this documentation. Ops remains the source for products, photos, stock, prices and discounts; Sanity stores only ordered product IDs for Homepage and Shop. At verification the published catalog had 14 products, 10 with an available size.
+
