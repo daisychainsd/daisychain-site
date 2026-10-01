@@ -1,5 +1,15 @@
 # Daisy Chain Site — Operations
 
+## Discounts and CMS placement — September 30, 2026
+
+Ops owns product details, photos, stock, regular prices and discounts. Sanity owns independent Homepage and Shop selections and ordering using stable Ops product IDs; it does not copy the product catalog or require a sync cron. See [MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md) for release verification and [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for daily editing.
+
+The release adds `merch_products.discount_percent` and `merch_variants.compare_at_price_cents`; `price_cents` remains the effective checkout price. `save_merch_product` calculates prices atomically from explicit `regular_price_cents`. Old clients without that field must reload. The additive `scripts/merch-discounts-2026-09-30.sql` is applied; do not rerun the old full schema/import/opening-stock scripts. Migration reruns never reactivate disabled offers.
+
+Homepage selection is `homepageSettings.merch`; Shop is the `shopSettings` singleton's `merch`. Both store ordered `productId` entries and a manual-selection switch. Empty manual lists hide that section. Homepage is live-edit; Shop requires Publish. `/api/merch-products` contains public storefront fields only, cached briefly for Studio. Ops publication remains authoritative for direct product URLs. A Sanity failure falls back to the published Ops catalog on Shop. No new cron or credentials are required.
+
+Validation: 53 merch tests, nine editor/CMS/storefront DOM tests, isolated desktop/mobile Chromium, TypeScript, production webpack build and Sanity schema extraction. Actual Claude adversarial review: SHIP after fixing the stale-client double-discount bug. Product pages initially select an available size. See the release record for exact deployment and read-only live verification.
+
 ## What this system does
 Public website + storefront for Daisy Chain Recordings at **daisychainsd.com**
 (dev preview: dev.daisychainsd.com). Self-hosted Bandcamp alternative:
@@ -8,7 +18,7 @@ previews, digital downloads, $99 unlimited pass, physical merch, guest
 checkout, auto release-day promotion, and newsletter/SMS capture.
 
 ## Where it runs
-- Vercel (Next.js 16 App Router). Branch flow: work on `dev` → merge to `main` to go live.
+- Vercel (Next.js 16 App Router). Publish requested changes to `main` after checks; use `dev` only when explicitly requested.
 - Data: Supabase (auth, purchases, physical orders, merch catalog/images/inventory, download tokens) · Sanity (content) · Shopify (legacy catalog fallback)
 
 ## Integrations at a glance
@@ -78,7 +88,7 @@ npm run test:merch             # isolated SQL/webhook/route fixtures
 npm run test:merch-ui          # isolated product-editor DOM checks
 npm run build                 # webpack production build, including TypeScript
 ```
-Push to `dev`, verify preview, then PR to `main` when going live is authorized. Verify purchase behavior with isolated fixtures; preview shares production Supabase and is not a disposable payment environment. The build command explicitly selects webpack after Vercel's September 29 Turbopack Google Font resolution failure.
+Requested changes publish to `main` after appropriate local checks and review. PD explicitly set this standing default on September 30, 2026; use `dev` only when PD asks to test there first. Do not ask again for routine go-live authorization already covered by the requested work. Handle GitHub operations directly: an ordinary fast-forward push or admin PR merge is authorized with the existing owner credentials. Preserve branch protections and never force-push. Verify purchase behavior with isolated fixtures; preview shares production Supabase and is not a disposable payment environment. The build command explicitly selects webpack after Vercel's September 29 Turbopack Google Font resolution failure.
 
 ## Ops dashboard
 - **URL**: https://www.daisychainsd.com/ops — HTTP basic auth (any username,

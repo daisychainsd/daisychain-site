@@ -27,3 +27,7 @@ If the user invokes this skill without guidance, ask what they want to build —
 **Avoid:** emoji, purple gradients, Inter/Roboto, rounded-corner-with-colored-left-border cards, stock iconography, pure black, pure white, hype language, marketing vapor, "don't miss out" CTAs.
 
 **Favor:** ALL CAPS section headings, asymmetric radii, single blue accent, organic blobs, the flower mark, distressed chrome lettering on flyers, monospace for dates + catalog numbers, hairline dividers at 6% white, the dance floor.
+
+## Merch pricing and placement
+
+Use the production `MerchPrice` component for crossed-out original prices, clear current prices and red percentage badges. Ops owns regular/effective prices and discounts; Sanity owns selected products and their order. See [current implementation](../MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md). Existing token colors and asymmetric radii apply.

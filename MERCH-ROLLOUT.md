@@ -1,6 +1,6 @@
 # Merch Ops: products, inventory and shipping
 
-## Current state — September 29, 2026
+## Current state — September 30, 2026
 
 Four paid physical website orders were recovered into production Supabase and verified through the live Ops API. The merch schema and optional-tracking migration are applied. [ORDER-RECOVERY-2026-09-22.md](ORDER-RECOVERY-2026-09-22.md) records the exact production deployment status of PR #24 and its adversarial review.
 
@@ -29,16 +29,28 @@ See [OPERATIONS.md](OPERATIONS.md#recover-or-audit-physical-orders) for the read
 1. Open Inventory or Products in [Merch Ops](https://www.daisychainsd.com/ops/merch). Both show clickable product thumbnails with sizes/options and total stock. Click the product or its Edit product action.
 2. Review each size's current stock. Enter signed **Add/remove** quantities and check the projected result: `-2` removes two units, `5` adds five. To correct 12 units to 9, enter `-3`, not `9`. Enter a reason, then Save stock changes.
 3. Confirmed rows clear after saving. If a save response is interrupted, use **Retry remaining changes**. The same request keys are retained so retries do not duplicate stock adjustments; navigation stays locked while the outcome is unknown.
-4. Choose **Edit product & sizes** for name, description, visibility, photos, sizes/options, price and SKU. Add or rename sizes in the product's own rows. New sizes inherit that product's price and receive the next suggested DCM code. Every variant/size has its own SKU. Save product to apply changes; stock remains managed by adjustments.
+4. Choose **Edit product & sizes** for name, description, visibility, photos, sizes/options, regular price, discount and SKU. Add or rename sizes in the product's own rows. New sizes inherit that product's price and receive the next suggested DCM code. Every variant/size has its own SKU. Save product to apply changes; stock remains managed by adjustments.
 5. A product must be published, its variant active, and that variant's stock positive to be available for sale. Product/price changes reach the cached shop grid on its next revalidation (configured at 60 seconds). Checkout validates current stock and prices on the server.
 
 New website purchases through the Ops-backed checkout deduct stock once when paid. Bandcamp orders, legacy Shopify-era checkouts and Stripe Tap to Pay booth sales do **not** deduct this stock automatically. Reconcile those sales manually with a reason. Refunds do not automatically restock products; count returned or unshipped stock before adding it back.
 
+## Discounts
+
+Open **Edit product & sizes**. The size rows contain **Regular price ($)**. Below them, enable **Offer a discount**, choose a whole-number percentage from 1 through 99, and review every size's sale price before **Save product**. Discounts apply to all sizes, including new sizes. Disabling the offer and saving restores their regular prices. Reopening or resaving a discounted product never applies another discount. Reload older open Ops tabs if the server asks you to refresh the editor.
+
+The storefront shows the original price struck through, the effective price, and a red percentage badge. Checkout reads the saved effective price from Ops. Tiny prices whose discount would round to zero or fail to reduce the price are rejected. Existing Stripe promotion codes still stack with sale prices; manage coupon terms in Stripe.
+
+## Homepage and Shop ordering in Sanity
+
+Use **Studio → Homepage → Homepage shop products** and **Studio → Shop → Shop products** independently. Add products from the picker and drag to reorder while automatic mode remains on, then enable **Choose products and their order**. Homepage settings are live-edit, so toggling an empty list immediately hides its merch strip. Shop settings require **Publish**. Manual mode shows the exact list and can contain more than the automatic homepage default of four items. The automatic Shop list includes all published Ops products.
+
+Selections store stable Ops IDs, so renaming a product or changing its handle, image, price or discount in Ops does not break its placement. There is no product sync cron or duplicated Sanity product record. The picker refreshes on focus and every minute with a short public catalog cache. Pages revalidate at 60 seconds. Hidden/deleted products are skipped; sold-out published products remain selectable. Selecting a product does not override its stock. If Sanity placement lookup fails, Shop falls back to the published Ops catalog. To prevent sales through direct URLs, unpublish the product in Ops; removing its CMS placement only removes it from that section.
+
 ## Thumbnail framing
 
-Open **Edit product & sizes** and find **Thumbnail framing** below the product photos. Enable **Crop to fill square**, adjust Zoom (1–3×), Horizontal position and Vertical position (0–100%), then Save product. **Reset to full photo** removes the crop setting. The preview and shop/Ops cards use the first product photo; the original uploaded photo and full product detail view remain intact.
+Open **Edit product & sizes** and find **Thumbnail framing** below the product photos. Enable **Crop to fill square**, adjust Zoom (1–3×), Horizontal position and Vertical position (0–100%), then Save product. **Reset to full photo** removes the crop setting. The preview and shop/Ops cards use the first product photo; the large product-detail image uses the same saved framing. Original uploaded files remain intact, and images without crop metadata display their full photo.
 
-These controls are independent of Sanity's flyer crop tool. Merch framing is stored in the image's `thumbnailCrop` metadata and shared by Ops, shop cards, the homepage shop strip and gallery thumbnails.
+These controls are independent of Sanity's flyer crop tool. Merch framing is stored in the image's `thumbnailCrop` metadata and shared by Ops, shop cards, the homepage shop strip, gallery thumbnails and the selected large product-detail image.
 
 ## Completed catalog migration
 

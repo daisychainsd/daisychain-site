@@ -1,6 +1,6 @@
 # Session 2 Audit — 2026-04-23 → 2026-04-25
 
-> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+> Historical audit/review snapshot. Findings and test counts describe that checkpoint. Current discount controls and Sanity product placement are documented in [MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md); daily operations are in [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md). Do not rerun historical catalog imports, schemas or opening-stock scripts.
 
 Supersedes [`AUDIT.md`](AUDIT.md). That file is from end of Session 1 (Phases 1-9 + Homepage V2 install). Some of its "fixed today" items were undone during Session 2's revert pass and parts are now stale — this file is the accurate state.
 
@@ -81,7 +81,7 @@ Nothing is pushed to `dev` or `main`. Local-only state.
 
 ## Next session priorities
 
-1. **[PRIORITY] Redesign the homepage Upcoming cards' info column.** See [`.cursor/plans/redesign-upcoming-cards_45318800.plan.md`](.cursor/plans/redesign-upcoming-cards_45318800.plan.md). Two-zone rhythm: pill row → big display date/title → hairline divider → full-width CTA pinned to bottom. Solves the "info is cramped left, empty right side" problem. Both event card (`<UpcomingEventCard>`) and release card (inline in `page.tsx`).
+1. **[PRIORITY] Redesign the homepage Upcoming cards' info column.** See `.cursor/plans/redesign-upcoming-cards_45318800.plan.md` (historical local plan; not included in this repository). Two-zone rhythm: pill row → big display date/title → hairline divider → full-width CTA pinned to bottom. Solves the "info is cramped left, empty right side" problem. Both event card (`<UpcomingEventCard>`) and release card (inline in `page.tsx`).
 2. **Wire `NewsMarquee` items to Sanity** so dispatch strings can be edited from Studio. Add `homepageSettings.dispatch[]` array of strings.
 3. **Translate inline styles to Tailwind** incrementally as components are touched. Prefer `className` arbitrary values over `style={{ ... }}` for maintainability.
 4. **Backfill Sanity schema fields** in Studio: `release.links` for streaming chips, `event.recapUrl` for past shows, `artist.role` + `artist.hometown` for roster cards.
@@ -94,6 +94,6 @@ Nothing is pushed to `dev` or `main`. Local-only state.
 - [`CLAUDE.md`](CLAUDE.md) — project overview + brand rules + What's Done.
 - [`AGENTS.md`](AGENTS.md) — agent brief read on session start.
 - [`AUDIT.md`](AUDIT.md) — Session 1 audit (superseded by this file but kept for historical context).
-- [`.cursor/plans/redesign-upcoming-cards_45318800.plan.md`](.cursor/plans/redesign-upcoming-cards_45318800.plan.md) — the redesign plan ready to execute.
+- `.cursor/plans/redesign-upcoming-cards_45318800.plan.md` (historical local plan; not included in this repository) — the redesign plan ready to execute.
 
 _Audit written 2026-04-25 — all bugs in §3 above are fixed in this same audit pass._

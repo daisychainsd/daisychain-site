@@ -4,6 +4,16 @@
 
 > **⚠ Before you touch UI or visuals, read the "Design System — Brand Rules (NON-NEGOTIABLE)" section below. The [`design-system/`](design-system/) folder at the repo root is the canonical brand — every color, font, radius, and interaction on this site is defined there. The site is an IMPLEMENTATION of the system, not a place to redefine it.**
 
+## Discounts and CMS placement — September 30, 2026
+
+Ops owns product details, photos, stock, regular prices and discounts. Sanity owns independent Homepage and Shop selections and ordering using stable Ops product IDs; it does not copy the product catalog or require a sync cron. See [MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md) for release verification and [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for daily editing.
+
+The release adds `merch_products.discount_percent` and `merch_variants.compare_at_price_cents`; `price_cents` remains the effective checkout price. `save_merch_product` calculates prices atomically from explicit `regular_price_cents`. Old clients without that field must reload. The additive `scripts/merch-discounts-2026-09-30.sql` is applied; do not rerun the old full schema/import/opening-stock scripts. Migration reruns never reactivate disabled offers.
+
+Homepage selection is `homepageSettings.merch`; Shop is the `shopSettings` singleton's `merch`. Both store ordered `productId` entries and a manual-selection switch. Empty manual lists hide that section. Homepage is live-edit; Shop requires Publish. `/api/merch-products` contains public storefront fields only, cached briefly for Studio. Ops publication remains authoritative for direct product URLs. A Sanity failure falls back to the published Ops catalog on Shop. No new cron or credentials are required.
+
+Validation: 53 merch tests, nine editor/CMS/storefront DOM tests, isolated desktop/mobile Chromium, TypeScript, production webpack build and Sanity schema extraction. Actual Claude adversarial review: SHIP after fixing the stale-client double-discount bug. Product pages initially select an available size. See the release record for exact deployment and read-only live verification.
+
 ## Bandcamp physical orders — September 22, 2026
 
 **Production database verified:** PD applied `scripts/merch-bandcamp-2026-09-22.sql` through the combined setup/import SQL. Eight paid Bandcamp orders and four website orders are present. The Bandcamp orders retain their source shipped dates. Live audit/replay returned zero missing, zero inserted, zero failures, and preserved fulfillment/notes/tracking/items/addresses. The anonymous review RPC is denied (42501). [PR #26](https://github.com/daisychainsd/daisychain-site/pull/26) is merged to main; see the activation record for deployment/cron verification. No further setup SQL is required.
@@ -14,33 +24,19 @@ Physical Bandcamp merch (including CDs/vinyl with bundled downloads) joins websi
 
 [PR #28](https://github.com/daisychainsd/daisychain-site/pull/28) is live as `a4ded457956029c122616813a60f2024d074610d`. Production and dev preview use `MERCH_BACKEND=supabase`. Ops is authoritative for product content, prices, photos, sizes and stock. The 14-product/38-variant catalog, DCM01–DCM38, replacement staple photo and 384-unit opening count are verified. Do not reset inventory to that historical snapshot or rerun catalog/schema setup. [Release evidence and prices](MERCH-PRODUCT-EDITOR-2026-09-29.md), [daily workflow](MERCH-ROLLOUT.md).
 
-Inventory and Products open a thumbnail grid; each card opens its own size rows. Stock fields are signed adjustments. Edit product & sizes supports adding/renaming sizes, price/SKU changes and first-image thumbnail zoom/X/Y framing. Shared `thumbnailStyle` renders Ops/shop/homepage/gallery thumbnails; full photos remain intact. Unknown stock-save responses retain request IDs and lock navigation until safely retried. PR #28 validation passed 47 merch tests, 5 DOM editor tests, both isolated Playwright flows, and deployed preview/production read-only browser checks. `npm run build` now explicitly uses webpack after Vercel's Turbopack font-module failure.
+Inventory and Products open a thumbnail grid; each card opens its own size rows. Stock fields are signed adjustments. Edit product & sizes supports adding/renaming sizes, price/SKU changes and first-image thumbnail zoom/X/Y framing. Shared `thumbnailStyle` renders Ops/shop/homepage/gallery thumbnails and the selected large product image; original uploaded files remain intact. Unknown stock-save responses retain request IDs and lock navigation until safely retried. PR #28 validation passed 47 merch tests, 5 DOM editor tests, both isolated Playwright flows, and deployed preview/production read-only browser checks. `npm run build` now explicitly uses webpack after Vercel's Turbopack font-module failure.
 
 ## Branching & Deployment Workflow
 
-**All pushes go to `dev`. Never touch `main` directly. Only merge to `main` when explicitly asked to go live.**
+Requested changes publish to `main` after appropriate local checks and review. PD explicitly set this standing default on September 30, 2026; use `dev` only when PD asks to test there first. Do not ask again for routine go-live authorization already covered by the requested work. Handle GitHub operations directly: an ordinary fast-forward push or admin PR merge is authorized with the existing owner credentials. Preserve branch protections and never force-push.
 
-```
-local work  →  push to dev  →  dev.daisychainsd.com auto-builds  →  review it  →  happy?  →  merge to main  →  daisychainsd.com updates
-```
-
-- **Active dev branch**: `dev` — ALL pushes go here, always
-- **Production branch**: `main` — only merged into when explicitly told to deploy/go live
-- **Stable preview URL**: **`https://dev.daisychainsd.com`** — CNAME `dev` → `cname.vercel-dns.com` at Squarespace Domains (ex-Google Domains). Aliased in Vercel → Domains to the `dev` git branch so every push to `dev` auto-updates this URL. Bookmark it; don't rely on the random per-deploy URLs like `daisychain-site-<hash>-….vercel.app` (those are pinned forever to a single build).
-- **Production URL**: **`https://daisychainsd.com`** — follows `main`.
-- **Collaborator workflow**: Niko pushes to `dev` (or a feature branch → PR into `dev`). Review at **`dev.daisychainsd.com`** before merging to `main`.
-- **Local dev server**: `npm run dev` (Turbopack, localhost:3000)
-- **Before merging to main**: run `npm run build` locally to catch TypeScript/build errors before Vercel sees them
-- **Build compiler**: `npm run build` runs `next build --webpack`; keep local and Vercel builds aligned. Default Turbopack failed resolving its internal Google Font module during the September 29 release.
-- **Merging to main** (only when ready to go live): open a PR from `dev` to `main` — never push `main` directly (branch protection requires PRs now that the repo has collaborators):
-  ```bash
-  gh pr create --base main --head dev --title "..." --body "..."
-  ```
-  PD reviews and merges the PR on GitHub (or asks Claude to merge it).
-- **Vercel env vars**: All keys from `.env.local` must also exist in Vercel → Project → Settings → Environment Variables with **Production + Preview + Development** checked (Preview covers `dev`). Use "Import .env File" to bulk-add.
-- **Sanity CDN**: `useCdn` is `false` in dev (live API, instant Studio updates) and `true` in production (cached, faster). Homepage has **`export const revalidate = 60`** so Studio edits to `homepageSettings.upcoming` show up on Vercel within ~60s without a rebuild.
-- **Stale build cache gotcha**: Occasionally Vercel ships a prerendered homepage with empty Sanity data even though Sanity has content (likely an intermittent fetch during build). Nuclear fix: **`git commit --allow-empty -m "rebuild" && git push origin dev`** — a fresh build regenerates the HTML correctly.
-- **Vercel CLI** (`vercel`) is installed and logged in as **playerdave-1800**. Useful: `vercel ls`, `vercel env ls preview`, `vercel env pull /tmp/preview.env --environment=preview --git-branch=dev`, `vercel inspect <url> --logs`.
+- Production follows `main` at **https://www.daisychainsd.com**. Finish the requested implementation, relevant checks and review, push to `main`, then verify Vercel is Ready and the live behavior works.
+- `dev` and **https://dev.daisychainsd.com** remain available only for explicitly requested preview testing. A preview is not evidence that production changed.
+- Local development: `npm run dev`. Before code deployment, run appropriate tests and `npm run build` to catch TypeScript/build errors.
+- The build uses `next build --webpack`; keep local and Vercel builds aligned. Default Turbopack failed resolving its internal Google Font module during the September 29 release.
+- Keep required environment variables configured for the target Vercel environment. Preview shares production services; use isolated fixtures for purchase and inventory tests.
+- Sanity uses its live API in development and CDN in production. Homepage and Shop revalidate at 60 seconds. Inspect deployment and data-fetch errors before retrying a stale build.
+- Vercel CLI is authenticated as **playerdave-1800**. Use `vercel ls`, `vercel env ls`, and `vercel inspect <url>` to check actual deployment state.
 
 Daisy Chain SD is an independent electronic music label based in San Diego, run by Player Dave. The label name is **Daisy Chain Recordings** (never "Records") across all site copy, metadata, and emails. This site replaces the old Squarespace site at daisychainsd.com and aims to be a self-hosted Bandcamp alternative.
 
@@ -112,11 +108,10 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 | `/login` | Email+password login |
 | `/signup` | Email+password signup |
 | `/account` | User downloads dashboard — purchased releases, format selector, unlimited pass |
-| `/download/[slug]?session_id=` | Post-purchase download page for **guest** digital purchases (no account). Validates Stripe session via `/api/verify-purchase` and serves the release's WAV/format files. |
+| `/download/[slug]?session_id=` | Post-purchase download page for **guest** digital purchases (no account). Validates access server-side through `src/lib/verify-download.ts` and serves the release's WAV/format files. |
 | `/studio` | Embedded Sanity Studio |
 | `/api/checkout` | Creates Stripe checkout session for digital downloads. Accepts EITHER an authenticated Supabase user OR a `guestEmail` field for guest checkout. Logged-in flow returns `success_url=/account?purchased=<slug>`; guest flow returns `success_url=/download/<slug>?session_id=<id>`. |
 | `/api/checkout-pass` | Creates Stripe session for $100 unlimited pass |
-| `/api/verify-purchase` | Verifies Stripe session before allowing downloads |
 | `/api/checkout-physical` | Creates Stripe Embedded Checkout session for physical products with shipping |
 | `/api/convert` | Server-side audio format conversion (WAV → MP3/FLAC/AIFF via ffmpeg) |
 | `/api/shopify-product` | Compatibility GET endpoint returning the active catalog product by handle; currently Supabase, used by ReleaseInteractive |
@@ -143,7 +138,7 @@ Sanity is **strictly for managing frontend website content** (releases, artists,
 - **HeroSlideshow** (`src/components/HeroSlideshow.tsx`) — kept in codebase but no longer used on homepage.
 - **NewsletterSignup** (`src/components/NewsletterSignup.tsx`) — email signup form that POSTs to `/api/newsletter` (beehiiv). Sits between hero and Upcoming section on homepage inside **`container-organic`**: **`text-label`** “Newsletter”, **`text-title`** headline **“skip the algorithm”**, supporting line, rounded-lg field + button (not full-width pill row). Headline copy stays direct.
 - **LayloModal** (`src/components/LayloModal.tsx`) — client component that opens a modal popup embedding the Laylo drop iframe (`dropId: feb0139b-a3c8-48cb-9aea-97055521f1b6`). Triggered by "i hate presaving things, just notify me when it's out →" text. Shown on all upcoming release views (homepage card + release detail page). Loads `laylo-sdk.js` dynamically and locks body scroll while open.
-- **DownloadPanel** (`src/components/DownloadPanel.tsx`) — guest post-purchase download UI. Verifies Stripe session via `/api/verify-purchase`, then shows format picker (WAV/FLAC/AIFF/MP3), per-track download buttons with conversion status, and download-all. Non-WAV formats use `/api/convert` for server-side ffmpeg transcoding.
+- **DownloadPanel** (`src/components/DownloadPanel.tsx`) — guest post-purchase download UI. Receives the authorized tracks after server-side access verification, then shows format picker (WAV/FLAC/AIFF/MP3), per-track download buttons with conversion status, and download-all. Non-WAV formats use `/api/convert` for server-side ffmpeg transcoding.
 - **InlineSignup** (`src/components/InlineSignup.tsx`) — compact email signup banner for `/music` and `/events` pages. Pulsing red dot, uppercase headline, email input pill, blue "Join" button. Accepts `headline` and `campaign` props for contextual copy. Follows design system: `--radius-organic-sm`, `--font-heading`, `--color-bg-surface`, 6% white borders, `--ease-daisy` transitions. Success state collapses to "You're on Chain Mail." confirmation.
 - **Header/Footer** — site-wide layout; Footer includes YouTube channel link, Header includes cart icon
 
@@ -372,7 +367,7 @@ Use this section when changing UI so choices stay consistent across pages (homep
 - **Touch vs hover**: **`.hover-lift`**, image zoom (`image-hover-card-zoom`, `image-hover-artist-photo`), past-event flyer opacity, and header logo glow apply only inside **`@media (hover: hover)`** so touch doesn’t get sticky hover.
 - **Lead gen / newsletter**: Build from **`@theme` tokens** and shared container patterns (`container-organic`, spacing scale); avoid one-off gradients, arbitrary radii, and inconsistent label typography — should feel as intentional as shop/checkout, not “vibe coded.”
 - **Section titles**: Homepage **“Upcoming”** (and similar) should use **label vs display** hierarchy intentionally (see `--font-label` / `data-label` vs Azo Black headings) — refine if the section head feels weak or mismatched next to hero.
-- **Deploy**: After schema or prop changes, run **`npm run build`** before pushing **`dev`**; fix TypeScript/prop mismatches (e.g. removing obsolete props from pages when component APIs change) so Vercel preview stays green.
+- **Deploy**: After schema or prop changes, run **`npm run build`** before pushing **`main`** (or `dev` only when explicitly requested); fix TypeScript/prop mismatches (e.g. removing obsolete props from pages when component APIs change) so the Vercel deployment builds successfully.
 - **Locking streaming**: Upcoming releases (`status === "upcoming"`) auto-lock every track — no stream URL is delivered to the client. Per-track `comingSoon` boolean on `release.tracks[]` covers partial EPs (e.g. one single released, rest upcoming). Locked tracks render a lock icon + **"Soon"** pill in `TrackList`.
 
 ## Typography & Design System
@@ -461,7 +456,7 @@ When the Stripe → Parcel Sound revenue pipeline gets built, per-track net sale
 - Sanity data fix: `trackArtists` added to DCR#18 "Cocky" (Mirror Maze, Niles) and DCR#18.5 "Cocky (Coido Remix)" (Mirror Maze, Niles, Coido) so per-track credits match release-level credits.
 - Sanity data fix: DCR#21 title corrected from "Sakima EP" to "Sakima / Melted EP".
 
-> The dated session entries below are historical. For current product and physical-order behavior, use the Merch Ops section, MERCH-ROLLOUT.md and MERCH-PRODUCT-EDITOR-2026-09-29.md. Older Shopify-draft and unfinished catalog-cutover notes are superseded.
+> The dated session entries below are historical. For current product, physical-order and branching behavior, use the workflow and Merch Ops sections above, MERCH-ROLLOUT.md and MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md. Older dev-first, Shopify-draft and unfinished catalog-cutover notes are superseded.
 
 ### Session 1 (2026-04-22) — Daisy Chain Design System install + Homepage V2 port
 
@@ -763,7 +758,7 @@ Blobs use `position: absolute` with negative offsets (e.g. `right-[-150px]`). An
 - **`LAYLO_API_KEY`** (optional) — generated at laylo.com → Settings → Integrations → API Keyring. When set, every newsletter signup is pushed to the Daisy Chain Laylo drop CRM in parallel with beehiiv. When missing, Laylo push is silently skipped. Add to Vercel env vars (Production + Preview) when ready to go live.
 - **`STRIPE_WEBHOOK_SECRET`** — signing secret for the Stripe webhook endpoint (`we_1TS9rnLSuqhEd0bb9AW3F5vo`). Required for `/api/webhooks/stripe` to verify incoming events. Set in Vercel env vars (Production + Preview).
 - **`RESEND_API_KEY`** (optional) — Resend API key for sending guest download emails. When missing, email delivery silently skips — guests still get downloads via the Stripe success redirect. Requires domain verification at resend.com before emails can send from `noreply@daisychainsd.com`.
-- **`CRON_SECRET`** authenticates the daily release-day cron route ([`/api/cron/release-day`](src/app/api/cron/release-day/route.ts)). Generate with `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`. Must be added to Vercel env vars (Production + Preview) for the cron to actually fire on the live site — Vercel Cron sends `Authorization: Bearer ${CRON_SECRET}` automatically when the env var is set.
+- **`CRON_SECRET`** authenticates the hourly release-day cron route ([`/api/cron/release-day`](src/app/api/cron/release-day/route.ts)). Generate with `node -e 'console.log(require("crypto").randomBytes(32).toString("base64url"))'`. Must be added to Vercel env vars (Production + Preview) for the cron to actually fire on the live site — Vercel Cron sends `Authorization: Bearer ${CRON_SECRET}` automatically when the env var is set.
 - **`SANITY_READ_TOKEN`** (REQUIRED) — viewer-role, read-only token used by `src/sanity/client.ts` for all public-site queries. **The production dataset is private**, so without this every query 401s and the whole site renders empty. Deliberately separate from `SANITY_API_TOKEN`: the client module is imported by page renders and must never carry write rights. Server-only (no `NEXT_PUBLIC_` prefix). Set in all four Vercel environments.
 - Sanity API token is an Editor-level token (needed for mutations/uploads)
 - Supabase keys are from the Supabase dashboard (project settings → API)

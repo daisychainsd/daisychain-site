@@ -21,9 +21,17 @@ Bandcamp physical orders use a separate merchandise-only feed through `dc-email-
 
 Ops now manages the live shop catalog, product photos, prices, sizes and stock. Production and the dev preview use `MERCH_BACKEND=supabase`. The catalog contains 14 products and 38 variants with DCM01–DCM38 SKUs. The 384 units entered at launch are an opening count, not a permanent inventory target. Shopify remains available for legacy references and rollback; its cancellation is separate work.
 
-Open Inventory or Products, click a product thumbnail, then enter stock changes by size. These fields **add or remove units**: enter `-2` for two units sold at a booth or `5` for five restocked units. Choose **Edit product & sizes** to change sizes, prices or photos. Under **Thumbnail framing**, enable **Crop to fill square**, adjust zoom and horizontal/vertical position, then save the product. The original full photo stays intact.
+Open Inventory or Products, click a product thumbnail, then enter stock changes by size. These fields **add or remove units**: enter `-2` for two units sold at a booth or `5` for five restocked units. Choose **Edit product & sizes** to change sizes, prices or photos. Under **Thumbnail framing**, enable **Crop to fill square**, adjust zoom and horizontal/vertical position, then save the product. The saved crop applies to cards and the large product-detail image. Original uploaded files stay intact; images without framing use the full-photo view.
 
 [DC staple tee](https://www.daisychainsd.com/shop/dc-staple-tee) is live at $45 with S–XXL sizes and the replacement photo. Holy Cobra and Faded Black Daisy Tee are $27 (40% off $45); Brown DC Hoodie is $39 (40% off $65). See the [release and opening-stock record](MERCH-PRODUCT-EDITOR-2026-09-29.md) and [daily product workflow](MERCH-ROLLOUT.md#products-sizes-and-stock).
+
+## Discounts and product placement
+
+Ops owns product details, photos, stock, regular prices and discounts. Sanity owns independent Homepage and Shop selections and ordering using stable Ops product IDs; it does not copy the product catalog or require a sync cron. See [MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md) for release verification and [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for daily editing.
+
+In **Ops → Edit product & sizes**, enter regular prices, turn on **Offer a discount**, enter a whole percentage (1–99), check the preview, and save. Turn it off and save to restore regular prices. Customers see the original price struck through, the current price, and a red percentage badge. The three opening offers remain $45 → $27 for both tees and $65 → $39 for the hoodie.
+
+In **Studio → Homepage → Homepage shop products** or **Studio → Shop → Shop products**, arrange the product list first, then enable **Choose products and their order**. Drag to reorder. Homepage edits are live; Shop edits require Publish. Automatic mode keeps the existing default; an empty manual list hides the product section. Changes reach cached pages on their next revalidation (60 seconds). Removing a placement does not unpublish the product: use Ops for that.
 
 ## Read next
 
@@ -51,4 +59,4 @@ npm run build
 
 `npm run build` uses webpack after the September 29 Vercel Turbopack font-compilation failure. Obtain environment access from PD. Never commit credentials or customer recovery exports. Local and preview credentials can reach production services: use isolated fixtures for purchase tests, not live checkout. Browser-test setup is in [tests/MERCH-BROWSER.md](tests/MERCH-BROWSER.md).
 
-Push site changes to `dev`, verify the preview, then use a PR into protected `main` for production. A code deployment is not proof that database migrations, imports, or scheduled jobs have been activated; record the live checks in the incident/rollout document.
+Requested changes publish to `main` after appropriate local checks and review. PD explicitly set this standing default on September 30, 2026; use `dev` only when PD asks to test there first. Do not ask again for routine go-live authorization already covered by the requested work. Handle GitHub operations directly: an ordinary fast-forward push or admin PR merge is authorized with the existing owner credentials. Preserve branch protections and never force-push. A code deployment is not proof that database migrations, imports, or scheduled jobs have been activated; record the live checks in the incident/rollout document.

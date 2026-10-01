@@ -1,5 +1,7 @@
 # Physical website order recovery
 
+> Current follow-up: [editable discounts and CMS product placement](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md). This document preserves the earlier release checkpoint. Use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for current daily operations.
+
 > Historical September 22 recovery record. Since September 29, Ops/Supabase controls the live catalog, prices, images and stock (`MERCH_BACKEND=supabase` in production and dev preview). The catalog import and opening counts are complete; Unshipped is the current default. See [the live product release](MERCH-PRODUCT-EDITOR-2026-09-29.md) and [daily workflow](MERCH-ROLLOUT.md). The completed recovery sequence below is reference only.
 
 Initial production diagnosis: Stripe contains four paid physical website Checkout Sessions across the full 55 completed-session history. The `merch_orders` table was absent; the live `/api/ops/merch` endpoint returned 500. The storefront backend flag is unset, so the existing webhook routed physical payments exclusively to Shopify draft creation and never persisted them to Ops. The Shopify Admin token exchange returned HTTP 400 during diagnosis. No refunds or disputes were present on these four payments at the time of the audit.

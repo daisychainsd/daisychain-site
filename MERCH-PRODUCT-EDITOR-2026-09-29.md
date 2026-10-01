@@ -1,5 +1,7 @@
 # Merch catalog and product editor — September 29, 2026
 
+> Current follow-up: [editable discounts and CMS product placement](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md). This document preserves the earlier release checkpoint. Use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for current daily operations.
+
 ## Live release
 
 The shop and Ops product editor are live through [PR #28](https://github.com/daisychainsd/daisychain-site/pull/28), merge `a4ded457956029c122616813a60f2024d074610d`. Vercel production deployment `dpl_etGeB97pezUvB44v3qnB8tLVtomU` completed at September 29, 10:46pm PT. PD explicitly authorized the repository-owner override for this release's one-review requirement; branch protection remains in place.
