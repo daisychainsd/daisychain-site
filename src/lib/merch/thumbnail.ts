@@ -9,7 +9,7 @@ export function isThumbnailCrop(value: unknown): value is ThumbnailCrop {
     typeof crop.y === "number" && Number.isFinite(crop.y) && crop.y >= 0 && crop.y <= 100;
 }
 
-/** Identical framing in Ops, shop cards and gallery thumbnails; original files stay intact. */
+/** Identical framing in Ops, shop cards and product galleries; original files stay intact. */
 export function thumbnailStyle(crop?: ThumbnailCrop): CSSProperties {
   if (!isThumbnailCrop(crop)) return { objectFit: "contain" };
   const position = `${crop.x}% ${crop.y}%`;
