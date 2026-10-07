@@ -24,7 +24,7 @@ const COUNTRY_CODES: { code: string; label: string }[] = [
 ];
 
 export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCount?: string }) {
-  const [mode, setMode] = useState<Mode>("email");
+  const [mode, setMode] = useState<Mode>("text");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+1");
@@ -106,8 +106,8 @@ export default function LeadGen({ subscriberCount = "on chain" }: { subscriberCo
               border: "1px solid rgba(255,255,255,0.08)",
             }}
           >
-            <ModeTab active={mode === "email"} label="Email" onClick={() => switchMode("email")} />
             <ModeTab active={mode === "text"} label="Text" onClick={() => switchMode("text")} />
+            <ModeTab active={mode === "email"} label="Email" onClick={() => switchMode("email")} />
           </div>
         </div>
         <div
