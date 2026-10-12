@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { earlyAccessCutoffDate } from "@/lib/earlyAccess";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Account" };
@@ -45,9 +46,7 @@ export default async function AccountPage() {
 
   if (hasUnlimitedPass) {
     // Pass holders get all releases + upcoming within 7 days (early access)
-    const earlyAccessDate = new Date();
-    earlyAccessDate.setDate(earlyAccessDate.getDate() + 7);
-    const earlyDateStr = earlyAccessDate.toISOString().split("T")[0];
+    const earlyDateStr = earlyAccessCutoffDate();
     releases = await sanityFetch<DownloadRelease>(ALL_RELEASES_DOWNLOAD_WITH_EARLY, {
       earlyAccessDate: earlyDateStr,
     });

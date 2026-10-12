@@ -9,6 +9,7 @@ import TrackList from "./TrackList";
 import DspRow from "./DspRow";
 import { useCart } from "./CartProvider";
 import UnlimitedPassInfo from "./UnlimitedPassInfo";
+import { isInEarlyAccessWindow } from "@/lib/earlyAccess";
 import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/lib/types";
 import type { MerchProduct } from "@/lib/merch/types";
@@ -76,6 +77,7 @@ export default function ReleaseInteractive({
   links,
 }: ReleaseInteractiveProps) {
   const isUpcoming = status === "upcoming";
+  const earlyUnlock = isUpcoming && isInEarlyAccessWindow(releaseDate);
   const router = useRouter();
   const { addItem, items: cartItems } = useCart();
 
@@ -490,11 +492,11 @@ export default function ReleaseInteractive({
       )}
 
       {/* Unlimited Pass CTA */}
-      {!isUpcoming && !physical && !hasPass && (
+      {(!isUpcoming || earlyUnlock) && !physical && !hasPass && (
         <div className="mt-8 flex items-center justify-between p-4 rounded-lg border border-blue-300/10 bg-blue-300/[0.03]">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-text-primary text-sm font-semibold whitespace-nowrap">
-              Unlimited Music Pass
+              {earlyUnlock ? "Unlock it now with the Unlimited Pass" : "Unlimited Music Pass"}
             </span>
             <UnlimitedPassInfo />
           </div>

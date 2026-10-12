@@ -12,6 +12,7 @@ import Link from "next/link";
 import LayloModal from "@/components/LayloModal";
 import { ArrowIcon } from "@/components/icons";
 import type { MerchSelection } from "@/lib/merch/placement";
+import { isInEarlyAccessWindow } from "@/lib/earlyAccess";
 
 export const revalidate = 60;
 
@@ -36,6 +37,7 @@ interface UpcomingRelease {
   presaveUrl?: string;
   catalogNumber?: string;
   status?: string;
+  releaseDate?: string;
 }
 
 interface UpcomingItem {
@@ -221,6 +223,14 @@ export default async function HomePage() {
                           <div className="text-left text-xs text-text-secondary">
                             <LayloModal />
                           </div>
+                          {isUpcoming && isInEarlyAccessWindow(rel.releaseDate) && (
+                            <Link
+                              href="/account"
+                              className="text-left text-xs text-blue-300 hover:text-blue-200 transition-colors"
+                            >
+                              Unlock it now with the Unlimited Pass →
+                            </Link>
+                          )}
                           {rel.presaveUrl ? (
                             <a
                               href={rel.presaveUrl}
