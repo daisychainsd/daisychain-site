@@ -33,6 +33,7 @@ interface UpcomingRelease {
   title: string;
   slug: string;
   artist: string;
+  artistSlug?: string;
   coverArt?: SanityImageRef;
   presaveUrl?: string;
   catalogNumber?: string;
@@ -169,7 +170,7 @@ export default async function HomePage() {
               if (item.itemType === "release" && item.release) {
                 const rel = item.release;
                 const coverUrl = rel.coverArt
-                  ? urlFor(rel.coverArt).width(700).height(700).fit("crop").crop("center").url()
+                  ? urlFor(rel.coverArt).width(900).height(900).url()
                   : "";
                 const isUpcoming = rel.status === "upcoming";
 
@@ -179,16 +180,22 @@ export default async function HomePage() {
                     className="min-w-0 container-organic overflow-hidden p-3 sm:p-4"
                   >
                     <div className={`grid grid-cols-1 gap-8 h-full ${upcomingItems.length > 1 ? "md:grid-cols-2" : "md:grid-cols-[minmax(240px,380px)_minmax(0,1fr)]"}`}>
+                      {/* Cover — identical markup to ReleaseSpotlight (group hover zoom + catalog pill) */}
                       <div className="container-inset aspect-square relative overflow-hidden">
-                        <Link href={`/releases/${rel.slug}`} className="block w-full h-full">
+                        <Link href={`/releases/${rel.slug}`} className="block w-full h-full group">
                           {coverUrl ? (
                             <img
                               src={coverUrl}
                               alt={rel.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover image-hover-card-zoom"
                             />
                           ) : (
                             <div className="w-full h-full bg-bg-raised" />
+                          )}
+                          {rel.catalogNumber && (
+                            <span className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/55 backdrop-blur-sm text-white/90 font-mono text-xs">
+                              {rel.catalogNumber}
+                            </span>
                           )}
                         </Link>
                         {isUpcoming && (
@@ -216,7 +223,16 @@ export default async function HomePage() {
                           <h3 className="font-black leading-tight text-text-primary text-3xl md:text-4xl">
                             {rel.title}
                           </h3>
-                          <p className="text-blue-300 text-lg">{rel.artist}</p>
+                          {rel.artistSlug ? (
+                            <Link
+                              href={`/artists/${rel.artistSlug}`}
+                              className="text-blue-300 text-lg hover:text-blue-200 transition-colors w-fit"
+                            >
+                              {rel.artist}
+                            </Link>
+                          ) : (
+                            <span className="text-blue-300 text-lg">{rel.artist}</span>
+                          )}
                         </div>
 
                         {/* BOTTOM ZONE — Laylo trigger above CTA so both card buttons bottom-align */}
