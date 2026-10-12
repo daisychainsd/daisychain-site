@@ -254,7 +254,7 @@ export const HOMEPAGE_SETTINGS = `
     upcoming[] {
       itemType,
       show->{ title, "slug": slug.current, date, venue, flyer, flyerVerticalAlign, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },
-      release->{ title, "slug": slug.current, "artist": coalesce(artists[0]->name, displayArtist, artist->name), coverArt, presaveUrl, catalogNumber, status }
+      release->{ title, "slug": slug.current, "artist": coalesce(artists[0]->name, displayArtist, artist->name), coverArt, presaveUrl, catalogNumber, status, releaseDate }
     }
   }
 `;

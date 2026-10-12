@@ -12,6 +12,7 @@ import Link from "next/link";
 import LayloModal from "@/components/LayloModal";
 import { ArrowIcon } from "@/components/icons";
 import type { MerchSelection } from "@/lib/merch/placement";
+import { isInEarlyAccessWindow } from "@/lib/earlyAccess";
 
 export const revalidate = 60;
 
@@ -36,6 +37,7 @@ interface UpcomingRelease {
   presaveUrl?: string;
   catalogNumber?: string;
   status?: string;
+  releaseDate?: string;
 }
 
 interface UpcomingItem {
@@ -126,6 +128,7 @@ export default async function HomePage() {
           <SectionHeader
             kicker="Next Up"
             title="Upcoming"
+            size="xl"
             right={
               <div className="flex items-center gap-2 flex-wrap">
                 <Link
@@ -175,7 +178,7 @@ export default async function HomePage() {
                     key={`release-${rel.slug}-${i}`}
                     className="min-w-0 container-organic overflow-hidden p-3 sm:p-4"
                   >
-                    <div className="grid md:grid-cols-2 gap-8 h-full">
+                    <div className={`grid grid-cols-1 gap-8 h-full ${upcomingItems.length > 1 ? "md:grid-cols-2" : "md:grid-cols-[minmax(240px,380px)_minmax(0,1fr)]"}`}>
                       <div className="container-inset aspect-square relative overflow-hidden">
                         <Link href={`/releases/${rel.slug}`} className="block w-full h-full">
                           {coverUrl ? (
@@ -210,7 +213,7 @@ export default async function HomePage() {
                               {rel.catalogNumber}
                             </p>
                           )}
-                          <h3 className="font-black leading-tight text-text-primary text-2xl md:text-xl">
+                          <h3 className="font-black leading-tight text-text-primary text-3xl md:text-4xl">
                             {rel.title}
                           </h3>
                           <p className="text-blue-300 text-lg">{rel.artist}</p>
@@ -221,6 +224,14 @@ export default async function HomePage() {
                           <div className="text-left text-xs text-text-secondary">
                             <LayloModal />
                           </div>
+                          {isUpcoming && isInEarlyAccessWindow(rel.releaseDate) && (
+                            <Link
+                              href="/account"
+                              className="text-left text-xs text-blue-300 hover:text-blue-200 transition-colors"
+                            >
+                              Unlock it now with the Unlimited Pass →
+                            </Link>
+                          )}
                           {rel.presaveUrl ? (
                             <a
                               href={rel.presaveUrl}
