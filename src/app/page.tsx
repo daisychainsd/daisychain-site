@@ -145,7 +145,7 @@ export default async function HomePage() {
               </div>
             }
           />
-          <div className="grid grid-cols-1 min-[1280px]:grid-cols-2 gap-6">
+          <div className={`grid grid-cols-1 gap-6 ${upcomingItems.length > 1 ? "min-[1280px]:grid-cols-2" : ""}`}>
             {upcomingItems.map((item, i) => {
               if (item.itemType === "show" && item.show) {
                 const show = item.show;
