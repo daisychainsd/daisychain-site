@@ -43,6 +43,7 @@ export default async function ShopStrip({ limit = 4, selection }: { limit?: numb
       <SectionHeader
         kicker="Merch + Wax"
         title="Shop"
+        size="xl"
         seeAllHref="/shop"
         seeAllLabel="All items"
       />
