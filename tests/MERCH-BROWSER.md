@@ -39,3 +39,11 @@ The harness also checks the Unshipped default, removal of generic shipping instr
 Production and dev preview use the same live Supabase catalog. Do not run fixture writes, stock tests or test checkout against either. The September 29 release separately verified public prices, staple sizes, 14 authenticated Ops product cards, fully decoded product images, crop controls and mobile overflow on both deployed sites, with API mutations blocked. Crop controls were exercised without saving. Wait for image decoding before assessing screenshots; an early capture can show blank loading boxes.
 
 That read-only verification does not prove a real paid production checkout or label purchase. See [release evidence](../MERCH-PRODUCT-EDITOR-2026-09-29.md) and [operating workflow](../MERCH-ROLLOUT.md).
+
+## Discount and CMS placement checks — September 30, 2026
+
+Use isolated fixtures for writes. Verify discount on/off, percentage and regular-price edits, new sizes during a sale, reopen/save without compounding, and stale client rejection. Check the shop, homepage and detail pages at 390px and desktop: original price struck through, accurate current price, red percentage badge, no overflow, and all product images decoded. A hoodie with sold-out L first must initially select available S and add $39 to the cart.
+
+Verify independent manual product lists, ordering, duplicate/missing IDs, explicit empty lists, automatic defaults, and absence of false New badges after reordering. Sanity picker keeps stable IDs through Ops name/price changes and distinguishes loading/fetch errors from an unpublished product. Homepage changes are live; Shop requires Publish. Do not create live orders or alter live inventory for these tests. Read-only production checks must verify database metadata and actual deployed HTML after migration and release.
+
+For image framing, switch between cropped and uncropped gallery images. Verify the large image matches each image’s saved zoom/position, clips inside its square, resets styles on uncropped images, and retains original image URLs. Check desktop and mobile without mutating live products.

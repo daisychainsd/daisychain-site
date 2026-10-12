@@ -3,7 +3,7 @@
 > This file is the single source of truth for all release and artist data.
 > Any seed script or data migration must match this exactly.
 
-This document covers the music seed catalog. Physical products, variant SKUs, prices, stock and product photos are managed in [Merch Ops](https://www.daisychainsd.com/ops/merch), backed by Supabase since September 29, 2026. See the [merch workflow](MERCH-ROLLOUT.md) and [opening-stock record](MERCH-PRODUCT-EDITOR-2026-09-29.md); this file is not a merch inventory source.
+This document covers the music seed catalog. Physical products, variant SKUs, prices, stock and product photos are managed in [Merch Ops](https://www.daisychainsd.com/ops/merch), backed by Supabase since September 29, 2026. See the [merch workflow](MERCH-ROLLOUT.md) and [opening-stock record](MERCH-PRODUCT-EDITOR-2026-09-29.md); this file is not a merch inventory source. Ops also owns discounts; Sanity controls Homepage and Shop product placement through stable IDs. See [MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md).
 
 ## Artists (20)
 

@@ -76,7 +76,8 @@ export default function ProductDetail({ product }: { product: MerchProduct }) {
                 <img
                   src={images[selectedImageIndex].url}
                   alt={images[selectedImageIndex].altText || product.title}
-                  className="w-full h-full object-contain"
+                  className="absolute inset-0 w-full h-full"
+                  style={thumbnailStyle(images[selectedImageIndex].thumbnailCrop)}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-text-muted text-2xl bg-bg-raised">

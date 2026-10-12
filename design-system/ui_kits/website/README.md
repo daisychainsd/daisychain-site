@@ -13,3 +13,7 @@ Faithful recreation of [daisychainsd.com](https://daisychainsd.com), the product
 - `data.js` — real catalog entries from `CATALOG.md` + mock events
 
 All components reference `../../colors_and_type.css` tokens.
+
+## Merch pricing and placement
+
+Use the production `MerchPrice` component for crossed-out original prices, clear current prices and red percentage badges. Ops owns regular/effective prices and discounts; Sanity owns selected products and their order. See [current implementation](../../../MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md). Existing token colors and asymmetric radii apply.

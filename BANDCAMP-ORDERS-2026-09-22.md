@@ -1,5 +1,7 @@
 # Bandcamp physical orders in Merch Ops
 
+> Current follow-up: [editable discounts and CMS product placement](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md). This document preserves the earlier release checkpoint. Use [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md) for current daily operations.
+
 > September 29 update: the website catalog and inventory now run in Ops/Supabase. Bandcamp remains a separate sales/inventory source: its physical orders appear in Ops but do not deduct website stock. Reconcile shared stock manually. See [current merch workflow](MERCH-ROLLOUT.md) and [catalog activation](MERCH-PRODUCT-EDITOR-2026-09-29.md).
 
 ## Scope and source audit

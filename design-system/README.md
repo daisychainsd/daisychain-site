@@ -83,7 +83,7 @@ Daisy Chain writes the way a label runs a 300-cap room — tight, warm, factual,
 - **Accent.** A single signature hue — **blue-300 `#7CB9E8`** — the flower-mark blue. Buttons, active toggles, upcoming pills, waveform progress, selection color. Blue-200 is the hover state; blue-400+ is for edge cases (heavy backgrounds, focus rings).
 - **Text.** Four-stop warm white: primary `#E8ECF0`, secondary `#8899AA`, muted `#556677`, faint `#3A4A5A`. No pure white, no pure grey.
 - **Secondary accents** (used sparingly, maybe once per page): amber-300 `#E8B86C`, lavender-300 `#A8A0D4`.
-- **Semantic:** no red/green noise; destructive uses text-red-400 from Tailwind defaults; success uses the brand blue.
+- **Semantic:** success uses the brand blue; destructive uses red. Merch discounts use the existing hot-signal `red-300` token for a compact percentage badge, beside a muted struck-through original price and a prominent current price. This owner-requested sale treatment is shared by shop cards, homepage cards, product detail and the Ops preview.
 
 ### Type
 - **Azo Sans Web Black (weight 900)** for every heading and most UI chrome. Archivo Black is the Google-Font substitute used in this system.
@@ -170,3 +170,7 @@ For larger work, read `SKILL.md` — it tells an agent how to assemble designs t
 - **Azo Sans Web** is substituted with Archivo Black in this system. Provide a licensed Azo web-font kit to make prototypes match production pixel-for-pixel.
 - No photos of the room itself were in the repo beyond `hero.png`; flyer + background stand in for the broader mood.
 - Sanity-driven dynamic data (real releases, events) is mocked in the UI kit with representative entries from `CATALOG.md`.
+
+## Product merchandising
+
+Ops owns product content and pricing; Sanity controls Homepage and Shop selections and order. See [discount and placement release](../MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md) and [daily workflow](../MERCH-ROLLOUT.md). Reuse `MerchPrice` for sale comparisons; never invent original prices or calculate another discount in the browser.

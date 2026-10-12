@@ -1,6 +1,6 @@
 # Merch replacement: independent Claude review
 
-> Historical audit/review snapshot. Its findings and test counts describe the dated checkpoint, not current deployment status. The live merch catalog moved to Ops/Supabase on September 29, 2026; product import, image storage and opening stock are complete. See [current operations](OPERATIONS.md), [merch workflow](MERCH-ROLLOUT.md) and [release verification](MERCH-PRODUCT-EDITOR-2026-09-29.md). Do not use old rollout steps as production setup instructions.
+> Historical audit/review snapshot. Findings and test counts describe that checkpoint. Current discount controls and Sanity product placement are documented in [MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md](MERCH-DISCOUNTS-AND-PLACEMENT-2026-09-30.md); daily operations are in [MERCH-ROLLOUT.md](MERCH-ROLLOUT.md). Do not rerun historical catalog imports, schemas or opening-stock scripts.
 
 Date: 2026-09-14
 Baseline: `2335f33` (`main`); local branch: `feature/merch-ops`.
