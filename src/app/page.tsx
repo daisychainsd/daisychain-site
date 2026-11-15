@@ -13,6 +13,8 @@ import LayloModal from "@/components/LayloModal";
 import { ArrowIcon } from "@/components/icons";
 import type { MerchSelection } from "@/lib/merch/placement";
 import { isInEarlyAccessWindow } from "@/lib/earlyAccess";
+import { hasPresaveLinks, type PresaveLinks } from "@/components/PresaveList";
+import ArtistCredits, { type CreditedArtist } from "@/components/ArtistCredits";
 
 export const revalidate = 60;
 
@@ -34,8 +36,10 @@ interface UpcomingRelease {
   slug: string;
   artist: string;
   artistSlug?: string;
+  artists?: CreditedArtist[];
   coverArt?: SanityImageRef;
   presaveUrl?: string;
+  presaveLinks?: PresaveLinks;
   catalogNumber?: string;
   status?: string;
   releaseDate?: string;
@@ -223,16 +227,7 @@ export default async function HomePage() {
                           <h3 className="font-black leading-tight text-text-primary text-3xl md:text-4xl">
                             {rel.title}
                           </h3>
-                          {rel.artistSlug ? (
-                            <Link
-                              href={`/artists/${rel.artistSlug}`}
-                              className="text-blue-300 text-lg hover:text-blue-200 transition-colors w-fit"
-                            >
-                              {rel.artist}
-                            </Link>
-                          ) : (
-                            <span className="text-blue-300 text-lg">{rel.artist}</span>
-                          )}
+                          <ArtistCredits artists={rel.artists} name={rel.artist} slug={rel.artistSlug} />
                         </div>
 
                         {/* BOTTOM ZONE — Laylo trigger above CTA so both card buttons bottom-align */}
@@ -248,7 +243,15 @@ export default async function HomePage() {
                               Unlock it now with the Unlimited Pass →
                             </Link>
                           )}
-                          {rel.presaveUrl ? (
+                          {hasPresaveLinks(rel.presaveLinks) ? (
+                            <Link
+                              href={`/releases/${rel.slug}#presave`}
+                              className="container-pill-r flex w-full items-center justify-center gap-2 px-6 py-3 text-sm font-semibold bg-blue-300 text-bg-deep hover:bg-blue-200 hover:shadow-[0_0_24px_rgba(124,185,232,0.2)] transition-[background-color,box-shadow]"
+                            >
+                              Pre-save
+                              <ArrowIcon />
+                            </Link>
+                          ) : rel.presaveUrl ? (
                             <a
                               href={rel.presaveUrl}
                               target="_blank"

@@ -32,6 +32,7 @@ export interface Release {
   shopifyHandle?: string;
   status?: string;
   presaveUrl?: string;
+  presaveLinks?: import("@/components/PresaveList").PresaveLinks;
   embedUrl?: string;
   links?: {
     spotify?: string;

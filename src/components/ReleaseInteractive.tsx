@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import FormatToggle from "./FormatToggle";
 import TrackList from "./TrackList";
 import DspRow from "./DspRow";
+import PresaveList, { hasPresaveLinks, type PresaveLinks } from "./PresaveList";
 import { useCart } from "./CartProvider";
 import UnlimitedPassInfo from "./UnlimitedPassInfo";
 import { isInEarlyAccessWindow } from "@/lib/earlyAccess";
@@ -43,6 +44,7 @@ interface ReleaseInteractiveProps {
   shopifyHandle?: string;
   status?: string;
   presaveUrl?: string;
+  presaveLinks?: PresaveLinks;
   embedUrl?: string;
   links?: DspLinks;
 }
@@ -73,6 +75,7 @@ export default function ReleaseInteractive({
   shopifyHandle,
   status,
   presaveUrl,
+  presaveLinks,
   embedUrl,
   links,
 }: ReleaseInteractiveProps) {
@@ -394,6 +397,11 @@ export default function ReleaseInteractive({
         </div>
       </div>
 
+      {/* Per-service pre-saves get their own panel; the homepage Pre-save button lands on #presave. */}
+      {isUpcoming && presaveLinks && hasPresaveLinks(presaveLinks) && (
+        <PresaveList links={presaveLinks} releaseDate={releaseDate} />
+      )}
+
       {/* Pre-save (upcoming) or Buy (live) */}
       {isUpcoming ? (
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -401,6 +409,7 @@ export default function ReleaseInteractive({
             <p className="text-label mb-1">Tracks</p>
             <h2 className="text-title text-text-primary">Tracklist</h2>
           </div>
+          {!hasPresaveLinks(presaveLinks) && (
           <div className="flex flex-col items-stretch sm:items-end gap-3 w-full sm:w-auto sm:max-w-xs">
             {presaveUrl ? (
               <a
@@ -418,6 +427,7 @@ export default function ReleaseInteractive({
             )}
             <LayloModal />
           </div>
+          )}
         </div>
       ) : physical && !shopifyProduct ? (
         <div className="mt-8 flex items-center justify-between">
