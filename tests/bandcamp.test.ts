@@ -102,6 +102,36 @@ test("snapshot change updates refund block and reports review without overwritin
   const o = (await orders())[0]; assert.equal(o.shipping_address.line1, "123 Example St"); assert.equal(o.payment_status, "refunded");
   assert.equal(o.source_data?.review_needed, true); assert.equal(canExport(o), false);
 });
+test("phone/email-only change on a shipped order is applied without review; anything else is still held", async () => {
+  const shipped = { ship_date: "06 Mar 2026 21:41:02 GMT" };
+  await reconcileBandcampOrders(true, deps(feed([row({ ...shipped, ship_to_phone: null })])));
+  const contact = deps(feed([row({ ...shipped, ship_to_phone: "+15551111111", buyer_email: "new@example.invalid" })]));
+  assert.deepEqual((await reconcileBandcampOrders(true, contact)).report.failures, []);
+  let o = (await orders())[0];
+  assert.equal(o.phone, "+15551111111"); assert.equal(o.email, "new@example.invalid"); assert.equal(o.fulfillment_status, "shipped");
+  assert.equal(new Date(o.shipped_at!).toISOString(), "2026-03-06T21:41:02.000Z");
+  assert.equal(o.source_data?.review_needed, false); assert.equal(o.source_data?.pending, undefined);
+  assert.equal(o.notes.split("updated automatically").length, 2);
+  assert.deepEqual((await reconcileBandcampOrders(true, contact)).report.failures, []); assert.deepEqual((await orders())[0], o);
+  // An address change on the same shipped order is still held, and nothing (contact included) is overwritten.
+  const moved = await reconcileBandcampOrders(true, deps(feed([row({ ...shipped, ship_to_phone: "+15552222222", buyer_email: "new@example.invalid", ship_to_street: "456 New St" })])));
+  assert.equal(moved.report.failures.length, 1);
+  o = (await orders())[0]; assert.equal(o.shipping_address.line1, "123 Example St"); assert.equal(o.phone, "+15551111111"); assert.equal(o.source_data?.review_needed, true);
+});
+test("an order already held for a phone-only change clears itself once it has shipped", async () => {
+  const shipped = { ship_date: "06 Mar 2026 21:41:02 GMT" };
+  await reconcileBandcampOrders(true, deps(feed([row({ ...shipped, ship_to_phone: null })])));
+  await db.query(`update merch_orders set source_data = source_data || '{"review_needed":true,"pending":{"phone":"stale"}}'::jsonb`);
+  assert.deepEqual((await reconcileBandcampOrders(true, deps(feed([row(shipped)])))).report.failures, []);
+  const o = (await orders())[0]; assert.equal(o.phone, "+15550000000"); assert.equal(o.source_data?.review_needed, false); assert.equal(o.source_data?.pending, undefined);
+});
+test("phone-only change on an unshipped order is still held for review", async () => {
+  await reconcileBandcampOrders(true, deps());
+  const changed = await reconcileBandcampOrders(true, deps(feed([row({ ship_to_phone: "+15551111111" })])));
+  assert.equal(changed.report.failures.length, 1);
+  const o = (await orders())[0]; assert.equal(o.phone, "+15550000000"); assert.equal(o.fulfillment_status, "on_hold"); assert.equal(o.source_data?.review_needed, true);
+  assert.equal(o.notes.includes("updated automatically"), false);
+});
 test("later Bandcamp shipments update untouched orders, while explicit manual decisions win", async () => {
   await reconcileBandcampOrders(true, deps());
   const shippedFeed = feed([row({ ship_date: "06 Mar 2026 21:41:02 GMT" })]);

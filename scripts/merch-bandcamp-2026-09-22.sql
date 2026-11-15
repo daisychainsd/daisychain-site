@@ -18,7 +18,7 @@ alter table public.merch_orders add constraint merch_orders_payment_status_check
 
 create or replace function public.record_bandcamp_order(payload jsonb)
 returns jsonb language plpgsql security invoker set search_path = public as $$
-declare saved merch_orders; changed boolean;
+declare saved merch_orders; changed boolean; contact boolean;
 begin
   if coalesce(payload->>'source_order_id', '') !~ '^[0-9]+:[0-9]+$'
     or coalesce(payload->>'payment_status', '') not in ('paid','partially_refunded','refunded','pending','failed')
@@ -30,13 +30,20 @@ begin
   if found then
     -- A changed purchased-item/address snapshot needs explicit reconciliation.
     -- Never silently replace a packed order or lose a newly added item.
+    -- A phone/email change alone cannot affect a parcel that already left, so on a shipped order it is
+    -- applied here, under the row lock, instead of holding the order (and alerting daily) for a click.
+    contact := saved.email <> payload->>'email' or saved.phone <> payload->>'phone';
     changed := saved.items <> payload->'items' or saved.shipping_address <> payload->'shipping_address'
-      or saved.customer_name <> payload->>'customer_name' or saved.email <> payload->>'email' or saved.phone <> payload->>'phone'
+      or saved.customer_name <> payload->>'customer_name'
       or saved.currency <> payload->>'currency'
       or saved.subtotal_cents <> (payload->>'subtotal_cents')::integer
       or saved.shipping_cents <> (payload->>'shipping_cents')::integer
-      or saved.tax_cents <> (payload->>'tax_cents')::integer or saved.total_cents <> (payload->>'total_cents')::integer;
-    update merch_orders set payment_status=payload->>'payment_status', source_data=(payload->'source_data') || jsonb_build_object('review_needed', changed) || case when changed then jsonb_build_object('pending',payload) else '{}'::jsonb end,
+      or saved.tax_cents <> (payload->>'tax_cents')::integer or saved.total_cents <> (payload->>'total_cents')::integer
+      or (contact and saved.fulfillment_status <> 'shipped');
+    update merch_orders set payment_status=payload->>'payment_status',
+      email=case when changed then email else coalesce(payload->>'email', email) end,
+      phone=case when changed then phone else coalesce(payload->>'phone', phone) end,
+      notes=case when contact and not changed then left(notes || E'\nBandcamp phone/email updated automatically after shipping.', 2000) else notes end, source_data=(payload->'source_data') || jsonb_build_object('review_needed', changed) || case when changed then jsonb_build_object('pending',payload) else '{}'::jsonb end,
       fulfillment_status=case
         when changed and saved.fulfillment_status <> 'shipped' then 'on_hold'
         when not saved.fulfillment_manually_updated and not changed and payload->'source_data'->'ship_dates' is distinct from saved.source_data->'ship_dates'
