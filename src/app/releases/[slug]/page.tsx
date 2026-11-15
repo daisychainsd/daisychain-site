@@ -58,6 +58,7 @@ export default async function ReleasePage({
         shopifyHandle={release.shopifyHandle}
         status={release.status}
         presaveUrl={release.presaveUrl}
+        presaveLinks={release.presaveLinks}
         embedUrl={release.embedUrl}
         links={release.links}
       />

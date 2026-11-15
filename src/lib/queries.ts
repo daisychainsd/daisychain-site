@@ -43,6 +43,7 @@ export const RELEASE_DETAIL = `
     shopifyHandle,
     status,
     presaveUrl,
+    presaveLinks,
     embedUrl,
     links,
     tracks[] {
@@ -178,6 +179,7 @@ export const LATEST_RELEASE = `
     "slug": slug.current,
     "artist": coalesce(artists[0]->name, displayArtist, artist->name),
     "artistSlug": artist->slug.current,
+    "artists": artists[]->{ name, "slug": slug.current, rosterTier },
     coverArt,
     catalogNumber,
     releaseType,
@@ -227,6 +229,7 @@ export const HOMEPAGE_SETTINGS = `
       "slug": slug.current,
       "artist": coalesce(artists[0]->name, displayArtist, artist->name),
       "artistSlug": artist->slug.current,
+      "artists": artists[]->{ name, "slug": slug.current, rosterTier },
       coverArt,
       catalogNumber,
       releaseType,
@@ -254,7 +257,7 @@ export const HOMEPAGE_SETTINGS = `
     upcoming[] {
       itemType,
       show->{ title, "slug": slug.current, date, venue, flyer, flyerVerticalAlign, ticketUrl, lineup[]{ name, "artistSlug": artist->slug.current } },
-      release->{ title, "slug": slug.current, "artist": coalesce(artists[0]->name, displayArtist, artist->name), "artistSlug": coalesce(artists[0]->slug.current, artist->slug.current), coverArt, presaveUrl, catalogNumber, status, releaseDate }
+      release->{ title, "slug": slug.current, "artist": coalesce(artists[0]->name, displayArtist, artist->name), "artistSlug": coalesce(artists[0]->slug.current, artist->slug.current), "artists": artists[]->{ name, "slug": slug.current, rosterTier }, coverArt, presaveUrl, presaveLinks, catalogNumber, status, releaseDate }
     }
   }
 `;

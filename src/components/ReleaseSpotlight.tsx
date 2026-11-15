@@ -1,3 +1,4 @@
+import ArtistCredits, { type CreditedArtist } from "@/components/ArtistCredits";
 import Link from "next/link";
 import { urlFor } from "@/sanity/image";
 import { ArrowIcon } from "@/components/icons";
@@ -13,6 +14,7 @@ interface SpotlightRelease {
   slug: string;
   artist: string;
   artistSlug?: string;
+  artists?: CreditedArtist[];
   coverArt?: SanityImageRef;
   catalogNumber?: string;
   releaseType?: string;
@@ -91,16 +93,7 @@ export default function ReleaseSpotlight({ release }: ReleaseSpotlightProps) {
               <h3 className="font-black leading-tight text-text-primary text-3xl md:text-4xl">
                 {release.title}
               </h3>
-              {release.artistSlug ? (
-                <Link
-                  href={`/artists/${release.artistSlug}`}
-                  className="text-blue-300 text-lg hover:text-blue-200 transition-colors w-fit"
-                >
-                  {release.artist}
-                </Link>
-              ) : (
-                <span className="text-blue-300 text-lg">{release.artist}</span>
-              )}
+              <ArtistCredits artists={release.artists} name={release.artist} slug={release.artistSlug} />
               <DspRow links={release.links} />
               {release.tracks && release.tracks.length > 0 && (
                 <div className="mt-2 min-w-0">

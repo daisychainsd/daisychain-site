@@ -256,6 +256,23 @@ export const release = defineType({
       description: "Link to pre-save on Spotify, Apple Music, etc. Only shown when Status is Upcoming.",
     }),
     defineField({
+      name: "presaveLinks",
+      title: "Pre-save Links (per service)",
+      type: "object",
+      description:
+        "One pre-save link per service. When any are filled in, the release page shows them as a list and the homepage Pre-save button goes to that list instead of the single Pre-save URL above. Leave a field blank to hide that service. Only shown when Status is Upcoming.",
+      fields: [
+        { name: "spotify", title: "Spotify", type: "url" },
+        { name: "appleMusic", title: "Apple Music", type: "url" },
+        { name: "soundcloud", title: "SoundCloud", type: "url" },
+        { name: "amazonMusic", title: "Amazon Music", type: "url" },
+        { name: "tidal", title: "Tidal", type: "url" },
+        { name: "deezer", title: "Deezer", type: "url" },
+        { name: "audiomack", title: "Audiomack", type: "url" },
+      ],
+      options: { collapsible: true, collapsed: true },
+    }),
+    defineField({
       name: "embedUrl",
       title: "Embed URL (Bandcamp/Soundcloud/Spotify)",
       type: "url",
