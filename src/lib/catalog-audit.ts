@@ -33,7 +33,7 @@ type AuditEvent = { title: string };
 
 export type AuditFinding = {
   kind: "broken" | "unverifiable" | "missing";
-  where: string; // e.g. "DCR#22 Ballerina"
+  where: string; // e.g. "DCR22 Ballerina"
   what: string; // e.g. "Spotify link (HTTP 404)"
 };
 

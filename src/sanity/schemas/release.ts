@@ -89,6 +89,8 @@ export const release = defineType({
       name: "catalogNumber",
       title: "Catalog Number",
       type: "string",
+      description:
+        "Match the NEW DCR METADATA sheet exactly: no #, no leading zero (DCR27). Remixes add R (DCR18R).",
     }),
     defineField({
       name: "releaseType",
