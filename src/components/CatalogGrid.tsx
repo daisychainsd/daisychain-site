@@ -47,7 +47,10 @@ export default function CatalogGrid({ releases }: { releases: CatalogRelease[] }
     if (sort === "newest") {
       list.sort((a, b) => (b.releaseDate || "").localeCompare(a.releaseDate || ""));
     } else if (sort === "catalog") {
-      list.sort((a, b) => (a.catalogNumber || "").localeCompare(b.catalogNumber || ""));
+      // numeric: DCR2 < DCR2R < DCR10 (catalog numbers have no leading zeros)
+      list.sort((a, b) =>
+        (a.catalogNumber || "").localeCompare(b.catalogNumber || "", undefined, { numeric: true }),
+      );
     }
 
     return list;

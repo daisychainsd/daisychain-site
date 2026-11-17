@@ -55,7 +55,7 @@ Daisy Chain writes the way a label runs a 300-cap room — tight, warm, factual,
 
 **Tone:** intimate, knowing, San Diego. It is a dance floor first, a label second. Copy never oversells; it names the thing and moves on ("Independent electronic music label based in San Diego, California." — full stop, no adjectives).
 
-**Casing:** Section headings are **uppercase black weight** ("SHOWS", "MUSIC", "UPCOMING"). Metadata labels are uppercase with letter-spacing (`data-label`). Release + track titles are **Title Case As Delivered** — never auto-capitalized ("and then i started floating EP" stays lowercase because the artist wrote it that way). Catalog numbers are `DCR#XX` style, monospace.
+**Casing:** Section headings are **uppercase black weight** ("SHOWS", "MUSIC", "UPCOMING"). Metadata labels are uppercase with letter-spacing (`data-label`). Release + track titles are **Title Case As Delivered** — never auto-capitalized ("and then i started floating EP" stays lowercase because the artist wrote it that way). Catalog numbers are `DCR22` style (no hash), monospace.
 
 **Emoji:** None. There is no emoji anywhere in the codebase copy. Icons are drawn as SVG or represented by a pill + text. The brand mark itself — the daisy — functions as the only "emoji."
 
@@ -67,9 +67,9 @@ Daisy Chain writes the way a label runs a 300-cap room — tight, warm, factual,
 - Footer: `© 2026 Daisy Chain Records. San Diego, CA.`
 
 **Specifics to keep:**
-- "Daisy Chain" (two words, space) — never "DaisyChain" or "DC" except in event codes (DC#28, DCR#22).
-- Release numbering: `DCR#22 "Ballerina"` — hash before number, em-dash before title.
-- Remixes use `.5` — `DCR#18.5 — Cocky (Coido Remix)`.
+- "Daisy Chain" (two words, space) — never "DaisyChain" or "DC" except in event codes (DC#28, DCR22).
+- Release numbering: `DCR22 "Ballerina"` — no hash, no leading zero (`DCR1`, not `DCR#01`), em-dash before title. The NEW DCR METADATA Google Sheet is the source of truth.
+- Remixes add `R` — `DCR18R — Cocky (Coido Remix)`.
 - "Daisy Chain Mail" = the newsletter. "Daisy Chain Records" = the label. "Daisy Chain" = the party.
 
 ---
@@ -88,7 +88,7 @@ Daisy Chain writes the way a label runs a 300-cap room — tight, warm, factual,
 ### Type
 - **Azo Sans Web Black (weight 900)** for every heading and most UI chrome. Archivo Black is the Google-Font substitute used in this system.
 - **IBM Plex Sans** for body + form text.
-- **IBM Plex Mono** for catalog numbers (`DCR#20`), dates (`MAY 8`), labels, and data.
+- **IBM Plex Mono** for catalog numbers (`DCR20`), dates (`MAY 8`), labels, and data.
 - Heading convention: **UPPERCASE, -0.02em to -0.03em tracking, line-height 0.9–1.1**. Section headings on the homepage are fluid `clamp(2.75rem, 10vw, 10rem)` — they get huge on desktop, always left-aligned.
 - Labels use `data-label` styling: uppercase, `letter-spacing: 0.06em`, weight 700, muted color.
 
